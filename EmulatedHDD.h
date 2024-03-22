@@ -1,7 +1,7 @@
 #ifndef EMULATEDHDD_H
 #define EMULATEDHDD_H
 
-#include <iostream>
+// #include <iostream>
 #include <chrono>
 #include <thread>
 
@@ -28,7 +28,7 @@ public:
     std::string getHDDNameWithCurrentTime();
 
     // Getters
-    double getCapacity() const;
+    double getDir() const;
     double getLatency() const;
     double getBandwidth() const;
 };

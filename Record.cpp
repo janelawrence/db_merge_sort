@@ -1,24 +1,33 @@
 #include "Record.h"
-#include <iostream>
-#include <string>
+// #include <string>
 #include <random>
 
 // Constructor
-Record::Record(int s, const std::string& k) : size(s) {
-        if (k.empty()) {
+Record::Record(int s, const char* k) : size(s) {
+        if (k[0] == '\0') {
+	        printf("\nStart generating random key\n");
+
         // Generate random key if the provided key is empty
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis('a', 'z');
 
+        key = new char[11];
+
         // Generating a random string of length 10
         for (int i = 0; i < 10; ++i) {
-            key += static_cast<char>(dis(gen));
+            key[i] = static_cast<char>(dis(gen));
         }
     } else {
         // Use the provided key
-        key = k;
+        key = new char[strlen(k) + 1]; // Allocate memory for the provided key
+        strcpy(key, k);
     }
+}
+
+// Destructor
+Record::~Record() {
+    delete[] key; // Deallocate memory for key
 }
 
 // Getters
@@ -27,7 +36,7 @@ int Record::getSize() const {
 }
 
 
-std::string Record::getKey() const {
+const char* Record::getKey() const {
     return key;
 }
 
@@ -36,30 +45,37 @@ void Record::setSize(int s) {
     size = s;
 }
 
-void Record::setKey(const std::string& k) {
-    key = k;
+void Record::setKey(const char* k) {
+    delete[] key; // Deallocate memory for the current key
+    key = new char[strlen(k) + 1]; // Allocate memory for the new key
+    strcpy(key, k); // Copy the new key into key
 }
 
 // Display method
 void Record::display() const {
-    std::cout << "Key: " << key << ", Size: " << size << std::endl;
+    // std::cout << "Key: " << key << ", Size: " << size << std::endl;
+	printf("key: %s, Size: %d\n", key, size);
+
+    
 }
 
-int main() {
-    // Creating a Record object
-    Record record(10, "");
+// int main() {
+//     // Creating a Record object
+//     Record record(10, "");
 
-    // Displaying the initial record attributes
-    std::cout << "Initial Record:" << std::endl;
-    record.display();
+//     // Displaying the initial record attributes
+//     // std::cout << "Initial Record:" << std::endl;
+// 	printf("Initial Record:\n");
+//     record.display();
 
-    // Modifying record attributes
-    record.setSize(20);
-    record.setKey("sdf");
+//     // Modifying record attributes
+//     record.setSize(20);
+//     record.setKey("sdf");
 
-    // Displaying the modified record attributes
-    std::cout << "\nModified Record:" << std::endl;
-    record.display();
+//     // Displaying the modified record attributes
+//     // std::cout << "\nModified Record:" << std::endl;
+// 	printf("\nModified Record:\n");
+//     record.display();
 
-    return 0;
-}
+//     return 0;
+// }

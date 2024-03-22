@@ -1,5 +1,6 @@
 #include "EmulatedHDD.h"
 #include <iostream>
+#include "defs.h"
 #include <fstream>
 #include <chrono>
 #include <thread>
@@ -10,6 +11,8 @@
 
 
 // Constructor
+// size in MB
+// bandiwith in MB
 EmulatedHDD::EmulatedHDD(const std::string& dir, double lat, double bw) : latency(lat), bandwidth(bw) {
     if(dir.empty()) {
         directory = createHDD();
@@ -19,6 +22,7 @@ EmulatedHDD::EmulatedHDD(const std::string& dir, double lat, double bw) : latenc
 }
 
 // Method to simulate read operation
+// size in MB
 void EmulatedHDD::readData(const std::string& filename, int size) {
     // Simulate latency
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
@@ -26,7 +30,7 @@ void EmulatedHDD::readData(const std::string& filename, int size) {
     // Open file for reading
     std::ifstream file(directory + "/" + filename, std::ios::binary);
     if (!file.is_open()) {
-        std::cerr << "Error: Failed to open file for reading: " << filename << std::endl;
+        printf("Error: Failed to open file for reading: %s\n", filename.c_str());
         return;
     }
 
@@ -41,12 +45,15 @@ void EmulatedHDD::readData(const std::string& filename, int size) {
     double transferTime = static_cast<double>(size) / bandwidth;
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(transferTime * 1000)));
 
-    std::cout << "Read " << size << " bytes from file: " << filename << ". Transfer time: " << transferTime << " seconds\n";
+    // std::cout << "Read " << size << " bytes from file: " << filename << ". Transfer time: " << transferTime << " seconds\n";
+    printf("Read %d bytes from file: %s. Transfer time: %f seconds\n", size, filename.c_str(), transferTime);
 
     delete[] buffer;
 }
 
 // Method to simulate write operation
+// size in MB
+// bandiwith in MB
 void EmulatedHDD::writeData(const std::string& filename, int size) {
     // Simulate latency
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
@@ -54,18 +61,20 @@ void EmulatedHDD::writeData(const std::string& filename, int size) {
     // Open file for writing
     std::ofstream file(directory + "/" + filename, std::ios::binary);
     if (!file.is_open()) {
-        std::cerr << "Error: Failed to open file for writing: " << filename << std::endl;
+        // std::cerr << "Error: Failed to open file for writing: " << filename << std::endl;
+        printf("Error: Failed to open file for writing: %s\n", filename.c_str());
+        
         return;
     }
-
+    int sizeInBytes = size * 1024 * 1024;
     // Generate random data
-    char* buffer = new char[size];
-    for (int i = 0; i < size; ++i) {
+    char* buffer = new char[sizeInBytes];
+    for (int i = 0; i < sizeInBytes; ++i) {
         buffer[i] = rand() % 256; // Random byte value
     }
 
     // Write data to file
-    file.write(buffer, size);
+    file.write(buffer, sizeInBytes);
 
     // Close file
     file.close();
@@ -74,7 +83,8 @@ void EmulatedHDD::writeData(const std::string& filename, int size) {
     double transferTime = static_cast<double>(size) / bandwidth;
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(transferTime * 1000)));
 
-    std::cout << "Wrote " << size << " bytes to file: " << filename << ". Transfer time: " << transferTime << " seconds\n";
+    // std::cout << "Wrote " << size << " bytes to file: " << filename << ". Transfer time: " << transferTime << " seconds\n";
+    printf("Wrote %d bytes to file: %s. Transfer time: %f seconds\n", size, filename.c_str(), transferTime);
 
     delete[] buffer;
 }
@@ -88,9 +98,12 @@ std::string EmulatedHDD::createHDD() {
     // Create directory
     int status = mkdir(cdirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == 0) {
-        std::cout << "Directory created successfully: " << dirname << std::endl;
+        // std::cout << "Directory created successfully: " << dirname << std::endl;
+        printf("Directory created successfully: %s", dirname.c_str());
     } else {
-        std::cerr << "Error: Failed to create directory" << std::endl;
+        // std::cerr << "Error: Failed to create directory" << std::endl;
+        printf("Error: Failed to create directory");
+
     }
     return dirname;
 }
@@ -102,7 +115,7 @@ std::string EmulatedHDD::getHDDNameWithCurrentTime() {
 
     // Format date and time
     std::stringstream ss;
-    ss << "hdd_";
+    ss << "hdd_unsorted_";
     ss << std::setfill('0') << std::setw(4) << (tm->tm_year + 1900); // Year with 4 digits
     ss << std::setw(2) << (tm->tm_mon + 1);  // Month with leading zero
     ss << std::setw(2) << tm->tm_mday;       // Day with leading zero
@@ -115,15 +128,15 @@ std::string EmulatedHDD::getHDDNameWithCurrentTime() {
 }
 
 
-int main() {
-    // Create an EmulatedHDD object with empty directory, latency 5ms, and bandwidth 100MB/s
-    EmulatedHDD hdd("", 5, 100);
+// int main() {
+//     // Create an EmulatedHDD object with empty directory, latency 5ms, and bandwidth 100MB/s
+//     EmulatedHDD hdd("", 5, 100);
 
-    // Simulate read and write operations
-    hdd.writeData("test.txt", 1024); // Writing 1KB to "test.txt"
-    hdd.writeData("test2.txt", 1024); // Writing 1KB to "test2.txt"
+//     // Simulate read and write operations
+//     hdd.writeData("test.txt", 1024); // Writing 1KB to "test.txt"
+//     hdd.writeData("test2.txt", 1024); // Writing 1KB to "test2.txt"
 
-    hdd.readData("test.txt", 1024);  // Reading 1KB from "test.txt"
+//     hdd.readData("test.txt", 1024);  // Reading 1KB from "test.txt"
 
-    return 0;
-}
+//     return 0;
+// }
