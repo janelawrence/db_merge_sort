@@ -43,13 +43,6 @@ Record * EmulatedHDD::readData(const std::string& filename, int size) {
     // Close file
     file.close();
 
-    // TODO: return Record*
-    // char* key = new char[11];
-    // for(int i = 0; i < 10; ++i) {
-    //     key[i] = buffer[i];
-    // }
-    // Record * record = new Record(size, key);
-    // record->setContent(buffer);
     Record * record = Record::deserialize(buffer, size);
 
     // Simulate bandwidth
@@ -83,11 +76,7 @@ void EmulatedHDD::writeData(const std::string& filename, Record* record) {
         
         return;
     }
-    // Generate random data
-    // char* buffer = new char[size];
-    // for (int i = 10; i < size; ++i) {
-    //     buffer[i] = rand() % 256; // Random byte value
-    // }
+
     int size = record->getSize();
     TRACE (true);
     // Write data to file
@@ -136,13 +125,12 @@ std::string EmulatedHDD::getHDDNameWithCurrentTime() {
     // Format date and time
     std::stringstream ss;
     ss << "hdd_unsorted_";
-    ss << std::setw(2) << tm->tm_hour;       // Hour with leading zero
-    ss << std::setw(2) << tm->tm_min;        // Minute with leading zero
-    ss << std::setw(2) << tm->tm_sec;        // Second with leading zero
-    ss << "_";
     ss << std::setfill('0') << std::setw(2) << (tm->tm_mon + 1);  // Month with leading zero
     ss << std::setw(2) << tm->tm_mday;       // Day with leading zero
     ss << "_";
+    ss << std::setfill('0') << std::setw(2) << tm->tm_hour;       // Hour with leading zero
+    ss << std::setw(2) << tm->tm_min;        // Minute with leading zero
+    ss << std::setw(2) << tm->tm_sec;        // Second with leading zero
     ss << std::setfill('0') << std::setw(4) << (tm->tm_year + 1900); // Year with 4 digits
 
 
