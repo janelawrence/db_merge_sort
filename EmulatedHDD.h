@@ -4,6 +4,7 @@
 // #include <iostream>
 #include <chrono>
 #include <thread>
+#include "Record.h"
 
 class EmulatedHDD {
 private:
@@ -16,10 +17,10 @@ public:
     EmulatedHDD(const std::string& dir, double lat, double bw);
 
     // Read data from EmulatedHDD with given size in bytes
-    void readData(const std::string& filename, int size);
+    Record * readData(const std::string& filename, int size);
 
     // Write data to EmulatedHDD with given size in bytes
-    void writeData(const std::string& filename, int siz);
+    void writeData(const std::string& filename, Record* record);
 
     // Create directory as a HDD
     std::string createHDD();
@@ -28,7 +29,7 @@ public:
     std::string getHDDNameWithCurrentTime();
 
     // Getters
-    double getDir() const;
+    std::string getDir() const;
     double getLatency() const;
     double getBandwidth() const;
 };
