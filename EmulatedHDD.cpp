@@ -131,6 +131,7 @@ std::string EmulatedHDD::getHDDNameWithCurrentTime() {
     ss << std::setfill('0') << std::setw(2) << tm->tm_hour;       // Hour with leading zero
     ss << std::setw(2) << tm->tm_min;        // Minute with leading zero
     ss << std::setw(2) << tm->tm_sec;        // Second with leading zero
+    ss << "_";
     ss << std::setfill('0') << std::setw(4) << (tm->tm_year + 1900); // Year with 4 digits
 
 
