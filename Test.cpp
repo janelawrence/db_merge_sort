@@ -69,6 +69,18 @@ int main (int argc, char * argv [])
 		run->printRun();
 		printf("\n");
 	}
+	int numRunsInCache = sortedRunsInCache.size();
+	if(numRunsInCache == 1) {
+		// sorting done, write to HDD
+		HDD* outputHDD = new HDD("sorted", 5, 100);
+		std::vector<Record*> sortedRecords = sortedRunsInCache[0]->getRecords();
+		for(int i = 0; i < sortedRecords.size(); i++) {
+			outputHDD->writeData(sortedRecords[i]->getKey(), sortedRecords[i]);
+		}
+		delete outputHDD;
+	}
+	// Check if numRunsInCache * recordSize can fit in DRAM
+	// TODO: WRITE TO DRAM, and merge in DRAM
 
 
 

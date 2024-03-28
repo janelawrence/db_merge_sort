@@ -14,7 +14,7 @@ class HDD {
 
     public:
         // Constructor
-        HDD(const std::string& dir, double lat, double bw);
+        HDD(const std::string& dirPrefix, double lat, double bw);
 
         // Read one record from HDD with given size in bytes
         Record * readData(const std::string& filename, int recordSize);
@@ -26,10 +26,10 @@ class HDD {
         void writeData(const std::string& filename, Record* record);
 
         // Create directory as a HDD
-        std::string createHDD();
+        std::string createHDD(const std::string& prefix);
 
         // Get name hdd with date and time as suffix
-        std::string getHDDNameWithCurrentTime();
+        static std::string getHDDNameWithCurrentTime(const std::string& prefix);
 
         // Getters
         std::string getDir() const;

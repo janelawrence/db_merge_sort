@@ -15,14 +15,15 @@
 #include <dirent.h>
 #include <vector>
 
+
 // Constructor
 // size in B
 // bandiwith in MB/s
-HDD::HDD(const std::string& dir, double lat, double bw) : latency(lat), bandwidth(bw) {
-    if(dir.empty()) {
-        directory = createHDD();
+HDD::HDD(const std::string& dirPrefix, double lat, double bw) : latency(lat), bandwidth(bw) {
+    if(dirPrefix.empty()) {
+        directory = createHDD("hdd_unsorted");
     }else{
-        directory = dir;
+        directory = createHDD(dirPrefix);
     }
 }
 
@@ -128,8 +129,8 @@ void HDD::writeData(const std::string& filename, Record* record) {
 
 }
 
-std::string HDD::createHDD() {
-    const std::string dirname = getHDDNameWithCurrentTime(); // Replace with desired directory path
+std::string HDD::createHDD(const std::string& prefix) {
+    const std::string dirname = HDD::getHDDNameWithCurrentTime(prefix); // Replace with desired directory path
 
     // Convert std::string to const char*
     const char* cdirname = dirname.c_str();
@@ -147,14 +148,16 @@ std::string HDD::createHDD() {
     return dirname;
 }
 
-std::string HDD::getHDDNameWithCurrentTime() {
+std::string HDD::getHDDNameWithCurrentTime(const std::string& prefix) {
      // Get current time
     std::time_t now = std::time(nullptr);
     std::tm* tm = std::localtime(&now);
 
     // Format date and time
     std::stringstream ss;
-    ss << "hdd_unsorted_";
+    // ss << "hdd_unsorted_";
+    ss << prefix;
+    ss << "_";
     ss << std::setfill('0') << std::setw(2) << (tm->tm_mon + 1);  // Month with leading zero
     ss << std::setw(2) << tm->tm_mday;       // Day with leading zero
     ss << "_";
@@ -167,6 +170,7 @@ std::string HDD::getHDDNameWithCurrentTime() {
 
     return ss.str();
 }
+
 
 std::string HDD::getDir() const{
     return directory;
