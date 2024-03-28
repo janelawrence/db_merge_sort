@@ -46,20 +46,36 @@ bool TreeOfLosers::isEmpty(){
 
 
 // Main function for testing
+// To test this main individually:
+// use: g++ Record.cpp TreeOfLosers.cpp -o tree
 // int main() {
 //     TreeOfLosers tree;
+//     Record * r1 = new Record(20, "alsdfeei");
+//     Record * r2 = new Record(20, "ewfeasdf");
+//     Record * r3 = new Record(20, "bdfsewfh");
+//     Record * r4 = new Record(20, "abcdasdf");
+//     Record * r5 = new Record(20, "eeerghwr");
 
-//     // Insert some keys
-//     tree.insert("alsdfe", 1);
-//     tree.insert("eaer", 0);
-//     tree.insert("ooo", 5);
-//     tree.insert("aab", 2);
-//     tree.insert("asefe", 7);
+//     r1->setSlot(1);
+//     r2->setSlot(2);
+//     r3->setSlot(3);
+//     r4->setSlot(4);
+//     r5->setSlot(5);
+
+
+
+//     // Insert some records
+//     tree.insert(r1);
+//     tree.insert(r2);
+//     tree.insert(r3);
+//     tree.insert(r4);
+//     tree.insert(r5);
+
 
 //     // Get and print the minimum key again
 //     while(!tree.isEmpty()) {
 //         Record* curr = tree.getMin();
-//         printf("Key: %s, slot: %d\n", curr->key, curr->slot);
+//         printf("Key: %s, slot: %d\n", curr->getKey(), curr->getSlot());
 //         // std::cout << "Minimum key after deletion: " << tree.getMin()->key << std::endl;
 //         tree.deleteMin();
 //     }

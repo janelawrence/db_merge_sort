@@ -3,23 +3,24 @@
 #include "Record.h"
 #include "HDD.h"
 #include "DRAM.h"
+#include "Run.h"
 #include "TreeOfLosers.h"
 
 
 class CACHE {
     private:
-        double MAX_CAPACITY = 1 * 1024 * 1024;  // Capacity is 1 MB
+        double MAX_CAPACITY = 100;  // DUMMY Value for demo: Capacity is 100 B
+        // double MAX_CAPACITY = 1 * 1024 * 1024;  // Capacity is 1 MB
         double capacity = MAX_CAPACITY;
         TreeOfLosers tree;
     public:
         // Constructor
         CACHE();
 
-        std::vector<Run*> readFromHDD(int totalSize,int recordSize, HDD* hdd, DRAM* dram);
+        std::vector<Run*> readFromHDD(int recordSize, HDD* hdd);
 
-        Run* sort(HDD* hdd, DRAM* dram, std::vector<Record*> records, int slotIdx);
+        Run* sort(HDD* hdd, std::vector<Record*> records, int slotIdx);
 
-        void writeToDRAM(DRAM* dram);
 
         // Getters
         double getCapacity() const;

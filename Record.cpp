@@ -11,10 +11,10 @@ Record::Record(int s, const char* k) : size(s) {
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis('a', 'z');
 
-        key = new char[8];
+        key = new char[KEY_SIZE + 1];
 
         // Generating a random string of length 10
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < KEY_SIZE; ++i) {
             key[i] = static_cast<char>(dis(gen));
         }
     } else {
@@ -22,11 +22,20 @@ Record::Record(int s, const char* k) : size(s) {
         key = new char[strlen(k) + 1]; // Allocate memory for the provided key
         strcpy(key, k);
     }
-    int contentsize = size - sizeof(int) - (strlen(key) + 1);
+    int contentsize = size - 2 * sizeof(int) - (strlen(key) + 1);
     printf("contentsize: %d\n", contentsize);
     generateRandomBytes();
 
 }
+
+// Copy constructor definition
+Record::Record(const Record& other) : size(other.size), slot(other.slot) {
+    key = new char[strlen(other.key) + 1];
+    content = new char[strlen(other.content) + 1];
+    strcpy(key, other.key);
+    strcpy(content, other.content);
+}
+
 
 // Destructor
 Record::~Record() {
@@ -60,23 +69,26 @@ char * Record::serialize() const {
 
 Record* Record::deserialize(const char* serializedData, int dataSize) {
     // first sizeof(int) bytes is size
-    int contentSize = dataSize - 2 * sizeof(int) - 9;
+    // second sizeof(int) bytes is slot index
+    int contentSize = dataSize - 2 * sizeof(int) - (KEY_SIZE + 1);
     int s;
     int slotIdx;
-    char* k = new char[9];
+    char* k = new char[(KEY_SIZE + 1)];
     printf("size: %d, ContentSize: %d\n", dataSize , contentSize);
     char* cont = new char[contentSize];
     memcpy(&s, serializedData, sizeof(int));
     memcpy(&slotIdx, serializedData, sizeof(int));
-    memcpy(k, serializedData + sizeof(int), 9);
-    memcpy(cont, serializedData + sizeof(int) + 9, contentSize);
+    memcpy(k, serializedData + sizeof(int), (KEY_SIZE + 1));
+    memcpy(cont, serializedData + sizeof(int) + (KEY_SIZE + 1), contentSize);
     Record* record = new Record(dataSize, k);
     record->setContent(cont);
     record->setSlot(slotIdx);
     return record;
 }
 
-
+void Record::printRecord(){
+    printf("Record: key %s, slot: %d, size: %d\n", key, slot, size);
+};
 
 // Getters
 int Record::getSize() const {
@@ -114,9 +126,11 @@ void Record::setKey(const char* k) {
 }
 
 void Record::setContent(const char* data) {
-    delete[] content; // Deallocate memory for the current data
-    content = new char[strlen(data) + 1]; // Allocate memory for the new content
-    strcpy(content, data); // Copy the new content into content
+    if(data != nullptr) {
+        delete[] content; // Deallocate memory for the current data
+        content = new char[strlen(data) + 1]; // Allocate memory for the new content
+        strcpy(content, data); // Copy the new content into content
+    }
 }
 
 // Display method
@@ -124,3 +138,25 @@ void Record::display() const {
     // std::cout << "Key: " << key << ", Size: " << size << std::endl;
 	printf("key: %s, Size: %d\n", key, size);
 }
+
+
+// int main() {
+
+//     Record * r1 = new Record(20, "");
+//     Record * r2 = new Record(20, "");
+//     Record * r3 = new Record(20, "");
+//     Record * r4 = new Record(20, "");
+//     Record * r5 = new Record(20, "");
+
+//     r1->setSlot(1);
+//     r2->setSlot(2);
+//     r3->setSlot(3);
+//     r4->setSlot(4);
+//     r5->setSlot(5);
+
+//     r1->printRecord();
+//     r2->printRecord();
+//     r3->printRecord();
+//     r4->printRecord();
+//     r5->printRecord();
+// }

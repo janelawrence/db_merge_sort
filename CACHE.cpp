@@ -1,6 +1,7 @@
 #include "CACHE.h"
 #include "defs.h"
 #include "Run.h"
+#include "HDD.h"
 
 #include <iostream>
 #include <chrono>
@@ -12,64 +13,60 @@
 // Constructor
 CACHE::CACHE(){};
 
-std::vector<Run*> CACHE::readFromHDD(int totalSize, int recordSize, HDD* hdd, DRAM* dram){
-    bool fitInCache = true;
+std::vector<Run*> CACHE::readFromHDD(int recordSize, HDD* hdd){
 
-    if(totalSize > capacity) {
-        fitInCache = false;
-    }
     std::vector<Run*> runs;
-    // TODO: May not need this case
-    if(fitInCache) {
-        std::vector<Record*> records = hdd->readFilesInHDD(recordSize);
-        //sorting
-        sort(hdd, dram, records, 0);
+    int maxNumRecords = capacity / recordSize;
+    std::vector<Record*> records;
+
+    DIR* dir = opendir(hdd->getDir().c_str());
+
+    if (!dir) {
+        std::cerr << "Failed to open directory" << std::endl;
         return runs;
-
-    }else {
-	    int maxNumRecords = capacity / recordSize;
-        std::vector<Record*> records;
-
-        DIR* dir = opendir(hdd->getDir().c_str());
-
-        std::vector<Record*> records;
-        if (!dir) {
-            std::cerr << "Failed to open directory" << std::endl;
-            return;
-        }
-        dirent* entry;
-        int numReadIn = 0;
-        int slotIdx = 0;
-        while ((entry = readdir(dir)) != nullptr && numReadIn < maxNumRecords) {
-            // Skip directories and special entries
-            if (entry->d_type != DT_REG) {
-                continue;
-            }
-            // Read data from file using hdd.readData
-            Record * record = hdd->readData(entry->d_name, recordSize);
-
-            // Append the records to the vector
-            if(record != nullptr) {
-                records.push_back(record);
-            }
-            numReadIn++;
-            if(numReadIn == maxNumRecords) {
-                //sorting
-                Run* run = sort(hdd, dram, records, slotIdx);
-                runs.push_back(run);
-
-                slotIdx++;
-                records.clear();
-            }
-
-        }
-
-        closedir(dir);
     }
-    return runs;
-};
+    dirent* entry;
+    int numReadIn = 0;
+    int slotIdx = 0;
+    while ((entry = readdir(dir)) != nullptr && numReadIn < maxNumRecords) {
+        // Skip directories and special entries
+        if (entry->d_type != DT_REG) {
+            continue;
+        }
+        // Read data from file using hdd.readData
+        Record * record = hdd->readData(entry->d_name, recordSize);
+        // Append the records to the vector
+        if(record != nullptr) {
+            records.push_back(record);
+        }
+        numReadIn++;
+        if(numReadIn == maxNumRecords) {
+            //sorting
+            Run* run = sort(hdd, records, slotIdx);
+            runs.push_back(run);
 
-Run* CACHE::sort(HDD* hdd, DRAM* dram, std::vector<Record*> records, int slotIdx){
+            slotIdx++;
+            records.clear();
+            numReadIn = 0;
+        }
+
+    }
+
+    // Last run that does not fill up CACHE
+    if (numReadIn > 0 && numReadIn < maxNumRecords) {
+        //sorting
+        Run* run = sort(hdd, records, slotIdx);
+        runs.push_back(run);
+
+        slotIdx++;
+        records.clear();
+        numReadIn = 0;
+    }
+    closedir(dir);
+    return runs;
+}
+
+Run* CACHE::sort(HDD* hdd, std::vector<Record*> records, int slotIdx){
     for(int i = 0; i < records.size(); i++) {
         Record* record = records[i];
         record->setSlot(slotIdx);
@@ -79,22 +76,46 @@ Run* CACHE::sort(HDD* hdd, DRAM* dram, std::vector<Record*> records, int slotIdx
     printf("\n\nCLEAR CACHE NOW\n");
     std::vector<Record*> sortedRecords;
 
+
     while(!tree.isEmpty()) {
-        Record* curr = tree.getMin();
+        Record* curr = new Record(*(tree.getMin()));
         sortedRecords.push_back(curr);
-        printf("Key: %s, slot: %d\n", curr->getKey(), curr->getSlot());
-        // std::cout << "Minimum key after deletion: " << tree.getMin()->key << std::endl;
         tree.deleteMin();
     }
+
+
     return new Run(sortedRecords);
 }
 
-void CACHE::writeToDRAM(DRAM* dram){};
 
 double CACHE::getCapacity() const{
     return capacity;
 }
 
+// g++ defs.cpp Run.cpp Record.cpp TreeOfLosers.cpp HDD.cpp CACHE.cpp -o cache
+// int main (int argc, char * argv []){
+//     // Create a hdd to store unsorted records
+// 	HDD * const hdd = new HDD ("", 5, 100);
 
+//     int numRecords = 8;
+//     int recordSize = 20;
+
+//     Record * record;
+// 	// Generate numRecords number of records in HDD
+// 	for(int i = 0; i < numRecords; i++) {
+// 		record = new Record (recordSize, "");
+// 		hdd->writeData(record->getKey(), record);
+// 	}
+
+//     CACHE* cache = new CACHE();
+// 	std::vector<Run*> sortedRunsInCache = cache->readFromHDD(recordSize, hdd);
+	
+//     for(int i = 0; i < sortedRunsInCache.size(); i++) {
+// 		Run* run = sortedRunsInCache[i];
+// 		printf("------------- %d th Run -----------\n", i);
+// 		run->printRun();
+// 		printf("\n");
+// 	}
+// }
 
 

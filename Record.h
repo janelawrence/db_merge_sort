@@ -2,18 +2,23 @@
 #define RECORD_H
 
 
+
+inline int KEY_SIZE = 8; 
+
 class Record {
     private:
         int size;
         int slot = -1;
         char* key;
         char* content;
-        // std::string key;
 
 
     public:
         // Constructor
         Record(int s, const char* k);
+        
+        // Copy constructor
+        Record(const Record& other);
 
         // Wrtie random bytes to file
         void generateRandomBytes();
@@ -21,7 +26,9 @@ class Record {
         // Serialize record
         char * serialize() const;
         static Record * deserialize(const char* serializedData, int dataSize);
-
+        
+        // Print record
+        void printRecord();
 
         // Destructor
         ~Record();

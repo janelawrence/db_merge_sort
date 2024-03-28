@@ -7,8 +7,8 @@
 
 ### New files added:
 
-EmulatedHDD.cpp
-EmulatedHDD.h
+HDD.cpp
+HDD.h
 
 EmulatedSDD.cpp
 EmulatedSDD.h

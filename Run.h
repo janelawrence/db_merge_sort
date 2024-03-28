@@ -10,6 +10,7 @@ class Run {
     public:
         Run(std::vector<Record*> res);
 
+        void printRun(bool listRecord = true);
         // Getters
         std::vector<Record*> getRecords() const;
 };
