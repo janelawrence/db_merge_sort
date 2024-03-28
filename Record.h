@@ -3,43 +3,46 @@
 
 
 class Record {
-private:
-    int size;
-    char* key;
-    char* content;
-    // std::string key;
+    private:
+        int size;
+        int slot = -1;
+        char* key;
+        char* content;
+        // std::string key;
 
 
-public:
-    // Constructor
-    Record(int s, const char* k);
+    public:
+        // Constructor
+        Record(int s, const char* k);
 
-    // Wrtie random bytes to file
-    void generateRandomBytes();
+        // Wrtie random bytes to file
+        void generateRandomBytes();
 
-    // Serialize record
-    char * serialize() const;
-    static Record * deserialize(const char* serializedData, int dataSize);
-
-
-    // Destructor
-    ~Record();
+        // Serialize record
+        char * serialize() const;
+        static Record * deserialize(const char* serializedData, int dataSize);
 
 
-    // Getters
-    int getSize() const;
-    const char* getKey() const;
-    const char* getContent() const;
+        // Destructor
+        ~Record();
 
 
-    // Setters
-    void setSize(int s);
-    void setKey(const char* k);
-    void setContent(const char* data);
+        // Getters
+        int getSize() const;
+        int getSlot() const;
+        const char* getKey() const;
+        const char* getContent() const;
 
 
-    // Display method
-    void display() const;
-};
+        // Setters
+        void setSize(int s);
+        void setSlot(int s);
+        void setKey(const char* k);
+        void setContent(const char* data);
+
+
+        // Display method
+        void display() const;
+    };
 
 #endif // RECORD_H

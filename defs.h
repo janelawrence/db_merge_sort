@@ -134,3 +134,4 @@ size_t msb (size_t const x);
 int msbi (size_t const x);
 char const * YesNo (bool const b);
 char const * OkBad (bool const b);
+int ceilDiv(int dividend, int divisor);

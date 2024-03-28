@@ -11,10 +11,10 @@ Record::Record(int s, const char* k) : size(s) {
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis('a', 'z');
 
-        key = new char[11];
+        key = new char[8];
 
         // Generating a random string of length 10
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 8; ++i) {
             key[i] = static_cast<char>(dis(gen));
         }
     } else {
@@ -47,9 +47,10 @@ void Record::generateRandomBytes() {
 }
 
 char * Record::serialize() const {
-    int contentSize = size - sizeof(int) - (strlen(key) + 1);
+    int contentSize = size - 2 * sizeof(int) - (strlen(key) + 1);
     char * serializedData = new char[size];
     memcpy(serializedData, &size, sizeof(int));
+    memcpy(serializedData, &slot, sizeof(int));
     memcpy(serializedData + sizeof(int), key, strlen(key) + 1);
     // Copy 'content' into the serialized data after 'key'
     memcpy(serializedData + sizeof(int) + strlen(key) + 1, content, contentSize);
@@ -59,16 +60,19 @@ char * Record::serialize() const {
 
 Record* Record::deserialize(const char* serializedData, int dataSize) {
     // first sizeof(int) bytes is size
-    int contentSize = dataSize - sizeof(int) - 11;
+    int contentSize = dataSize - 2 * sizeof(int) - 9;
     int s;
-    char* k = new char[11];
+    int slotIdx;
+    char* k = new char[9];
     printf("size: %d, ContentSize: %d\n", dataSize , contentSize);
     char* cont = new char[contentSize];
     memcpy(&s, serializedData, sizeof(int));
-    memcpy(k, serializedData + sizeof(int), 11);
-    memcpy(cont, serializedData + sizeof(int) + 11, contentSize);
+    memcpy(&slotIdx, serializedData, sizeof(int));
+    memcpy(k, serializedData + sizeof(int), 9);
+    memcpy(cont, serializedData + sizeof(int) + 9, contentSize);
     Record* record = new Record(dataSize, k);
     record->setContent(cont);
+    record->setSlot(slotIdx);
     return record;
 }
 
@@ -79,6 +83,9 @@ int Record::getSize() const {
     return size;
 }
 
+int Record::getSlot() const {
+    return slot;
+}
 
 const char* Record::getKey() const {
     return key;
@@ -94,6 +101,10 @@ const char* Record::getContent() const {
 // Setters
 void Record::setSize(int s) {
     size = s;
+}
+
+void Record::setSlot(int s) {
+    slot = s;
 }
 
 void Record::setKey(const char* k) {

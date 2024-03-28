@@ -1,6 +1,7 @@
-#include "EmulatedHDD.h"
+#include "HDD.h"
 #include "Record.h"
 #include "defs.h"
+
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -9,13 +10,15 @@
 #include <sstream>        // For stringstream
 #include <iomanip>        // For setfill and setw
 #include <sys/stat.h> // For mkdir function
-
-
+#include <cstdlib> // For atoi function
+#include <filesystem>
+#include <dirent.h>
+#include <vector>
 
 // Constructor
 // size in B
 // bandiwith in MB/s
-EmulatedHDD::EmulatedHDD(const std::string& dir, double lat, double bw) : latency(lat), bandwidth(bw) {
+HDD::HDD(const std::string& dir, double lat, double bw) : latency(lat), bandwidth(bw) {
     if(dir.empty()) {
         directory = createHDD();
     }else{
@@ -25,7 +28,7 @@ EmulatedHDD::EmulatedHDD(const std::string& dir, double lat, double bw) : latenc
 
 // Method to simulate read operation
 // size in B
-Record * EmulatedHDD::readData(const std::string& filename, int size) {
+Record * HDD::readData(const std::string& filename, int recordSize) {
     // Simulate latency
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
 
@@ -37,21 +40,21 @@ Record * EmulatedHDD::readData(const std::string& filename, int size) {
     }
 
     // Read data from file
-    char* buffer = new char[size];
-    file.read(buffer, size);
+    char* buffer = new char[recordSize];
+    file.read(buffer, recordSize);
 
     // Close file
     file.close();
 
-    Record * record = Record::deserialize(buffer, size);
+    Record * record = Record::deserialize(buffer, recordSize);
 
     // Simulate bandwidth
-    double transferTime = 1000 * static_cast<double>(size) / (bandwidth * 1024 * 1024);
+    double transferTime = 1000 * static_cast<double>(recordSize) / (bandwidth * 1024 * 1024);
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(transferTime * 1000)));
 
     // std::cout << "Read " << size << " bytes from file: " << filename << ". Transfer time: " << transferTime << " seconds\n";
     printf("Read %d bytes from file: %s. Transfer time: %.4f ms, total time: %.4f ms\n",\
-             size, \
+             recordSize, \
              filename.c_str(), \
              transferTime, \
              transferTime + latency);
@@ -61,10 +64,37 @@ Record * EmulatedHDD::readData(const std::string& filename, int size) {
     return record;
 }
 
+std::vector<Record*> HDD::readFilesInHDD(int recordSize) {
+    DIR* dir = opendir(directory.c_str());
+
+	std::vector<Record*> records;
+	if (!dir) {
+        std::cerr << "Failed to open directory" << std::endl;
+        return records;
+    }
+    dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+		// Skip directories and special entries
+        if (entry->d_type != DT_REG) {
+            continue;
+        }
+        // Read data from file using hdd.readData
+        Record * record = readData(entry->d_name, recordSize);
+
+        // Append the records to the vector
+		if(record != nullptr) {
+			records.push_back(record);
+		}
+    }
+
+    closedir(dir);
+	return records;
+}
+
 // Method to simulate write operation
 // size in B
 // bandiwith in MB/s
-void EmulatedHDD::writeData(const std::string& filename, Record* record) {
+void HDD::writeData(const std::string& filename, Record* record) {
     // Simulate latency
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
 
@@ -98,7 +128,7 @@ void EmulatedHDD::writeData(const std::string& filename, Record* record) {
 
 }
 
-std::string EmulatedHDD::createHDD() {
+std::string HDD::createHDD() {
     const std::string dirname = getHDDNameWithCurrentTime(); // Replace with desired directory path
 
     // Convert std::string to const char*
@@ -117,7 +147,7 @@ std::string EmulatedHDD::createHDD() {
     return dirname;
 }
 
-std::string EmulatedHDD::getHDDNameWithCurrentTime() {
+std::string HDD::getHDDNameWithCurrentTime() {
      // Get current time
     std::time_t now = std::time(nullptr);
     std::tm* tm = std::localtime(&now);
@@ -138,22 +168,22 @@ std::string EmulatedHDD::getHDDNameWithCurrentTime() {
     return ss.str();
 }
 
-std::string EmulatedHDD::getDir() const{
+std::string HDD::getDir() const{
     return directory;
 }
 
-double EmulatedHDD::getLatency() const{
+double HDD::getLatency() const{
     return latency;
 }
 
-double EmulatedHDD::getBandwidth() const{
+double HDD::getBandwidth() const{
     return bandwidth;
 }
 
 
 // int main() {
-//     // Create an EmulatedHDD object with empty directory, latency 5ms, and bandwidth 100MB/s
-//     EmulatedHDD hdd("", 5, 100);
+//     // Create an HDD object with empty directory, latency 5ms, and bandwidth 100MB/s
+//     HDD hdd("", 5, 100);
 
 //     // Simulate read and write operations
 //     hdd.writeData("test.txt", 1024); // Writing 1KB to "test.txt"

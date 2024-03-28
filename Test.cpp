@@ -3,7 +3,8 @@
 #include "Filter.h"
 #include "Sort.h"
 #include "Record.h"
-#include "EmulatedHDD.h"
+#include "HDD.h"
+#include "TreeOfLosers.h"
 
 #include <cstdlib> // For atoi function
 #include <iostream>
@@ -14,7 +15,7 @@
 
 // namespace fs = std::filesystem;
 
-std::vector<Record*> listFilesInDirectory(const std::string& directoryPath, EmulatedHDD* hdd, int size) {
+std::vector<Record*> readFilesInHDD(const std::string& directoryPath, HDD* hdd, int size) {
     DIR* dir = opendir(directoryPath.c_str());
 
 	std::vector<Record*> records;
@@ -41,6 +42,14 @@ std::vector<Record*> listFilesInDirectory(const std::string& directoryPath, Emul
 	return records;
 }
 
+// int ceilDiv(int dividend, int divisor) {
+//     if (dividend % divisor == 0) {
+//         return dividend / divisor;
+//     } else {
+//         return dividend / divisor + 1;
+//     }
+// }
+
 int main (int argc, char * argv [])
 {
 	// TRACE (true);
@@ -64,7 +73,7 @@ int main (int argc, char * argv [])
 	}
 
 	// Create a hdd to store unsorted records
-	EmulatedHDD * const hdd = new EmulatedHDD ("", 5, 100);
+	HDD * const hdd = new HDD ("", 5, 100);
 
 	// Start measuring time
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -85,24 +94,53 @@ int main (int argc, char * argv [])
 
     printf("\nTotal latency: %lld ms\n", static_cast<long long>(duration.count()));
 
-	listFilesInDirectory(hdd->getDir().c_str(), hdd, recordSize);
+	std::vector<Record*> records = readFilesInHDD(hdd->getDir().c_str(), hdd, recordSize);
 
 	// Cache size = 1MB = 1024 * 1024 B
-	int cacheSize = 1024 * 1024;
-	int numRecordsInCache = cacheSize / recordSize;
-	printf("\n%d records in Cache\n", numRecordsInCache);
+	int CACHE_SIZE = 1024 * 1024;
+	int numRecordsInCache = CACHE_SIZE / recordSize;
+	// Number of runs:
+	int numRunsCache = ceilDiv(records.size(), numRecordsInCache);
+	printf("\n%d records in Cache, number runs created %d\n", numRecordsInCache, numRunsCache);
 
+	// PQ Tree
+	TreeOfLosers treeInCache;
 
+	for(int idx = 0; idx < numRunsCache; idx ++) {
+		// from idx to (idx + 1) * numRecordsInCache
+		int i;
+		for(i = idx * numRecordsInCache; i < records.size() &&  i < (idx + 1) * numRecordsInCache; i++) {
+			Record* record = records[i];
+			treeInCache.insert(record->getKey(), idx);
+		}
+		//  Clear cache by passing run to DRAM
+		printf("\n\nCLEAR CACHE NOW\n", i);
+		while(!treeInCache.isEmpty()) {
+			Node* curr = treeInCache.getMin();
+			printf("Key: %s, slot: %d\n", curr->key, curr->slot);
+			// std::cout << "Minimum key after deletion: " << tree.getMin()->key << std::endl;
+			treeInCache.deleteMin();
+		}
+	}
+
+	// // Get and print the minimum key again
+    // while(!treeInCache.isEmpty()) {
+    //     Node* curr = treeInCache.getMin();
+    //     printf("Key: %s, slot: %d\n", curr->key, curr->slot);
+    //     // std::cout << "Minimum key after deletion: " << tree.getMin()->key << std::endl;
+    //     treeInCache.deleteMin();
+    // }
+
+	// TODO: When passing runs into DRAM, need to assign them index
 	// DRAM size = 100 MB = 100 * 2014 * 1024 B
-	int dramSize = 100 * 1024 * 1024;
-	int numRecordsInDRAM = dramSize / cacheSize;
+	int DRAM_SIZE = 100 * 1024 * 1024;
+	int numRecordsInDRAM = DRAM_SIZE / CACHE_SIZE;
 	printf("%d runs in DRAM\n", numRecordsInDRAM);
 
 
-
 	// SDD size = 10 GB 
-	long long sddSize = 10LL * 1024 * 1024 * 1024;
-	int numRecordsInSDD = sddSize / dramSize;
+	long long SDD_SIZE = 10LL * 1024 * 1024 * 1024;
+	int numRecordsInSDD = SDD_SIZE / DRAM_SIZE;
 	printf("%d runs in SDD\n", numRecordsInSDD);
 
 

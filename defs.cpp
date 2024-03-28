@@ -82,3 +82,12 @@ char const * OkBad (bool const b)
 {
 	return b ? "Ok" : "Bad";
 } // OkBad
+
+
+int ceilDiv(int dividend, int divisor) {
+    if (dividend % divisor == 0) {
+        return dividend / divisor;
+    } else {
+        return dividend / divisor + 1;
+    }
+}
