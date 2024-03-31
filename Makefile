@@ -50,7 +50,7 @@ trace : Test.exe Makefile
 
 
 $(OBJS) : Makefile defs.h
-Test.o : Iterator.h Scan.h Filter.h Sort.h Record.h HDD.h TreeOfLosers.h Run.h CACHE.h DRAM.h SSD.h 
+Test.o : Iterator.h Scan.h Filter.h Sort.h Record.h HDD.h TreeOfLosers.h Run.h CACHE.h DRAM.h SSD.h
 CACHE.o: CACHE.h Run.h HDD.h
 Run.o: Run.h Record.h
 TreeOfLosers.o: Record.h TreeOfLosers.h

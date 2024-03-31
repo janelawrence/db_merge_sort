@@ -101,24 +101,28 @@ int main (int argc, char * argv [])
 			delete outputHDD;
 		}else {
 			//WRTIE TO SSD
-			SSD* ssd = new SSD(0.0001, 200 * 1024 * 104);
+			SSD* ssd = new SSD(0.0001, 200 * 1024 * 1024);
     
     		ssd->writeData(numRecords * recordSize);
 
     		std::vector<Run*> sortedRunsInSSD = ssd->merge(sortedRunsInDRAM, recordSize);
 
+
 			if(sortedRunsInSSD.size() == 1) {
 				// sorting done, write to HDD
-				HDD* outputHDD = new HDD("sorted_after_ssd", 5, 100);
+				HDD* outputHDD = new HDD("sorted_after_ssd", 0.005, 100 * 1024 * 1024);
 				Run* sortedRun = sortedRunsInSSD[0];
 				std::list<Record*> sortedRecords = sortedRunsInSSD[0]->getRecords();
 				for (std::list<Record*>::const_iterator it = sortedRecords.begin(); it != sortedRecords.end(); ++it) {
 					outputHDD->writeData((*it)->getKey(), (*it));
 				}
 				delete outputHDD;
-			}else {
-				// WRITE TO HDD
-				printf("TO BE IMPLEMENTED");
+			}else {// Merge on HDD and write the sorted result to HDD_sorted
+				// Simulate runtime only, does not actually write to disk
+				HDD* outputHDD = new HDD("sorted_after_hdd", 0.005, 100 * 1024 * 1024);
+    			hdd->simulateWriteData(numRecords * recordSize);
+    			std::vector<Run*> hddOutput = hdd->merge(sortedRunsInSSD, recordSize);
+				delete outputHDD;
 			}
 
 			delete dram;

@@ -228,7 +228,7 @@ double SSD::getBandwidth() const {
 // 		printf("\n");
 // 	}
 
-//     SSD* ssd = new SSD(0.0001, 200 * 1024 * 104);
+//     SSD* ssd = new SSD(0.0001, 200 * 1024 * 1024);
     
 //     ssd->writeData(totalBytes);
 
@@ -240,9 +240,6 @@ double SSD::getBandwidth() const {
 // 		run->print();
 // 		printf("\n");
 // 	}
-//     // Simulate read and write operations
-//     // dram->readData(1024); // Reading 1KB
-//     // dram->writeData(1024); // Writing 1KB
 
 //     return 0;
 // }
