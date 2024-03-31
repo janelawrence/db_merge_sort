@@ -8,6 +8,7 @@
 #include "CACHE.h"
 #include "Run.h"
 #include "DRAM.h"
+#include "SSD.h"
 
 #include <cstdlib> // For atoi function
 #include <iostream>
@@ -66,11 +67,12 @@ int main (int argc, char * argv [])
 	
 	for(int i = 0; i < sortedRunsInCache.size(); i++) {
 		TreeOfLosers* run = sortedRunsInCache[i];
-		printf("------------- %d th Run -----------\n", i);
+		printf("-------------Cache-sized %d th Run -----------\n", i);
 		run->print();
 		printf("\n");
 	}
 	int numRunsInCache = sortedRunsInCache.size();
+	// output if cache can fit in
 	if(numRunsInCache == 1) {
 		// sorting done, write to HDD
 		HDD* outputHDD = new HDD("sorted", 5, 100);
@@ -79,29 +81,53 @@ int main (int argc, char * argv [])
 			outputHDD->writeData(sortedRecords[i]->getKey(), sortedRecords[i]);
 		}
 		delete outputHDD;
-	}
-	// Check if numRunsInCache * recordSize can fit in DRAM
-	// TODO: WRITE TO DRAM, and merge in DRAM
-	DRAM* dram = new DRAM();
+	} else {
+		// WRITE TO DRAM, and merge in DRAM
+		DRAM* dram = new DRAM();
 
-	std::vector<Run*> sortedRunsInDRAM = dram->merge(sortedRunsInCache, recordSize);
+		std::vector<Run*> sortedRunsInDRAM = dram->merge(sortedRunsInCache, recordSize);
 
-	int numRunsInDRAM = sortedRunsInDRAM.size();
-	if(numRunsInDRAM == 1) {
-		// sorting done, write to HDD
-		HDD* outputHDD = new HDD("sorted_dram", 5, 100);
-		Run* sortedRun = sortedRunsInDRAM[0];
-		std::list<Record*> sortedRecords = sortedRunsInDRAM[0]->getRecords();
-		for (std::list<Record*>::const_iterator it = sortedRecords.begin(); it != sortedRecords.end(); ++it) {
-			outputHDD->writeData((*it)->getKey(), (*it));
+		int numRunsInDRAM = sortedRunsInDRAM.size();
+
+		// output if DRAM can fit in
+		if(numRunsInDRAM == 1) {
+			// sorting done, write to HDD
+			HDD* outputHDD = new HDD("sorted_after_dram", 5, 100);
+			Run* sortedRun = sortedRunsInDRAM[0];
+			std::list<Record*> sortedRecords = sortedRunsInDRAM[0]->getRecords();
+			for (std::list<Record*>::const_iterator it = sortedRecords.begin(); it != sortedRecords.end(); ++it) {
+				outputHDD->writeData((*it)->getKey(), (*it));
+			}
+			delete outputHDD;
+		}else {
+			//WRTIE TO SSD
+			SSD* ssd = new SSD(0.0001, 200 * 1024 * 104);
+    
+    		ssd->writeData(numRecords * recordSize);
+
+    		std::vector<Run*> sortedRunsInSSD = ssd->merge(sortedRunsInDRAM, recordSize);
+
+			if(sortedRunsInSSD.size() == 1) {
+				// sorting done, write to HDD
+				HDD* outputHDD = new HDD("sorted_after_ssd", 5, 100);
+				Run* sortedRun = sortedRunsInSSD[0];
+				std::list<Record*> sortedRecords = sortedRunsInSSD[0]->getRecords();
+				for (std::list<Record*>::const_iterator it = sortedRecords.begin(); it != sortedRecords.end(); ++it) {
+					outputHDD->writeData((*it)->getKey(), (*it));
+				}
+				delete outputHDD;
+			}else {
+				// WRITE TO HDD
+				printf("TO BE IMPLEMENTED");
+			}
+
+			delete dram;
+
 		}
-		delete outputHDD;
-	}
-
 	delete hdd;
-	delete dram;
 	delete record;
 
 
 	return 0;
-} // main
+	} // main
+}

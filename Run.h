@@ -16,6 +16,7 @@ class Run {
         void print(bool listRecord = true) const;
         Run* clone();
         // Getters
+        Record* getFirst();
         std::list<Record*> getRecords() const;
         int getSize() const;
         bool isEmpty() const;

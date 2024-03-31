@@ -19,11 +19,21 @@ Run* Run::clone(){
 }
 
 void Run::removeFisrt() {
-    if(records.size() == 0) {
+    if(records.empty()) {
         printf("Can't remove, run is empty");
         return;
     }
     records.pop_front();
+}
+
+/**Return a deep copy of the first Record in Run*/
+Record* Run::getFirst() {
+    Record* firstRecord;
+    if(records.empty()) {
+        printf("List is empty, can't get fist from the list");
+        return firstRecord;
+    }
+    return new Record(*records.front());
 }
 
 void Run::clear(){
@@ -49,6 +59,6 @@ int Run::getSize() const {
 }
 
 bool Run::isEmpty() const {
-    return records.size() == 0;
+    return records.empty();
 }
 

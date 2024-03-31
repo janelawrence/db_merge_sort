@@ -9,7 +9,7 @@
 
 class DRAM {
     private: 
-        double MAX_CAPACITY = 200;  // DUMMY Value for demo: Capacity is 200 B
+        double MAX_CAPACITY = 120;  // DUMMY Value for demo: Capacity is 200 B
         // double MAX_CAPACITY = 100 * 1024 * 1024;  // Capacity is 100 MB
         double capacity = MAX_CAPACITY;  // Capacity in B
         TreeOfLosers tree;
