@@ -1,18 +1,25 @@
 #ifndef RUN_H
 #define RUN_H
 #include "Record.h"
-#include <vector>
+#include <list>
 
 
 class Run {
     private:
-        std::vector<Record*> records;
+        std::list<Record*> records;
     public:
-        Run(std::vector<Record*> res);
+        Run();
 
-        void printRun(bool listRecord = true);
+        void add(Record *);
+        void removeFisrt();
+        void clear();
+        void print(bool listRecord = true) const;
+        Run* clone();
         // Getters
-        std::vector<Record*> getRecords() const;
+        std::list<Record*> getRecords() const;
+        int getSize() const;
+        bool isEmpty() const;
+
 };
 
 

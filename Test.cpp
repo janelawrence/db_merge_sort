@@ -7,6 +7,7 @@
 #include "TreeOfLosers.h"
 #include "CACHE.h"
 #include "Run.h"
+#include "DRAM.h"
 
 #include <cstdlib> // For atoi function
 #include <iostream>
@@ -61,19 +62,19 @@ int main (int argc, char * argv [])
 
 	// std::vector<Record*> records = readFilesInHDD(hdd->getDir().c_str(), hdd, recordSize);
 	CACHE* cache = new CACHE();
-	std::vector<Run*> sortedRunsInCache = cache->readFromHDD(recordSize, hdd);
+	std::vector<TreeOfLosers*> sortedRunsInCache = cache->readFromHDD(recordSize, hdd);
 	
 	for(int i = 0; i < sortedRunsInCache.size(); i++) {
-		Run* run = sortedRunsInCache[i];
+		TreeOfLosers* run = sortedRunsInCache[i];
 		printf("------------- %d th Run -----------\n", i);
-		run->printRun();
+		run->print();
 		printf("\n");
 	}
 	int numRunsInCache = sortedRunsInCache.size();
 	if(numRunsInCache == 1) {
 		// sorting done, write to HDD
 		HDD* outputHDD = new HDD("sorted", 5, 100);
-		std::vector<Record*> sortedRecords = sortedRunsInCache[0]->getRecords();
+		std::vector<Record*> sortedRecords = sortedRunsInCache[0]->toVector();
 		for(int i = 0; i < sortedRecords.size(); i++) {
 			outputHDD->writeData(sortedRecords[i]->getKey(), sortedRecords[i]);
 		}
@@ -81,20 +82,26 @@ int main (int argc, char * argv [])
 	}
 	// Check if numRunsInCache * recordSize can fit in DRAM
 	// TODO: WRITE TO DRAM, and merge in DRAM
+	DRAM* dram = new DRAM();
 
+	std::vector<Run*> sortedRunsInDRAM = dram->merge(sortedRunsInCache, recordSize);
 
+	int numRunsInDRAM = sortedRunsInDRAM.size();
+	if(numRunsInDRAM == 1) {
+		// sorting done, write to HDD
+		HDD* outputHDD = new HDD("sorted_dram", 5, 100);
+		Run* sortedRun = sortedRunsInDRAM[0];
+		std::list<Record*> sortedRecords = sortedRunsInDRAM[0]->getRecords();
+		for (std::list<Record*>::const_iterator it = sortedRecords.begin(); it != sortedRecords.end(); ++it) {
+			outputHDD->writeData((*it)->getKey(), (*it));
+		}
+		delete outputHDD;
+	}
 
 	delete hdd;
+	delete dram;
 	delete record;
 
-	// Plan * const plan = new ScanPlan (7);
-	// // new SortPlan ( new FilterPlan ( new ScanPlan (7) ) );
-
-	// Iterator * const it = plan->init ();
-	// it->run ();
-	// delete it;
-
-	// delete plan;
 
 	return 0;
 } // main

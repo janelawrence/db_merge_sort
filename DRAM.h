@@ -1,28 +1,28 @@
 #ifndef DRAM_H
 #define DRAM_H
 
+#include "Run.h"
+#include "TreeOfLosers.h"
+
+#include <vector>
+
 
 class DRAM {
-    private:
-        double MAX_CAPACITY = 100 * 1024 * 1024;  // Capacity is 100 MB
+    private: 
+        double MAX_CAPACITY = 200;  // DUMMY Value for demo: Capacity is 200 B
+        // double MAX_CAPACITY = 100 * 1024 * 1024;  // Capacity is 100 MB
         double capacity = MAX_CAPACITY;  // Capacity in B
-        double latency;   // Latency in milliseconds
-        double bandwidth; // Bandwidth in MB/s
+        TreeOfLosers tree;
 
     public:
         // Constructor
-        DRAM(double lat, double bw);
+        DRAM();
 
-        // Read data from SSD with given size in bytes
-        void readData(double sizeInBytes);
-
-        // Write data to SSD with given size in bytes
-        void writeData(double sizeInBytes);
+        // merge cache-size runs in DRAM and output DRAM-size runs
+        std::vector<Run*> merge(std::vector<TreeOfLosers*> cacheSizedRuns, int recordSize);
 
         // Getters
         double getCapacity() const;
-        double getLatency() const;
-        double getBandwidth() const;
 };
 
 

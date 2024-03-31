@@ -1,9 +1,12 @@
 #ifndef TREEOFLOSER_H
 #define TREEOFLOSER_H
 
+
+
 #include "Record.h"
 // #include <iostream>
 #include <queue>
+#include <list>
 
 
 // Comparator function for priority queue
@@ -16,6 +19,7 @@ struct Compare {
 
 class TreeOfLosers {
 private:
+    int size;
     std::priority_queue<Record*, std::vector<Record*>, Compare> minHeap;
 
 public:
@@ -32,11 +36,16 @@ public:
     void deleteMin();
 
     Record* getMin();
+    int getSize();
 
     bool isEmpty();
 
     void print();
     void clear();
+
+    std::list<Record*> toList();
+    std::vector<Record*> toVector();
+
 
 
 };

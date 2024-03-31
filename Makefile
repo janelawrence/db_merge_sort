@@ -16,17 +16,17 @@ SCRS=
 HDRS=	defs.h \
 		Iterator.h Scan.h Filter.h Sort.h \
 		Record.h HDD.h TreeOfLosers.h Run.h \
-		CACHE.h \
+		CACHE.h DRAM.h\
 SRCS=	defs.cpp Assert.cpp Test.cpp \
 		Iterator.cpp Scan.cpp Filter.cpp Sort.cpp \
 		Record.cpp HDD.cpp TreeOfLosers.cpp Run.cpp \
-		CACHE.cpp \
+		CACHE.cpp DRAM.cpp\
 
 # compilation targets
 OBJS=	defs.o Assert.o Test.o \
 		Iterator.o Scan.o Filter.o Sort.o \
 		Record.o HDD.o TreeOfLosers.o Run.o \
-		CACHE.o \
+		CACHE.o DRAM.o\
 
 # RCS assists
 REV=-q -f
@@ -50,7 +50,7 @@ trace : Test.exe Makefile
 
 
 $(OBJS) : Makefile defs.h
-Test.o : Iterator.h Scan.h Filter.h Sort.h Record.h HDD.h TreeOfLosers.h Run.h CACHE.h 
+Test.o : Iterator.h Scan.h Filter.h Sort.h Record.h HDD.h TreeOfLosers.h Run.h CACHE.h DRAM.h 
 CACHE.o: CACHE.h Run.h HDD.h
 Run.o: Run.h Record.h
 TreeOfLosers.o: Record.h TreeOfLosers.h

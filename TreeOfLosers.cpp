@@ -1,6 +1,7 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+
 #include "Record.h"
 #include "TreeOfLosers.h"
 
@@ -47,6 +48,11 @@ Record* TreeOfLosers::getMin() {
     }
 }
 
+int TreeOfLosers::getSize() {
+    return minHeap.size();
+}
+
+
 bool TreeOfLosers::isEmpty(){
     return minHeap.empty();
 }
@@ -68,6 +74,30 @@ void TreeOfLosers::clear() {
     std::priority_queue<Record*, std::vector<Record*>, Compare> emptyQueue;
     minHeap.swap(emptyQueue);
 }
+
+std::list<Record*> TreeOfLosers::toList(){
+    std::list<Record*> lst;
+    std::priority_queue<Record*, std::vector<Record*>, Compare> copyHeap = minHeap;
+    while(!copyHeap.empty()) {
+        Record* minRecord = copyHeap.top();
+        lst.push_back(minRecord);
+        copyHeap.pop();
+    }
+    return lst;
+}
+
+std::vector<Record*> TreeOfLosers::toVector(){
+    std::vector<Record*> vec;
+    std::priority_queue<Record*, std::vector<Record*>, Compare> copyHeap = minHeap;
+    while(!copyHeap.empty()) {
+        Record* minRecord = copyHeap.top();
+        vec.push_back(minRecord);
+        copyHeap.pop();
+    }
+    return vec;
+}
+
+
 
 // Main function for testing
 // To test this main individually:
