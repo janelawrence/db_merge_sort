@@ -21,6 +21,8 @@ private:
 public:
     // Constructor
     TreeOfLosers();
+    TreeOfLosers* clone();
+
 
     ~TreeOfLosers();
 
@@ -32,6 +34,10 @@ public:
     Record* getMin();
 
     bool isEmpty();
+
+    void print();
+    void clear();
+
 
 };
 

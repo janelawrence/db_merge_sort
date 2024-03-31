@@ -11,11 +11,17 @@
 #include <vector>
 
 // Constructor
-CACHE::CACHE(){};
+CACHE::CACHE(){}
 
-std::vector<Run*> CACHE::readFromHDD(int recordSize, HDD* hdd){
 
-    std::vector<Run*> runs;
+/**
+ * This member function reads records from HDD,
+ * and output cache-size sorted runs
+ * 
+*/
+std::vector<TreeOfLosers*> CACHE::readFromHDD(int recordSize, HDD* hdd){
+
+    std::vector<TreeOfLosers*> runs;
     int maxNumRecords = capacity / recordSize;
     std::vector<Record*> records;
 
@@ -42,9 +48,9 @@ std::vector<Run*> CACHE::readFromHDD(int recordSize, HDD* hdd){
         numReadIn++;
         if(numReadIn == maxNumRecords) {
             //sorting
-            Run* run = sort(hdd, records, slotIdx);
+            TreeOfLosers* run = sort(hdd, records, slotIdx);
             runs.push_back(run);
-
+            tree.clear();
             slotIdx++;
             records.clear();
             numReadIn = 0;
@@ -55,8 +61,9 @@ std::vector<Run*> CACHE::readFromHDD(int recordSize, HDD* hdd){
     // Last run that does not fill up CACHE
     if (numReadIn > 0 && numReadIn < maxNumRecords) {
         //sorting
-        Run* run = sort(hdd, records, slotIdx);
+        TreeOfLosers* run = sort(hdd, records, slotIdx);
         runs.push_back(run);
+        tree.clear();
 
         slotIdx++;
         records.clear();
@@ -66,7 +73,8 @@ std::vector<Run*> CACHE::readFromHDD(int recordSize, HDD* hdd){
     return runs;
 }
 
-Run* CACHE::sort(HDD* hdd, std::vector<Record*> records, int slotIdx){
+TreeOfLosers* CACHE::sort(HDD* hdd, std::vector<Record*> records, int slotIdx){
+    
     for(int i = 0; i < records.size(); i++) {
         Record* record = records[i];
         record->setSlot(slotIdx);
@@ -76,15 +84,7 @@ Run* CACHE::sort(HDD* hdd, std::vector<Record*> records, int slotIdx){
     printf("\n\nCLEAR CACHE NOW\n");
     std::vector<Record*> sortedRecords;
 
-
-    while(!tree.isEmpty()) {
-        Record* curr = new Record(*(tree.getMin()));
-        sortedRecords.push_back(curr);
-        tree.deleteMin();
-    }
-
-
-    return new Run(sortedRecords);
+    return tree.clone();
 }
 
 

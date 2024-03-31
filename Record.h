@@ -47,9 +47,6 @@ class Record {
         void setKey(const char* k);
         void setContent(const char* data);
 
-
-        // Display method
-        void display() const;
     };
 
 #endif // RECORD_H

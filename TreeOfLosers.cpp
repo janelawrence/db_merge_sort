@@ -6,6 +6,13 @@
 
 TreeOfLosers::TreeOfLosers(){}
 
+TreeOfLosers* TreeOfLosers::clone(){
+    TreeOfLosers* clonedTree = new TreeOfLosers();
+    clonedTree -> minHeap = minHeap;
+    return clonedTree;
+}
+
+
 TreeOfLosers::~TreeOfLosers(){
     while (!minHeap.empty()) {
         delete minHeap.top();
@@ -44,6 +51,23 @@ bool TreeOfLosers::isEmpty(){
     return minHeap.empty();
 }
 
+void TreeOfLosers::print() {
+    if(isEmpty()) {
+        printf("Tree is empty\n");
+    }
+    std::priority_queue<Record*, std::vector<Record*>, Compare> copyHeap = minHeap;
+    while(!copyHeap.empty()) {
+        Record* minRecord = copyHeap.top();
+        minRecord->printRecord();
+        copyHeap.pop();
+    }
+}
+
+void TreeOfLosers::clear() {
+    // Create an empty priority queue and swap its contents with minHeap
+    std::priority_queue<Record*, std::vector<Record*>, Compare> emptyQueue;
+    minHeap.swap(emptyQueue);
+}
 
 // Main function for testing
 // To test this main individually:
@@ -70,15 +94,22 @@ bool TreeOfLosers::isEmpty(){
 //     tree.insert(r3);
 //     tree.insert(r4);
 //     tree.insert(r5);
+    
+//     TreeOfLosers* cloned = tree.clone();
 
 
 //     // Get and print the minimum key again
-//     while(!tree.isEmpty()) {
-//         Record* curr = tree.getMin();
-//         printf("Key: %s, slot: %d\n", curr->getKey(), curr->getSlot());
-//         // std::cout << "Minimum key after deletion: " << tree.getMin()->key << std::endl;
-//         tree.deleteMin();
-//     }
+//     // while(!cloned->isEmpty()) {
+//     //     Record* curr = cloned->getMin();
+//     //     printf("Key: %s, slot: %d\n", curr->getKey(), curr->getSlot());
+//     //     cloned->deleteMin();
+//     // }
+//     tree.clear();
+//     tree.print();
+
+//     cloned->print();
+
+
 
 //     return 0;
 // }

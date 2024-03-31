@@ -40,6 +40,7 @@ Record::Record(const Record& other) : size(other.size), slot(other.slot) {
 // Destructor
 Record::~Record() {
     delete[] key; // Deallocate memory for key
+    delete[] content;
 }
 
 void Record::generateRandomBytes() {
@@ -126,18 +127,12 @@ void Record::setKey(const char* k) {
 }
 
 void Record::setContent(const char* data) {
-    if(data != nullptr) {
         delete[] content; // Deallocate memory for the current data
         content = new char[strlen(data) + 1]; // Allocate memory for the new content
         strcpy(content, data); // Copy the new content into content
-    }
 }
 
-// Display method
-void Record::display() const {
-    // std::cout << "Key: " << key << ", Size: " << size << std::endl;
-	printf("key: %s, Size: %d\n", key, size);
-}
+
 
 
 // int main() {

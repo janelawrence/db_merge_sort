@@ -17,9 +17,9 @@ class CACHE {
         // Constructor
         CACHE();
 
-        std::vector<Run*> readFromHDD(int recordSize, HDD* hdd);
+        std::vector<TreeOfLosers*> readFromHDD(int recordSize, HDD* hdd);
 
-        Run* sort(HDD* hdd, std::vector<Record*> records, int slotIdx);
+        TreeOfLosers* sort(HDD* hdd, std::vector<Record*> records, int slotIdx);
 
 
         // Getters
