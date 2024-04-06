@@ -11,6 +11,8 @@ class Record {
         int slot = -1;
         char* key;
         char* content;
+        Record* prev;
+        Record* next;
 
 
     public:
@@ -37,9 +39,13 @@ class Record {
         int getSlot() const;
         const char* getKey() const;
         const char* getContent() const;
+        Record* getPrev() const;
+        Record* getNext() const;
 
+    // Setter functions
+        void setPrev(Record* prevRecord);
+        void setNext(Record* nextRecord);
 
-        // Setters
         void setSize(int s);
         void setSlot(int s);
         void setKey(const char* k);

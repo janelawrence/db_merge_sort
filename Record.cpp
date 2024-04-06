@@ -56,33 +56,26 @@ void Record::printRecord(){
 };
 
 // Getters
-int Record::getSize() const {
-    return size;
-}
+int Record::getSize() const { return size; }
 
-int Record::getSlot() const {
-    return slot;
-}
+int Record::getSlot() const { return slot; }
 
-const char* Record::getKey() const {
-    return key;
-}
+const char* Record::getKey() const { return key; }
 
-const char* Record::getContent() const {
-    return content;
-}
+const char* Record::getContent() const {return content; }
 
+Record* Record::getPrev() const { return prev; }
+Record* Record::getNext() const { return next; }
 
 
 
 // Setters
-void Record::setSize(int s) {
-    size = s;
-}
+void Record::setPrev(Record* prevRecord) { prev = prevRecord; }
+void Record::setNext(Record* nextRecord) { next = nextRecord; }
 
-void Record::setSlot(int s) {
-    slot = s;
-}
+void Record::setSize(int s) { size = s; }
+
+void Record::setSlot(int s) { slot = s; }
 
 void Record::setKey(const char* k) {
     delete[] key; // Deallocate memory for the current key
