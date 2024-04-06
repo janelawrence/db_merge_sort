@@ -34,14 +34,21 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 |       Techniques                 |           Where in Code                                      |
 |----------------------------------|--------------------------------------------------------------|
 | 1. Cache-size mini runs          |           TO BE DONE                                         |
+|----------------------------------|--------------------------------------------------------------|
 | 2. Device-optimized page sizes   |           TO BE DONE                                         |
+|----------------------------------|--------------------------------------------------------------|
 | 3. Spilling memory-to-SSD        |           TO BE DONE                                         |
+|----------------------------------|--------------------------------------------------------------|
 | 4. Spilling from SSD to disk     |           TO BE DONE                                         |
+|----------------------------------|--------------------------------------------------------------|
 | 5. Graceful degradation          |           TO BE DONE                                         |
 |   a. into merging                |           TO BE DONE                                         |
 |   b. beyond one merge step       |           TO BE DONE                                         |
+|----------------------------------|--------------------------------------------------------------|
 | 6. Optimized merge patterns      |           TO BE DONE                                         |
+|----------------------------------|--------------------------------------------------------------|
 | 7. Verifying: sort order         |           TO BE DONE                                         |
 |    a. sets of rows & values      |           TO BE DONE                                         |
 |    b. offset-value codes         |           TO BE DONE                                         |
+|----------------------------------|--------------------------------------------------------------|
 | 8. Tournament Trees              |         TreeOfLosers.h, TreeOfLosers.cpp                     |
