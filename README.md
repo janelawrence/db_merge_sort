@@ -10,8 +10,8 @@
 
 ### Steps:
 
-M = DRAM_SIZE
-C = CACHE_SIZE
+M = DRAM_SIZE  
+C = CACHE_SIZE  
 R = recordSize
 N = numRecords
 I = totalInputBytes = R \* N
