@@ -12,12 +12,12 @@
 
 M = DRAM_SIZE  
 C = CACHE_SIZE  
-R = recordSize
-N = numRecords
-I = totalInputBytes = R \* N
-P = PAGE_SIZE
-n = recordsPerPage
-F = Fan-in = number of pages read to memory = (M/P - 3)
+R = recordSize  
+N = numRecords  
+I = totalInputBytes = R \* N  
+P = PAGE_SIZE  
+n = recordsPerPage  
+F = Fan-in = number of pages read to memory = (M/P - 3)  
 
 1. For every M = DRAM_SIZE data, read M/P pages into DRAM
 2. Use Cache to create mini-runs
