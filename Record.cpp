@@ -3,28 +3,19 @@
 // #include <string>
 #include <random>
 
+
+int KEY_SIZE = 8;
+
 // Constructor
-Record::Record(int s, const char* k) : size(s) {
-    if (k[0] == '\0') {
-        // Generate random key if the provided key is empty
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis('a', 'z');
+Record::Record(int s, const char* bytes) : size(s) {
+    key = new char[KEY_SIZE + 1];
+    std::strncpy(key, bytes, KEY_SIZE);
+    key[KEY_SIZE] = '\0';
 
-        key = new char[KEY_SIZE + 1];
-
-        // Generating a random string of length 10
-        for (int i = 0; i < KEY_SIZE; ++i) {
-            key[i] = static_cast<char>(dis(gen));
-        }
-    } else {
-        // Use the provided key
-        key = new char[strlen(k) + 1]; // Allocate memory for the provided key
-        strcpy(key, k);
-    }
-    int contentsize = size - 2 * sizeof(int) - (strlen(key) + 1);
-    printf("contentsize: %d\n", contentsize);
-    generateRandomBytes();
+    content = new char[size - KEY_SIZE + 1];
+    // Copy the rest of the bytes to content
+    std::strncpy(content, bytes + KEY_SIZE, size - KEY_SIZE);
+    content[size - KEY_SIZE] = '\0'; // Ensure null termination
 
 }
 
@@ -43,52 +34,25 @@ Record::~Record() {
     delete[] content;
 }
 
-void Record::generateRandomBytes() {
-    int contentSize = size - sizeof(int) - (strlen(key) + 1);
-    
-    // Generate random data
-    char* buffer = new char[contentSize];
-
-    for (int i = 0; i < contentSize - 1; ++i) {
-        buffer[i] = rand() % 256; // Random byte value
-    }
-
-    setContent(buffer);
-}
 
 char * Record::serialize() const {
-    int contentSize = size - 2 * sizeof(int) - (strlen(key) + 1);
+    int contentSize = strlen(content);
     char * serializedData = new char[size];
-    memcpy(serializedData, &size, sizeof(int));
-    memcpy(serializedData, &slot, sizeof(int));
-    memcpy(serializedData + sizeof(int), key, strlen(key) + 1);
+    memcpy(serializedData, key, strlen(key));
     // Copy 'content' into the serialized data after 'key'
-    memcpy(serializedData + sizeof(int) + strlen(key) + 1, content, contentSize);
+    memcpy(serializedData + KEY_SIZE, content, contentSize);
 
     return serializedData;
 }
 
 Record* Record::deserialize(const char* serializedData, int dataSize) {
-    // first sizeof(int) bytes is size
-    // second sizeof(int) bytes is slot index
-    int contentSize = dataSize - 2 * sizeof(int) - (KEY_SIZE + 1);
-    int s;
-    int slotIdx;
-    char* k = new char[(KEY_SIZE + 1)];
-    printf("size: %d, ContentSize: %d\n", dataSize , contentSize);
-    char* cont = new char[contentSize];
-    memcpy(&s, serializedData, sizeof(int));
-    memcpy(&slotIdx, serializedData, sizeof(int));
-    memcpy(k, serializedData + sizeof(int), (KEY_SIZE + 1));
-    memcpy(cont, serializedData + sizeof(int) + (KEY_SIZE + 1), contentSize);
-    Record* record = new Record(dataSize, k);
-    record->setContent(cont);
-    record->setSlot(slotIdx);
+    Record* record = new Record(dataSize, serializedData);
+    record->setSlot(-1);
     return record;
 }
 
 void Record::printRecord(){
-    printf("Record: key %s, slot: %d, size: %d\n", key, slot, size);
+    printf("Record: key %s, slot: %d, size: %d, content size: %d\n", key, slot, size, strlen(content));
 };
 
 // Getters
@@ -127,9 +91,9 @@ void Record::setKey(const char* k) {
 }
 
 void Record::setContent(const char* data) {
-        delete[] content; // Deallocate memory for the current data
-        content = new char[strlen(data) + 1]; // Allocate memory for the new content
-        strcpy(content, data); // Copy the new content into content
+    delete[] content; // Deallocate memory for the current data
+    content = new char[strlen(data) + 1]; // Allocate memory for the new content
+    strcpy(content, data); // Copy the new content into content
 }
 
 

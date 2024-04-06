@@ -1,9 +1,9 @@
 #ifndef RECORD_H
 #define RECORD_H
+#include "defs.h"
 
 
-
-inline int KEY_SIZE = 8; 
+extern int KEY_SIZE;
 
 class Record {
     private:
@@ -15,13 +15,11 @@ class Record {
 
     public:
         // Constructor
-        Record(int s, const char* k);
+        Record(int s, const char* bytes);
         
         // Copy constructor
         Record(const Record& other);
 
-        // Wrtie random bytes to file
-        void generateRandomBytes();
 
         // Serialize record
         char * serialize() const;
