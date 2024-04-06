@@ -45,7 +45,7 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 |   a. into merging                |           TO BE DONE                                         |
 |   b. beyond one merge step       |           TO BE DONE                                         |
 |----------------------------------|--------------------------------------------------------------|
-| 6. Optimized merge patterns      |           TO BE DONE                                         |
+| 6. Optimized merge patterns      |          Using pointers to records instead of index          |
 |----------------------------------|--------------------------------------------------------------|
 | 7. Verifying: sort order         |           TO BE DONE                                         |
 |    a. sets of rows & values      |           TO BE DONE                                         |
