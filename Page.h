@@ -9,11 +9,16 @@ class Page {
         std::list<Record*> records; // linkedlist
         Page* prev;
         Page* next;
+        // Record* recordHead;
+        // Record* record;
+        int MAX_RECORDS;
+        int idx;
+        int size;
     public:
-        Page();
+        Page(int i, int s);
 
-        void add(Record *);
-        void removeFisrt();
+        void addRecord(Record *);
+        void removeFisrtRecord();
         void clear();
         void print(bool listRecord = true) const;
         Page* clone();
@@ -21,7 +26,7 @@ class Page {
         // Getters
         Record* getFirst();
         std::list<Record*> getRecords() const;
-        int getSize() const;
+        int getNumRecords() const;
         bool isEmpty() const;
         Page* getPrev() const;
         Page* getNext() const;

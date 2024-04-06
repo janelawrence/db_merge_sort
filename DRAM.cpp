@@ -15,100 +15,102 @@ DRAM::DRAM() {}
 
 
 // Method to simulate write operation
-std::vector<Run*> DRAM::merge(std::vector<TreeOfLosers*> runs, int recordSize) {
-    std::vector<Run*> output;
-    if (runs.size() > 0) {
-        // maximum number of records stored in a DRAM-size run
-        int maxNumRecords = MAX_CAPACITY / recordSize;
-        int numRuns = runs.size();
-        int i = 0;
-        // Keep track of slot index for run stored in buffer
-        int currSlot = 0;
-        int totalUsedRuns = 0;
-        Run* buffer = new Run();
-        while(true) {
-            if(totalUsedRuns == numRuns) {
-                break;
-            }
-            // Handles 2 cases: 
-            // (1) num of input runs <= maxNumRecords, 
-            //     tree has a winner when tree size == numRuns
-            // (2) num of input runs > maxNumRecords, 
-            //     tree has a winner when tree size == maxNumRecords
-            if(tree.getSize() == min(numRuns, maxNumRecords)) {
-                Record * winner = tree.getMin();
-                int prevSlot = winner->getSlot();
-                TreeOfLosers * prevRun = runs[prevSlot];
-                // If buffer is full, write to output run list
-                if(buffer->getSize() == maxNumRecords) {
-                    output.push_back(buffer->clone());
-                    // clear buffer
-                    buffer->clear();
-                    ++currSlot;
+// std::vector<Run*> DRAM::merge(std::vector<TreeOfLosers*> runs, int recordSize) {
+//     std::vector<Run*> output;
+//     if (runs.size() > 0) {
+//         // maximum number of records stored in a DRAM-size run
+//         int maxNumRecords = MAX_CAPACITY / recordSize;
+//         int numRuns = runs.size();
+//         int i = 0;
+//         // Keep track of slot index for run stored in buffer
+//         int currSlot = 0;
+//         int totalUsedRuns = 0;
+//         Run* buffer = new Run();
+//         while(true) {
+//             if(totalUsedRuns == numRuns) {
+//                 break;
+//             }
+//             // Handles 2 cases: 
+//             // (1) num of input runs <= maxNumRecords, 
+//             //     tree has a winner when tree size == numRuns
+//             // (2) num of input runs > maxNumRecords, 
+//             //     tree has a winner when tree size == maxNumRecords
+//             if(tree.getSize() == min(numRuns, maxNumRecords)) {
+//                 Record * winner = tree.getMin();
+//                 int prevSlot = winner->getSlot();
+//                 TreeOfLosers * prevRun = runs[prevSlot];
+//                 // If buffer is full, write to output run list
+//                 if(buffer->getSize() == maxNumRecords) {
+//                     output.push_back(buffer->clone());
+//                     // clear buffer
+//                     buffer->clear();
+//                     ++currSlot;
 
-                }
-                winner->setSlot(currSlot);
-                buffer->add(new Record(*winner));
-                tree.deleteMin();
-                capacity += recordSize;
-                if(!prevRun->isEmpty()){
-                    tree.insert(new Record(*(prevRun->getMin())));
-                    capacity -= recordSize;
-                    prevRun->deleteMin();
+//                 }
+//                 winner->setSlot(currSlot);
+//                 buffer->add(new Record(*winner));
+//                 tree.deleteMin();
+//                 capacity += recordSize;
+//                 if(!prevRun->isEmpty()){
+//                     tree.insert(new Record(*(prevRun->getMin())));
+//                     capacity -= recordSize;
+//                     prevRun->deleteMin();
 
-                    // if prevRun becomes empty, inc counter
-                    if(prevRun->isEmpty()) {
-                        ++totalUsedRuns;
-                    }
-                }
-                continue;
+//                     // if prevRun becomes empty, inc counter
+//                     if(prevRun->isEmpty()) {
+//                         ++totalUsedRuns;
+//                     }
+//                 }
+//                 continue;
 
-            }
-            i = i % numRuns;
-            TreeOfLosers * run = runs[i];
-            if(run->isEmpty()) {
-                i++;
-                continue;
-            }
-            if(capacity >= recordSize) {
-                // insert one record from runs[i] into tree
-                // TreeOfLosers * run = runs[i];
-                tree.insert(new Record(*(run->getMin())));
-                run->deleteMin();
-                if(run->isEmpty()) {
-                    totalUsedRuns++;
-                }
-                capacity -= recordSize;
-            }
-            i++;
-        }
+//             }
+//             i = i % numRuns;
+//             TreeOfLosers * run = runs[i];
+//             if(run->isEmpty()) {
+//                 i++;
+//                 continue;
+//             }
+//             if(capacity >= recordSize) {
+//                 // insert one record from runs[i] into tree
+//                 // TreeOfLosers * run = runs[i];
+//                 tree.insert(new Record(*(run->getMin())));
+//                 run->deleteMin();
+//                 if(run->isEmpty()) {
+//                     totalUsedRuns++;
+//                 }
+//                 capacity -= recordSize;
+//             }
+//             i++;
+//         }
 
 
-        // Check if tree still has Records
-        while(!tree.isEmpty()) {
-            Record * winner = tree.getMin();
-            winner->setSlot(currSlot);
-            // If buffer is full, write to output run list
-            if(buffer->getSize() == maxNumRecords) {
-                output.push_back(buffer->clone());
-                // clear buffer
-                buffer->clear();
-                currSlot++;
+//         // Check if tree still has Records
+//         while(!tree.isEmpty()) {
+//             Record * winner = tree.getMin();
+//             winner->setSlot(currSlot);
+//             // If buffer is full, write to output run list
+//             if(buffer->getSize() == maxNumRecords) {
+//                 output.push_back(buffer->clone());
+//                 // clear buffer
+//                 buffer->clear();
+//                 currSlot++;
 
-            }
-            buffer->add(new Record(*winner));
-            tree.deleteMin();
-        }
+//             }
+//             buffer->add(new Record(*winner));
+//             tree.deleteMin();
+//         }
 
-        if(!buffer->isEmpty()) {
-            output.push_back(buffer->clone());
-            // clear buffer
-            buffer->clear();
-        }
-        printf("CurrSlot: %d, numRunsEmptied: %d\n", currSlot, totalUsedRuns);
-    }
-    return output;
-}
+//         if(!buffer->isEmpty()) {
+//             output.push_back(buffer->clone());
+//             // clear buffer
+//             buffer->clear();
+//         }
+//         printf("CurrSlot: %d, numRunsEmptied: %d\n", currSlot, totalUsedRuns);
+//     }
+//     return output;
+// }
+
+double DRAM::getCapacity() const { return capacity; }
 
 // To test this main individually:
 // use: g++ Run.cpp Record.cpp TreeOfLosers.cpp DRAM.cpp -o dram

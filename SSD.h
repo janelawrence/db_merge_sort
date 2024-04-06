@@ -27,7 +27,7 @@ public:
     void writeData(double sizeInBytes);
     
     // Merge DRAM-Size Runs into SSD-Size Runs
-    std::vector<Run*> merge(std::vector<Run*> runs, int recordSize);
+    // std::vector<Run*> merge(std::vector<Run*> runs, int recordSize);
 
     // Getters
     double getCapacity() const;

@@ -64,14 +64,7 @@ const char* Record::getKey() const { return key; }
 
 const char* Record::getContent() const {return content; }
 
-Record* Record::getPrev() const { return prev; }
-Record* Record::getNext() const { return next; }
-
-
-
 // Setters
-void Record::setPrev(Record* prevRecord) { prev = prevRecord; }
-void Record::setNext(Record* nextRecord) { next = nextRecord; }
 
 void Record::setSize(int s) { size = s; }
 

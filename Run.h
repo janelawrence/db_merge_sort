@@ -1,24 +1,26 @@
 #ifndef RUN_H
 #define RUN_H
-#include "Record.h"
+#include "Page.h"
 #include <list>
 
 
 class Run {
     private:
-        std::list<Record*> records;
+        Page * pageHead;
+        Page * pageTail;
+        int numPage;
     public:
         Run();
 
-        void add(Record *);
-        void removeFisrt();
+        void appendPage(Page *);
+        void removeFisrtPage();
         void clear();
-        void print(bool listRecord = true) const;
+        void print(bool listPage = true) const;
         Run* clone();
         // Getters
-        Record* getFirst();
-        std::list<Record*> getRecords() const;
-        int getSize() const;
+        Page* getFirstPage();
+        Page* getLastPage();
+        int getNumPages() const;
         bool isEmpty() const;
 
 };

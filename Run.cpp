@@ -1,64 +1,88 @@
 #include "Run.h"
+#include "defs.h"
 
 
-Run::Run(){}
 
 
 
-void Run::add(Record * record) {
-    records.push_back(record);
+Run::Run(){
+    pageHead = new Page(-1, 0);
+    pageTail = pageHead;
+}
+
+
+
+void Run::appendPage(Page * page) {
+    pageTail->setNext(page);
+    page->setPrev(pageTail);
+    pageTail = page;
+    numPage++;
 }
 
 Run* Run::clone(){
     Run* clonedRun = new Run();
-    for (std::list<Record*>::iterator it = records.begin(); it != records.end(); ++it) {
-        Record * r = (*it);
-        clonedRun->add(new Record(*r));
+    Page * current = pageHead;
+    while(current) {
+        clonedRun->appendPage(current->clone());
+        current = current->getNext();
     }
+
     return clonedRun;
 }
 
-void Run::removeFisrt() {
-    if(records.empty()) {
+void Run::removeFisrtPage() {
+    if(numPage == 0 || pageHead == nullptr) {
         printf("Can't remove, run is empty");
         return;
     }
-    records.pop_front();
+    numPage--;
+    pageHead = pageHead->getNext();
 }
 
-/**Return a deep copy of the first Record in Run*/
-Record* Run::getFirst() {
-    Record* firstRecord;
-    if(records.empty()) {
-        printf("List is empty, can't get fist from the list");
-        return firstRecord;
-    }
-    return new Record(*records.front());
-}
 
 void Run::clear(){
-    std::list<Record*> newRecords;
-    records.swap(newRecords);
+    // std::list<Page*> newpages;
+    // pages.swap(newpages);
+    numPage = 0;
+    pageHead = nullptr;
+    pageTail = nullptr;
 }
 
-void Run::print(bool listRecord) const {
-    printf("Run: has %lu records \n", records.size());
-    if(listRecord) {
-        for (std::list<Record*>::const_iterator it = records.begin(); it != records.end(); ++it) {
-            (*it)->printRecord();
+void Run::print(bool listPage) const {
+    printf("Run: has %lu pages \n", numPage);
+    if(listPage) {
+        Page * current = pageHead->getNext();
+        while(current) {
+            current->print();
+            current = current->getNext();
         }
     }
 }
 
-std::list<Record*> Run::getRecords() const {
-    return records;
+/**Return a shallow copy of the first Record in Run*/
+Page* Run::getFirstPage() {
+    Page* firstPage;
+    if(numPage == 0 || pageHead == nullptr) {
+        printf("List is empty, can't get fist from the list");
+        return firstPage;
+    }
+    return pageHead;
 }
 
-int Run::getSize() const {
-    return records.size();
+Page* Run::getLastPage() {
+    Page* lastPage;
+    if(numPage == 0 || pageHead == nullptr) {
+        printf("List is empty, can't get fist from the list");
+        return lastPage;
+    }
+    return pageTail;
+}
+
+int Run::getNumPages() const {
+    return numPage;
 }
 
 bool Run::isEmpty() const {
-    return records.empty();
+    return numPage == 0 || pageHead == nullptr;
 }
 

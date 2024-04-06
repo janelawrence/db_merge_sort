@@ -162,84 +162,84 @@ std::string HDD::createHDD(const std::string& prefix) {
 }
 
 // TODO: It can be void??? as we don't have lower level of memory after HDD
-std::vector<Run*> HDD::merge(std::vector<Run*> runs, int recordSize){
+// std::vector<Run*> HDD::merge(std::vector<Run*> runs, int recordSize){
 
-    std::vector<Run*> output;
-    if (runs.size() > 0) {
-        // int maxNumRecords = inf
-        int numRuns = runs.size();
-        int i = 0;
-        // Keep track of slot index for run stored in buffer
-        int currSlot = 0;
-        int totalUsedRuns = 0;
-        Run* buffer = new Run();
-        while(true) {
-            if(totalUsedRuns == numRuns) {
-                break;
-            }
-            if(tree.getSize() == numRuns) {
-                Record * winner = tree.getMin();
-                int prevSlot = winner->getSlot();
-                Run * prevRun = runs[prevSlot];
-                winner->setSlot(currSlot);
-                buffer->add(new Record(*winner));
-                tree.deleteMin();
-                if(!prevRun->isEmpty()){
-                    tree.insert(new Record(*(prevRun->getFirst())));
-                    prevRun->removeFisrt();
+//     std::vector<Run*> output;
+//     if (runs.size() > 0) {
+//         // int maxNumRecords = inf
+//         int numRuns = runs.size();
+//         int i = 0;
+//         // Keep track of slot index for run stored in buffer
+//         int currSlot = 0;
+//         int totalUsedRuns = 0;
+//         Run* buffer = new Run();
+//         while(true) {
+//             if(totalUsedRuns == numRuns) {
+//                 break;
+//             }
+//             if(tree.getSize() == numRuns) {
+//                 Record * winner = tree.getMin();
+//                 int prevSlot = winner->getSlot();
+//                 Run * prevRun = runs[prevSlot];
+//                 winner->setSlot(currSlot);
+//                 buffer->add(new Record(*winner));
+//                 tree.deleteMin();
+//                 if(!prevRun->isEmpty()){
+//                     tree.insert(new Record(*(prevRun->getFirst())));
+//                     prevRun->removeFisrt();
 
-                    // if prevRun becomes empty, inc counter
-                    if(prevRun->isEmpty()) {
-                        ++totalUsedRuns;
-                    }
-                }
-                continue;
+//                     // if prevRun becomes empty, inc counter
+//                     if(prevRun->isEmpty()) {
+//                         ++totalUsedRuns;
+//                     }
+//                 }
+//                 continue;
 
-            }
-            i = i % numRuns;
-            Run * run = runs[i];
-            if(run->isEmpty()) {
-                i++;
-                continue;
-            }
-            // insert one record from runs[i] into tree
-            tree.insert(new Record(*(run->getFirst())));
-            run->removeFisrt();
-            if(run->isEmpty()) {
-                totalUsedRuns++;
-            }
-            i++;
-        }
-        // Check if tree still has Records
-        while(!tree.isEmpty()) {
-            Record * winner = tree.getMin();
-            winner->setSlot(currSlot);
-            buffer->add(new Record(*winner));
-            tree.deleteMin();
-        }
+//             }
+//             i = i % numRuns;
+//             Run * run = runs[i];
+//             if(run->isEmpty()) {
+//                 i++;
+//                 continue;
+//             }
+//             // insert one record from runs[i] into tree
+//             tree.insert(new Record(*(run->getFirst())));
+//             run->removeFisrt();
+//             if(run->isEmpty()) {
+//                 totalUsedRuns++;
+//             }
+//             i++;
+//         }
+//         // Check if tree still has Records
+//         while(!tree.isEmpty()) {
+//             Record * winner = tree.getMin();
+//             winner->setSlot(currSlot);
+//             buffer->add(new Record(*winner));
+//             tree.deleteMin();
+//         }
 
-        printf("------------- HDD Output %d th Run -----------\n", 0);
-        buffer->print();
-        printf("\n");
+//         printf("------------- HDD Output %d th Run -----------\n", 0);
+//         buffer->print();
+//         printf("\n");
 
 
-        //Write sorted result to HDD immediately
-        while(!buffer->isEmpty()) {
-            Record * record = buffer->getFirst();
-            writeData(record->getKey(), record);
-            buffer->removeFisrt();
-        }
+//         //Write sorted result to HDD immediately
+//         while(!buffer->isEmpty()) {
+//             Record * record = buffer->getFirst();
+//             writeData(record->getKey(), record);
+//             buffer->removeFisrt();
+//         }
 
-        // if(!buffer->isEmpty()) {
-        //     output.push_back(buffer->clone());
-        //     // clear buffer
-        //     buffer->clear();
-        // }
+//         // if(!buffer->isEmpty()) {
+//         //     output.push_back(buffer->clone());
+//         //     // clear buffer
+//         //     buffer->clear();
+//         // }
 
-        printf("CurrSlot: %d, numRunsEmptied: %d\n", currSlot, totalUsedRuns);
-    }
-    return output;
-}
+//         printf("CurrSlot: %d, numRunsEmptied: %d\n", currSlot, totalUsedRuns);
+//     }
+//     return output;
+// }
 
 
 std::string HDD::getHDDNameWithCurrentTime(const std::string& prefix) {

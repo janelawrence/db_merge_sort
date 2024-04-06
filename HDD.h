@@ -7,6 +7,7 @@
 #include "Record.h"
 #include "Run.h"
 #include "TreeOfLosers.h"
+#include "Page.h"
 
 
 
@@ -16,6 +17,7 @@ class HDD {
         double latency;   // Latency in milliseconds
         double bandwidth; // Bandwidth in MB/s
         TreeOfLosers tree;
+        std::vector<Page *> pages;
         
     public:
         // Constructor
@@ -38,7 +40,7 @@ class HDD {
         std::string createHDD(const std::string& prefix);
 
         // Merge SSD-Size Runs
-        std::vector<Run*> merge(std::vector<Run*> runs, int recordSize);
+        // std::vector<Run*> merge(std::vector<Run*> runs, int recordSize);
 
 
         // Get name hdd with date and time as suffix

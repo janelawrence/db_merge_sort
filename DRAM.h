@@ -19,7 +19,7 @@ class DRAM {
         DRAM();
 
         // merge cache-size runs in DRAM and output DRAM-size runs
-        std::vector<Run*> merge(std::vector<TreeOfLosers*> cacheSizedRuns, int recordSize);
+        // std::vector<Run*> merge(std::vector<TreeOfLosers*> cacheSizedRuns, int recordSize);
 
         // Getters
         double getCapacity() const;
