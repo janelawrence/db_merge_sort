@@ -46,15 +46,10 @@ int PAGE_SIZE = 2048 ; // 5 KB
 // int PAGE_SIZE = 40; //40B
 
 const char * spillToSSDState = "STATE -> SPILL_RUNS_SSD: Spill sorted runs to the SSD device";
-const char * mergeRunsSSD = "MERGE_RUNS_SSD: Merge sorted runs on the SSD device";
 
 const char * ACCESS_WRITE = "write";
 const char * ACCESS_READ = "read";
 
-
-// char * createAccessState(char * accessType, char * accessLoc) {
-
-// }
 
 /* Function to read records from the input file
 	Return: pages in DRAM stored in a Run *

@@ -44,7 +44,7 @@ int SSD::outputMergeMsg(const char * outputTXT){
     }
 
 	// Print output to both console and file
-    outputFile << "MERGE_RUNS_SSD: Merge sorted runs on the SSD device\n";
+    outputFile << "STATE -> MERGE_RUNS_SSD: Merge sorted runs on the SSD device\n";
 
 	// close file
     outputFile.close();
