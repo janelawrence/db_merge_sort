@@ -4,10 +4,10 @@
 
 
 #include "Record.h"
+#include "Page.h"
 // #include <iostream>
 #include <queue>
 #include <list>
-
 
 // Comparator function for priority queue
 struct Compare {
@@ -45,6 +45,7 @@ public:
 
     std::list<Record*> toList();
     std::vector<Record*> toVector();
+    Page * toNewPages(int pageIdx, int maxRecordsInPage, int pageSize);
 
 
 

@@ -19,7 +19,12 @@ class SSD {
 public:
     // Constructor
     SSD(double lat, double bw);
-
+    
+    
+    int outputAccessState(const char * accessType,
+                            unsigned long long totalBytes,
+                            const char * outputTXT);
+    int outputMergeMsg(const char * outputTXT);
     // Smilate Reading data from SSD with given size in bytes
     void readData(double sizeInBytes);
 

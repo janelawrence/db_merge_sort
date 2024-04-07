@@ -9,17 +9,17 @@
 
 class CACHE {
     private:
-        double MAX_CAPACITY = 100;  // DUMMY Value for demo: Capacity is 100 B
+        double MAX_CAPACITY;  // DUMMY Value for demo: Capacity is 100 B
         // double MAX_CAPACITY = 1 * 1024 * 1024;  // Capacity is 1 MB
         double capacity = MAX_CAPACITY;
+        int nPagesFitInCache;
         TreeOfLosers tree;
     public:
         // Constructor
-        CACHE();
+        CACHE(int cacheSize, int nPages);
 
-        std::vector<TreeOfLosers*> readFromHDD(int recordSize, HDD* hdd);
-
-        TreeOfLosers* sort(HDD* hdd, std::vector<Record*> records, int slotIdx);
+        // Output miniRuns
+        std::vector<Run *> sort(Run * pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE);
 
 
         // Getters

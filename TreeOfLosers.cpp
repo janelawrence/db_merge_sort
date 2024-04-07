@@ -97,6 +97,23 @@ std::vector<Record*> TreeOfLosers::toVector(){
     return vec;
 }
 
+Page * TreeOfLosers::toNewPages(int pageIdx, int maxRecordsInPage, int pageSize) {
+    Page * sentinalPage = new Page(-1, 0, pageSize);
+    Page * newPage = new Page(pageIdx, maxRecordsInPage, pageSize);
+    sentinalPage->setNext(newPage);
+    std::priority_queue<Record*, std::vector<Record*>, Compare> copyHeap = minHeap;
+    while(!copyHeap.empty()) {
+        if(newPage->isFull()) {
+            Page * temp = new Page(++pageIdx, maxRecordsInPage, pageSize);
+            newPage->setNext(temp);
+            newPage = newPage->getNext();
+        }
+        Record* minRecord = copyHeap.top();
+        newPage->addRecord(minRecord);
+        copyHeap.pop();
+    }
+    return sentinalPage->getNext();
+}
 
 
 // Main function for testing

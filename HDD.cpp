@@ -22,77 +22,27 @@
 // Constructor
 // size in B
 // bandiwith in MB/s
-HDD::HDD(const std::string& dirPrefix, double lat, double bw) : latency(lat), bandwidth(bw) {
-    if(dirPrefix.empty()) {
-        directory = createHDD("hdd_unsorted");
-    }else{
-        directory = createHDD(dirPrefix);
-    }
-}
+HDD::HDD(double lat, double bw) : latency(lat), bandwidth(bw) {}
 
-// Method to simulate read operation
-// size in B
-Record * HDD::readData(const std::string& filename, int recordSize) {
-    // Simulate latency
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
+int HDD::outputAccessState(const char * accessType, 
+                            unsigned long long totalBytes,
+                            const char * outputTXT){
+    // Open the output file in overwrite mode
+    std::ofstream outputFile(outputTXT, std::ios::app);
 
-    // Open file for reading
-    std::ifstream file(directory + "/" + filename, std::ios::binary);
-    if (!file.is_open()) {
-        printf("Error: Failed to open file for reading: %s\n", filename.c_str());
-        return 0;
+    // Check if the file opened successfully
+    if (!outputFile.is_open()) {
+        std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
+        return 1;  // Return error code
     }
 
-    // Read data from file
-    char* buffer = new char[recordSize];
-    file.read(buffer, recordSize);
+    int lat = latency + bandwidth / totalBytes;
+	// Print output to both console and file
+    outputFile << "ACCESS -> A " << accessType << " to HDD was made with size " << totalBytes << " bytes and latency " << lat << " us\n";
 
-    // Close file
-    file.close();
+	// close file
+    outputFile.close();
 
-    Record * record = Record::deserialize(buffer, recordSize);
-
-    // Simulate bandwidth
-    double transferTime = 1000 * static_cast<double>(recordSize) / (bandwidth * 1024 * 1024);
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(transferTime * 1000)));
-
-    // std::cout << "Read " << size << " bytes from file: " << filename << ". Transfer time: " << transferTime << " seconds\n";
-    printf("Read %d bytes from file: %s. Transfer time: %.4f ms, total time: %.4f ms\n",\
-             recordSize, \
-             filename.c_str(), \
-             transferTime, \
-             transferTime + latency);
-
-    delete[] buffer;
-
-    return record;
-}
-
-std::vector<Record*> HDD::readFilesInHDD(int recordSize) {
-    DIR* dir = opendir(directory.c_str());
-
-	std::vector<Record*> records;
-	if (!dir) {
-        std::cerr << "Failed to open directory" << std::endl;
-        return records;
-    }
-    dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) {
-		// Skip directories and special entries
-        if (entry->d_type != DT_REG) {
-            continue;
-        }
-        // Read data from file using hdd.readData
-        Record * record = readData(entry->d_name, recordSize);
-
-        // Append the records to the vector
-		if(record != nullptr) {
-			records.push_back(record);
-		}
-    }
-
-    closedir(dir);
-	return records;
 }
 
 // Method to simulate write operation
@@ -114,7 +64,7 @@ void HDD::writeData(const std::string& filename, Record* record) {
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
 
     // Open file for writing
-    std::ofstream file(directory + "/" + filename, std::ios::binary);
+    std::ofstream file(filename, std::ios::binary);
     if (!file.is_open()) {
         // std::cerr << "Error: Failed to open file for writing: " << filename << std::endl;
         printf("Error: Failed to open file for writing: %s\n", filename.c_str());
@@ -142,24 +92,6 @@ void HDD::writeData(const std::string& filename, Record* record) {
 
 }
 
-std::string HDD::createHDD(const std::string& prefix) {
-    const std::string dirname = HDD::getHDDNameWithCurrentTime(prefix); // Replace with desired directory path
-
-    // Convert std::string to const char*
-    const char* cdirname = dirname.c_str();
-
-    // Create directory
-    int status = mkdir(cdirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (status == 0) {
-        // std::cout << "Directory created successfully: " << dirname << std::endl;
-        printf("Directory created successfully: %s\n", dirname.c_str());
-    } else {
-        // std::cerr << "Error: Failed to create directory" << std::endl;
-        printf("Error: Failed to create directory\n");
-
-    }
-    return dirname;
-}
 
 // TODO: It can be void??? as we don't have lower level of memory after HDD
 // std::vector<Run*> HDD::merge(std::vector<Run*> runs, int recordSize){
@@ -242,33 +174,7 @@ std::string HDD::createHDD(const std::string& prefix) {
 // }
 
 
-std::string HDD::getHDDNameWithCurrentTime(const std::string& prefix) {
-     // Get current time
-    std::time_t now = std::time(nullptr);
-    std::tm* tm = std::localtime(&now);
 
-    // Format date and time
-    std::stringstream ss;
-    // ss << "hdd_unsorted_";
-    ss << prefix;
-    ss << "_";
-    ss << std::setfill('0') << std::setw(2) << (tm->tm_mon + 1);  // Month with leading zero
-    ss << std::setw(2) << tm->tm_mday;       // Day with leading zero
-    ss << "_";
-    ss << std::setfill('0') << std::setw(2) << tm->tm_hour;       // Hour with leading zero
-    ss << std::setw(2) << tm->tm_min;        // Minute with leading zero
-    ss << std::setw(2) << tm->tm_sec;        // Second with leading zero
-    ss << "_";
-    ss << std::setfill('0') << std::setw(4) << (tm->tm_year + 1900); // Year with 4 digits
-
-
-    return ss.str();
-}
-
-
-std::string HDD::getDir() const{
-    return directory;
-}
 
 double HDD::getLatency() const{
     return latency;

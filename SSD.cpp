@@ -3,12 +3,53 @@
 #include "defs.h"
 
 #include <iostream>
+#include <fstream>
 #include <chrono>
 #include <thread>
 #include <vector>
 
 // Constructor
 SSD::SSD(double lat, double bw) : latency(lat), bandwidth(bw) {}
+
+int SSD::outputAccessState(const char * accessType,
+                            unsigned long long totalBytes,
+                            const char * outputTXT){
+    // Open the output file in overwrite mode
+    std::ofstream outputFile(outputTXT, std::ios::app);
+
+    // Check if the file opened successfully
+    if (!outputFile.is_open()) {
+        std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
+        return 1;  // Return error code
+    }
+
+    int lat = latency + bandwidth / totalBytes;
+	// Print output to both console and file
+    outputFile << "ACCESS -> A " << accessType << " to SSD was made with size " << totalBytes << " bytes and latency " << lat << " us\n";
+
+
+	// close file
+    outputFile.close();
+
+}
+
+int SSD::outputMergeMsg(const char * outputTXT){
+    // Open the output file in overwrite mode
+    std::ofstream outputFile(outputTXT, std::ios::app);
+
+    // Check if the file opened successfully
+    if (!outputFile.is_open()) {
+        std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
+        return 1;  // Return error code
+    }
+
+	// Print output to both console and file
+    outputFile << "MERGE_RUNS_SSD: Merge sorted runs on the SSD device\n";
+
+	// close file
+    outputFile.close();
+
+}
 
 // Method to simulate read operation
 void SSD::readData(double sizeInBytes) {

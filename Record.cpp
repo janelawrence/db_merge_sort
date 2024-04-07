@@ -52,7 +52,8 @@ Record* Record::deserialize(const char* serializedData, int dataSize) {
 }
 
 void Record::printRecord(){
-    printf("Record: key %s, slot: %d, size: %d, content size: %d\n", key, slot, size, strlen(content));
+    printf("Record: key %s, slot: %d, size: %d, content size: %d\n", 
+            key, slot, size, strlen(content));
 };
 
 // Getters

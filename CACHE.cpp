@@ -11,80 +11,43 @@
 #include <vector>
 
 // Constructor
-CACHE::CACHE(){}
+CACHE::CACHE(int cacheSize, int nPages): MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages) {}
 
 
-/**
- * This member function reads records from HDD,
- * and output cache-size sorted runs
- * 
-*/
-std::vector<TreeOfLosers*> CACHE::readFromHDD(int recordSize, HDD* hdd){
 
-    std::vector<TreeOfLosers*> runs;
-    int maxNumRecords = capacity / recordSize;
-    std::vector<Record*> records;
-
-    DIR* dir = opendir(hdd->getDir().c_str());
-
-    if (!dir) {
-        std::cerr << "Failed to open directory" << std::endl;
-        return runs;
-    }
-    dirent* entry;
-    int numReadIn = 0;
-    int slotIdx = 0;
-    while ((entry = readdir(dir)) != nullptr && numReadIn < maxNumRecords) {
-        // Skip directories and special entries
-        if (entry->d_type != DT_REG) {
-            continue;
-        }
-        // Read data from file using hdd.readData
-        Record * record = hdd->readData(entry->d_name, recordSize);
-        // Append the records to the vector
-        if(record != nullptr) {
-            records.push_back(record);
-        }
-        numReadIn++;
-        if(numReadIn == maxNumRecords) {
-            //sorting
-            TreeOfLosers* run = sort(hdd, records, slotIdx);
-            runs.push_back(run);
-            tree.clear();
-            slotIdx++;
-            records.clear();
-            numReadIn = 0;
-        }
-
-    }
-
-    // Last run that does not fill up CACHE
-    if (numReadIn > 0 && numReadIn < maxNumRecords) {
-        //sorting
-        TreeOfLosers* run = sort(hdd, records, slotIdx);
-        runs.push_back(run);
-        tree.clear();
-
-        slotIdx++;
-        records.clear();
-        numReadIn = 0;
-    }
-    closedir(dir);
-    return runs;
-}
-
-TreeOfLosers* CACHE::sort(HDD* hdd, std::vector<Record*> records, int slotIdx){
+std::vector<Run *> CACHE::sort(Run * pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE){
     
-    for(int i = 0; i < records.size(); i++) {
-        Record* record = records[i];
-        record->setSlot(slotIdx);
-        tree.insert(record);
-    }
-    //  Clear cache by passing run to DRAM
-    printf("\n\nCLEAR CACHE NOW\n");
-    std::vector<Record*> sortedRecords;
+    Page * curr = pagesInDRAM->getFirstPage();
+	std::vector<Run *> miniRuns;
+	Run * miniRun = new Run();
+	int count = 0;
+	while(curr) {
+		if(count >= nPagesFitInCache) {
+			// one cache-sized run has been filled
+			miniRun->appendPage(tree.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			miniRuns.push_back(miniRun);
+			miniRun = new Run();
 
-    return tree.clone();
+			count = 0;
+			tree.clear();
+		}
+
+		while(curr->getNumRecords() > 0) {
+			Record * record = curr->getFirstRecord();
+			record->setSlot(-1);
+			tree.insert(record);
+			curr->removeFisrtRecord();
+		}
+		count++;
+		curr = curr->getNext(); // Get next page in memory
+		if(!curr && !tree.isEmpty()) {
+			miniRun->appendPage(tree.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			miniRuns.push_back(miniRun);
+			Run * miniRun = new Run();
+			tree.clear();
+		}
+	}
+    return miniRuns;
 }
 
 

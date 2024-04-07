@@ -9,6 +9,7 @@ class Run {
         Page * pageHead;
         Page * pageTail;
         int numPage;
+        unsigned long long bytes;
     public:
         Run();
 
@@ -22,6 +23,11 @@ class Run {
         Page* getLastPage();
         int getNumPages() const;
         bool isEmpty() const;
+        unsigned long long getBytes() const;
+
+
+        // Setter
+        
 
 };
 

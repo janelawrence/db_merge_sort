@@ -21,13 +21,18 @@ void Generator::generateRecords(const char* fileName) {
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
     
     // Generate numRecords number of records
-    for (int i = 0; i < numRecords * recordSize; ++i) {
-        // Generate k random alphanumeric bytes
-        char randomByte = 'A' + (std::rand() % 26); // Generate a random uppercase letter
-        if (std::rand() % 2 == 0) { // Randomly choose between uppercase and lowercase
-            randomByte = std::tolower(randomByte);
+    for (int i = 0; i < numRecords; ++i) {
+        for(int j = 0; j < recordSize; j++) {
+            // Generate k random alphanumeric bytes
+            char randomByte = 'A' + (std::rand() % 26); // Generate a random uppercase letter
+            if (std::rand() % 2 == 0) { // Randomly choose between uppercase and lowercase
+                randomByte = std::tolower(randomByte);
+            }
+            outputFile.write(&randomByte, sizeof(char)); // Write the byte to the file
         }
-        outputFile.write(&randomByte, sizeof(char)); // Write the byte to the file
+        outputFile << '\n'; // Add a newline after writing each record
+        outputFile << '\n'; // Add a newline after writing each record
+
     }
     
     // Close the file
