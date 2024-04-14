@@ -11,18 +11,19 @@
 #include <vector>
 
 // Constructor
-CACHE::CACHE(int cacheSize, int nPages): MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages) {}
+CACHE::CACHE(int cacheSize, int nPages) : MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages) {}
 
+std::vector<Run *> CACHE::sort(Run *pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE)
+{
 
-
-std::vector<Run *> CACHE::sort(Run * pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE){
-    
-    Page * curr = pagesInDRAM->getFirstPage();
+	Page *curr = pagesInDRAM->getFirstPage();
 	std::vector<Run *> miniRuns;
-	Run * miniRun = new Run();
+	Run *miniRun = new Run();
 	int count = 0;
-	while(curr) {
-		if(count >= nPagesFitInCache) {
+	while (curr)
+	{
+		if (count >= nPagesFitInCache)
+		{
 			// one cache-sized run has been filled
 			miniRun->appendPage(tree.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
 			miniRuns.push_back(miniRun);
@@ -32,27 +33,29 @@ std::vector<Run *> CACHE::sort(Run * pagesInDRAM, int maxRecordsInPage, int PAGE
 			tree.clear();
 		}
 
-		while(curr->getNumRecords() > 0) {
-			Record * record = curr->getFirstRecord();
+		while (curr->getNumRecords() > 0)
+		{
+			Record *record = curr->getFirstRecord();
 			record->setSlot(-1);
 			tree.insert(record);
 			curr->removeFisrtRecord();
 		}
 		count++;
 		curr = curr->getNext(); // Get next page in memory
-		if(!curr && !tree.isEmpty()) {
+		if (!curr && !tree.isEmpty())
+		{
 			miniRun->appendPage(tree.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
 			miniRuns.push_back(miniRun);
-			Run * miniRun = new Run();
+			Run *miniRun = new Run();
 			tree.clear();
 		}
 	}
-    return miniRuns;
+	return miniRuns;
 }
 
-
-double CACHE::getCapacity() const{
-    return capacity;
+double CACHE::getCapacity() const
+{
+	return capacity;
 }
 
 // g++ defs.cpp Run.cpp Record.cpp TreeOfLosers.cpp HDD.cpp CACHE.cpp -o cache
@@ -72,7 +75,7 @@ double CACHE::getCapacity() const{
 
 //     CACHE* cache = new CACHE();
 // 	std::vector<Run*> sortedRunsInCache = cache->readFromHDD(recordSize, hdd);
-	
+
 //     for(int i = 0; i < sortedRunsInCache.size(); i++) {
 // 		Run* run = sortedRunsInCache[i];
 // 		printf("------------- %d th Run -----------\n", i);
@@ -80,5 +83,3 @@ double CACHE::getCapacity() const{
 // 		printf("\n");
 // 	}
 // }
-
-

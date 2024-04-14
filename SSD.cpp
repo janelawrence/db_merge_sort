@@ -9,176 +9,242 @@
 #include <vector>
 
 // Constructor
-SSD::SSD(double lat, double bw) : latency(lat), bandwidth(bw) {}
-
-int SSD::outputAccessState(const char * accessType,
-                            unsigned long long totalBytes,
-                            const char * outputTXT){
-    // Open the output file in overwrite mode
-    std::ofstream outputFile(outputTXT, std::ios::app);
-
-    // Check if the file opened successfully
-    if (!outputFile.is_open()) {
-        std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
-        return 1;  // Return error code
-    }
-
-    int lat = latency + bandwidth / totalBytes;
-	// Print output to both console and file
-    outputFile << "ACCESS -> A " << accessType << " to SSD was made with size " << totalBytes << " bytes and latency " << lat << " us\n";
-
-
-	// close file
-    outputFile.close();
-
+SSD::SSD(unsigned long long maxCap, long lat, long bw) : MAX_CAPACITY(maxCap), latency(lat), bandwidth(bw)
+{
+    capacity = maxCap;
 }
 
-int SSD::outputMergeMsg(const char * outputTXT){
+/*
+Write cloned run to SSD
+*/
+bool SSD::addRun(Run *run)
+{
+    if (run->getBytes() > capacity)
+    {
+        printf("SSD does Not enough space");
+        return false;
+    }
+    runs.push_back(run->clone());
+
+    // Decrease SSD capacity
+    capacity -= run->getBytes();
+    runBitmap.push_back(true);
+    numRuns++;
+    // printf("WATCH ME: %d\n", static_cast<int>(runBitmap[runBitmap.size() - 1]));
+    return true;
+}
+
+bool SSD::eraseRun(int runIdx)
+{
+    if (runIdx > runs.size())
+    {
+        printf("run index invalid");
+        return false;
+    }
+    // Increase SSD capacity
+    capacity += runs[runIdx]->getBytes();
+    runBitmap[runIdx] = false;
+    numRuns--;
+    return true;
+}
+
+void SSD::clear()
+{
+    capacity = MAX_CAPACITY;
+    std::vector<Run *> emptyRuns;
+    // std::vector<Run *> emptyDRAMRuns;
+
+    std::vector<bool> emptyRunBitmap;
+    // std::vector<bool> emptyDramRunBitmap;
+
+    runs.swap(emptyRuns);
+    // dramSizedRuns.swap(emptyDRAMRuns);
+    runBitmap.swap(emptyRunBitmap);
+    // dramRunBitmap.swap(emptyDramRunBitmap);
+
+    // numCacheRuns = 0;
+    // numDramRuns = 0;
+}
+
+int SSD::outputSpillState(const char *outputTXT)
+{
     // Open the output file in overwrite mode
     std::ofstream outputFile(outputTXT, std::ios::app);
 
     // Check if the file opened successfully
-    if (!outputFile.is_open()) {
+    if (!outputFile.is_open())
+    {
         std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
-        return 1;  // Return error code
+        return 1; // Return error code
     }
 
-	// Print output to both console and file
+    // Print output to both console and file
+    outputFile << "STATE -> SPILL_RUNS_SSD: Spill sorted runs to the SSD device\n";
+
+    // close file
+    outputFile.close();
+}
+
+int SSD::outputAccessState(const char *accessType,
+                           unsigned long long totalBytes,
+                           const char *outputTXT)
+{
+    // Open the output file in overwrite mode
+    std::ofstream outputFile(outputTXT, std::ios::app);
+
+    // Check if the file opened successfully
+    if (!outputFile.is_open())
+    {
+        std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
+        return 1; // Return error code
+    }
+    // Start measuring time
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+
+    writeData(totalBytes);
+
+    // Stop measuring time
+    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+
+    // Calcualte duration
+    std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    // Print output to both console and file
+    outputFile << "ACCESS -> A " << accessType << " to SSD was made with size " << totalBytes << " bytes and latency " << duration.count() << " us\n";
+
+    // close file
+    outputFile.close();
+}
+
+int SSD::outputMergeMsg(const char *outputTXT)
+{
+    // Open the output file in overwrite mode
+    std::ofstream outputFile(outputTXT, std::ios::app);
+
+    // Check if the file opened successfully
+    if (!outputFile.is_open())
+    {
+        std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
+        return 1; // Return error code
+    }
+
+    // Print output to both console and file
     outputFile << "STATE -> MERGE_RUNS_SSD: Merge sorted runs on the SSD device\n";
 
-	// close file
+    // close file
     outputFile.close();
-
 }
 
 // Method to simulate read operation
-void SSD::readData(double sizeInBytes) {
+void SSD::readData(unsigned long long sizeInBytes)
+{
     // Calculate transfer time based on bandwidth
     double transferTime = static_cast<double>(sizeInBytes) / bandwidth;
 
     // Simulate latency
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
+    std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(latency)));
 
     std::cout << "Read " << sizeInBytes << " bytes from SSD. Transfer time: " << transferTime << " seconds\n";
 }
 
 // Method to simulate write operation
-void SSD::writeData(double sizeInBytes) {
+void SSD::writeData(unsigned long long sizeInBytes)
+{
     // Calculate transfer time based on bandwidth
     double transferTime = static_cast<double>(sizeInBytes) / bandwidth;
 
-    // Simulate latency
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
+    double totalLatency = latency + transferTime;
 
-    std::cout << "Wrote " << sizeInBytes << " bytes to SSD. Transfer time: " << transferTime << " seconds\n";
+    // Simulate latency
+    std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(totalLatency)));
 }
 
-// std::vector<Run*> SSD::merge(std::vector<Run*> runs, int recordSize) {
+void SSD::print() const
+{
+    printf("\n------------------------------------SSD Data------------------------------------\n");
+    printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+    printf("In total has %d runs\n", runs.size());
+    for (int i = 0; i < runs.size(); i++)
+    {
+        printf(">>>>>>>>>>>>>>>>>>> %d th Run, valid: %d >>>>>>>>>>>>>>>>>>\n", i, static_cast<int>(runBitmap[i]));
+        runs[i]->print();
+    }
+    printf("--------------------------------------------------------------------\n");
+}
 
-//     std::vector<Run*> output;
-//     if (runs.size() > 0) {
-//                 // maximum number of records stored in a DRAM-size run
-//         int maxNumRecords = MAX_CAPACITY / recordSize;
-//         int numRuns = runs.size();
-//         int i = 0;
-//         // Keep track of slot index for run stored in buffer
-//         int currSlot = 0;
-//         int totalUsedRuns = 0;
-//         Run* buffer = new Run();
-//         while(true) {
-//             if(totalUsedRuns == numRuns) {
-//                 break;
-//             }
-//             // Handles 2 cases: 
-//             // (1) num of input runs <= maxNumRecords, 
-//             //     tree has a winner when tree size == numRuns
-//             // (2) num of input runs > maxNumRecords, 
-//             //     tree has a winner when tree size == maxNumRecords
-//             if(tree.getSize() == min(numRuns, maxNumRecords)) {
-//                 Record * winner = tree.getMin();
-//                 int prevSlot = winner->getSlot();
-//                 Run * prevRun = runs[prevSlot];
-//                 // If buffer is full, write to output run list
-//                 if(buffer->getSize() == maxNumRecords) {
-//                     output.push_back(buffer->clone());
-//                     // clear buffer
-//                     buffer->clear();
-//                     ++currSlot;
+bool SSD::isFull() const
+{
+    return capacity == MAX_CAPACITY;
+}
 
-//                 }
-//                 winner->setSlot(currSlot);
-//                 buffer->add(new Record(*winner));
-//                 tree.deleteMin();
-//                 capacity += recordSize;
-//                 if(!prevRun->isEmpty()){
-//                     tree.insert(new Record(*(prevRun->getFirst())));
-//                     capacity -= recordSize;
-//                     prevRun->removeFisrt();
-
-//                     // if prevRun becomes empty, inc counter
-//                     if(prevRun->isEmpty()) {
-//                         ++totalUsedRuns;
-//                     }
-//                 }
-//                 continue;
-
-//             }
-//             i = i % numRuns;
-//             Run * run = runs[i];
-//             if(run->isEmpty()) {
-//                 i++;
-//                 continue;
-//             }
-//             if(capacity >= recordSize) {
-//                 // insert one record from runs[i] into tree
-//                 tree.insert(new Record(*(run->getFirst())));
-//                 run->removeFisrt();
-//                 if(run->isEmpty()) {
-//                     totalUsedRuns++;
-//                 }
-//                 capacity -= recordSize;
-//             }
-//             i++;
-//         }
-//         // Check if tree still has Records
-//         while(!tree.isEmpty()) {
-//             Record * winner = tree.getMin();
-//             winner->setSlot(currSlot);
-//             // If buffer is full, write to output run list
-//             if(buffer->getSize() == maxNumRecords) {
-//                 output.push_back(buffer->clone());
-//                 // clear buffer
-//                 buffer->clear();
-//                 currSlot++;
-
-//             }
-//             buffer->add(new Record(*winner));
-//             tree.deleteMin();
-//         }
-
-//         if(!buffer->isEmpty()) {
-//             output.push_back(buffer->clone());
-//             // clear buffer
-//             buffer->clear();
-//         }
-//         printf("CurrSlot: %d, numRunsEmptied: %d\n", currSlot, totalUsedRuns);
-//     }
-//     return output;
-// }
-
-
-double SSD::getCapacity() const {
+unsigned long long SSD::getCapacity() const
+{
     return capacity;
 }
 
-double SSD::getLatency() const {
+long SSD::getLatency() const
+{
     return latency;
 }
 
-double SSD::getBandwidth() const {
-    return bandwidth;
+Run *SSD::getRunCopy(int k) const
+{
+    if (k < 0 || k >= runs.size() || runBitmap[k] == false)
+    {
+        printf("Invalid index k\n");
+        return nullptr;
+    }
+    return runs[k]->clone();
 }
 
+Run *SSD::getRun(int k) const
+{
+    if (k < 0 || k >= runs.size() || runBitmap[k] == false)
+    {
+        printf("Invalid index k\n");
+        // print();
+        return nullptr;
+    }
+    return runs[k];
+}
+
+bool SSD::runIsValid(int idx) const
+{
+    if (idx < 0 || idx >= runBitmap.size())
+    {
+        return false;
+    }
+
+    return runBitmap[idx];
+}
+
+int SSD::getNumRuns() const
+{
+    return numRuns;
+}
+
+// Physically Remove invalid runs from SSD
+void SSD::cleanInvalidRuns()
+{
+    std::vector<Run *> cleanedRuns;
+    std::vector<bool> cleanedBitmap;
+    for (int i = 0; i < runs.size(); i++)
+    {
+        if (runBitmap[i])
+        {
+            cleanedRuns.push_back(runs[i]->clone());
+            cleanedBitmap.push_back(true);
+        }
+    }
+    numRuns = cleanedRuns.size();
+    runs.swap(cleanedRuns);
+    runBitmap.swap(cleanedBitmap);
+}
+
+long SSD::getBandwidth() const
+{
+    return bandwidth;
+}
 
 // To test this main individually:
 // use: g++ Run.cpp Record.cpp TreeOfLosers.cpp DRAM.cpp SSD.cpp -o ssd
@@ -229,9 +295,6 @@ double SSD::getBandwidth() const {
 //     r14->setSlot(2);
 //     r15->setSlot(2);
 
-
-
-
 //     // Insert some records
 //     tree1.insert(r1);
 //     tree1.insert(r2);
@@ -256,8 +319,6 @@ double SSD::getBandwidth() const {
 //     runs.push_back(&tree2);
 //     runs.push_back(&tree3);
 
-
-
 //     // Create an DRAM object with capacity 10GB, latency 0.1ms, and bandwidth 200MB/s
 //     DRAM* dram = new DRAM();
 
@@ -270,7 +331,7 @@ double SSD::getBandwidth() const {
 // 	}
 
 //     SSD* ssd = new SSD(0.0001, 200 * 1024 * 1024);
-    
+
 //     ssd->writeData(totalBytes);
 
 //     std::vector<Run*> ssdOutput = ssd->merge(dramOutput, recordSize);
@@ -284,4 +345,3 @@ double SSD::getBandwidth() const {
 
 //     return 0;
 // }
-

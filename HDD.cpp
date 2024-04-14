@@ -21,10 +21,10 @@
 
 // Constructor
 // size in B
-// bandiwith in MB/s
+// bandiwith in MB/us
 HDD::HDD(double lat, double bw) : latency(lat), bandwidth(bw) {}
 
-int HDD::outputAccessState(const char * accessType, 
+int HDD::outputAccessState(const char * accessType,
                             unsigned long long totalBytes,
                             const char * outputTXT){
     // Open the output file in overwrite mode
@@ -35,10 +35,19 @@ int HDD::outputAccessState(const char * accessType,
         std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
         return 1;  // Return error code
     }
+    // Start measuring time
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
-    int lat = latency + bandwidth / totalBytes;
+    writeData(totalBytes);
+
+    // Stop measuring time
+    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+
+    // Calcualte duration
+    std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
 	// Print output to both console and file
-    outputFile << "ACCESS -> A " << accessType << " to HDD was made with size " << totalBytes << " bytes and latency " << lat << " us\n";
+    outputFile << "ACCESS -> A " << accessType << " to HDD was made with size " << totalBytes << " bytes and latency " << duration.count() << " us\n";
 
 	// close file
     outputFile.close();
@@ -51,130 +60,25 @@ void HDD::simulateWriteData(double sizeInBytes) {
     double transferTime = static_cast<double>(sizeInBytes) / bandwidth;
 
     // Simulate latency
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
+    std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(latency)));
 
     std::cout << "Wrote " << sizeInBytes << " bytes to HDD. Transfer time: " << transferTime << " seconds\n";
 }
 
 // Method to write operation
 // size in B
-// bandiwith in MB/s
-void HDD::writeData(const std::string& filename, Record* record) {
+// bandiwith in MB/us
+// Method to simulate write operation
+void HDD::writeData(unsigned long long sizeInBytes) {
+    // Calculate transfer time based on bandwidth
+    double transferTime = static_cast<double>(sizeInBytes) / bandwidth;
+
+    double totalLatency = latency + transferTime;
+
     // Simulate latency
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(latency)));
-
-    // Open file for writing
-    std::ofstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        // std::cerr << "Error: Failed to open file for writing: " << filename << std::endl;
-        printf("Error: Failed to open file for writing: %s\n", filename.c_str());
-        
-        return;
-    }
-
-    int size = record->getSize();
-    // Write data to file
-    file.write(record->serialize(), size);
-
-    // Close file
-    file.close();
-
-    // Simulate bandwidth in ms
-    double transferTime = 1000 * static_cast<double>(size) / (bandwidth * 1024 * 1024);
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(transferTime * 1000)));
-
-    // std::cout << "Wrote " << size << " bytes to file: " << filename << ". Transfer time: " << transferTime << " seconds\n";
-    printf("Wrote %d bytes to file: %s. Transfer time: %.4f ms, total time: %.4f ms\n",\
-            size,\
-            filename.c_str(), \
-            transferTime, \
-            transferTime + latency);
+    std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(totalLatency)));
 
 }
-
-
-// TODO: It can be void??? as we don't have lower level of memory after HDD
-// std::vector<Run*> HDD::merge(std::vector<Run*> runs, int recordSize){
-
-//     std::vector<Run*> output;
-//     if (runs.size() > 0) {
-//         // int maxNumRecords = inf
-//         int numRuns = runs.size();
-//         int i = 0;
-//         // Keep track of slot index for run stored in buffer
-//         int currSlot = 0;
-//         int totalUsedRuns = 0;
-//         Run* buffer = new Run();
-//         while(true) {
-//             if(totalUsedRuns == numRuns) {
-//                 break;
-//             }
-//             if(tree.getSize() == numRuns) {
-//                 Record * winner = tree.getMin();
-//                 int prevSlot = winner->getSlot();
-//                 Run * prevRun = runs[prevSlot];
-//                 winner->setSlot(currSlot);
-//                 buffer->add(new Record(*winner));
-//                 tree.deleteMin();
-//                 if(!prevRun->isEmpty()){
-//                     tree.insert(new Record(*(prevRun->getFirst())));
-//                     prevRun->removeFisrt();
-
-//                     // if prevRun becomes empty, inc counter
-//                     if(prevRun->isEmpty()) {
-//                         ++totalUsedRuns;
-//                     }
-//                 }
-//                 continue;
-
-//             }
-//             i = i % numRuns;
-//             Run * run = runs[i];
-//             if(run->isEmpty()) {
-//                 i++;
-//                 continue;
-//             }
-//             // insert one record from runs[i] into tree
-//             tree.insert(new Record(*(run->getFirst())));
-//             run->removeFisrt();
-//             if(run->isEmpty()) {
-//                 totalUsedRuns++;
-//             }
-//             i++;
-//         }
-//         // Check if tree still has Records
-//         while(!tree.isEmpty()) {
-//             Record * winner = tree.getMin();
-//             winner->setSlot(currSlot);
-//             buffer->add(new Record(*winner));
-//             tree.deleteMin();
-//         }
-
-//         printf("------------- HDD Output %d th Run -----------\n", 0);
-//         buffer->print();
-//         printf("\n");
-
-
-//         //Write sorted result to HDD immediately
-//         while(!buffer->isEmpty()) {
-//             Record * record = buffer->getFirst();
-//             writeData(record->getKey(), record);
-//             buffer->removeFisrt();
-//         }
-
-//         // if(!buffer->isEmpty()) {
-//         //     output.push_back(buffer->clone());
-//         //     // clear buffer
-//         //     buffer->clear();
-//         // }
-
-//         printf("CurrSlot: %d, numRunsEmptied: %d\n", currSlot, totalUsedRuns);
-//     }
-//     return output;
-// }
-
-
-
 
 double HDD::getLatency() const{
     return latency;

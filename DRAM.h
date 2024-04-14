@@ -2,29 +2,68 @@
 #define DRAM_H
 
 #include "Run.h"
+#include "Page.h"
+#include "SSD.h"
 #include "TreeOfLosers.h"
 
 #include <vector>
 
+struct OutputBuffers
+{
+    int nBuffer;
+    Run *wrapper;
 
-class DRAM {
-    private: 
-        double MAX_CAPACITY = 120;  // DUMMY Value for demo: Capacity is 200 B
-        // double MAX_CAPACITY = 100 * 1024 * 1024;  // Capacity is 100 MB
-        double capacity = MAX_CAPACITY;  // Capacity in B
-        TreeOfLosers tree;
+    bool isFull()
+    {
+        return wrapper->getNumPages() == nBuffer && wrapper->getFirstPage()->isFull() && wrapper->getLastPage()->isFull();
+    }
 
-    public:
-        // Constructor
-        DRAM();
-
-        // merge cache-size runs in DRAM and output DRAM-size runs
-        // std::vector<Run*> merge(std::vector<TreeOfLosers*> cacheSizedRuns, int recordSize);
-
-        // Getters
-        double getCapacity() const;
+    bool isEmpty()
+    {
+        return wrapper->isEmpty();
+    }
+    void clear()
+    {
+        wrapper->clear();
+    }
 };
 
+class DRAM
+{
+private:
+    unsigned long long MAX_CAPACITY; // in Bytes
+    unsigned long long capacity;     // Capacity in Bytes
 
+    int buffersUsed;
+    std::vector<Page *> inputBuffers; // wrapping intput buffers in a run
+    std::vector<bool> inputBuffersBitmap;
+    // Page *forecastBuffer;        // points to the empty input buffer
+    OutputBuffers outputBuffers; // wrapping 2 output buffers in a run
 
-#endif //DRAM_H
+public:
+    // Constructor
+    DRAM(unsigned long long maxCap);
+
+    // return false if memory is out of space
+    bool addPage(Page *page);
+
+    bool insertPage(Page *page, int idx);
+
+    bool erasePage(int pageIdx);
+
+    void forecastFromSSD(int bufferIdx, SSD *ssd);
+
+    void clear();
+
+    bool isFull() const;
+
+    // merge in DRAM and output runs
+    void merge(SSD *ssd, int maxTreeSize, const char *outputTXT);
+
+    // Getters
+    unsigned long long getCapacity() const;
+    std::vector<Page *> getInputBuffers() const;
+    OutputBuffers getOuputBuffers() const;
+};
+
+#endif // DRAM_H
