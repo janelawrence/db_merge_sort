@@ -3,7 +3,8 @@
 
 #include "Run.h"
 #include "Page.h"
-#include "SSD.h"
+#include "Disk.h"
+#include "Disk.h"
 #include "TreeOfLosers.h"
 
 #include <vector>
@@ -51,14 +52,20 @@ public:
 
     bool erasePage(int pageIdx);
 
-    void forecastFromSSD(int bufferIdx, SSD *ssd);
+    void forecastFromSSD(int bufferIdx, Disk *ssd);
+    void forecastFromHDD(int bufferIdx, Disk *hdd);
 
     void clear();
 
     bool isFull() const;
 
     // merge in DRAM and output runs
-    void merge(SSD *ssd, int maxTreeSize, const char *outputTXT);
+    // void mergeFromSSDtoSSD(Disk *ssd, int maxTreeSize, const char *outputTXT);
+    // void mergeFromHDDtoHDD(Disk *hdd, int maxTreeSize, const char *outputTXT);
+    // void mergeFromSSDtoHDD(Disk *ssd, Disk *hdd, int maxTreeSize, const char *outputTXT);
+
+    // merge data on Src and output runs to Dest
+    void mergeFromSrcToDest(Disk *src, Disk *dest, int maxTreeSize, const char *outputTXT);
 
     // Getters
     unsigned long long getCapacity() const;

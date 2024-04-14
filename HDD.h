@@ -11,28 +11,43 @@
 class HDD
 {
 private:
-    double latency;   // Latency in microseconds
-    double bandwidth; // Bandwidth in MB/s
-    std::vector<Page *> pages;
+    long latency;   // Latency in microseconds
+    long bandwidth; // Bandwidth in MB/s
+    int numRuns;
     std::vector<Run *> runs;
+    std::vector<bool> runBitmap;
 
 public:
     // Constructor
     HDD(double lat, double bw);
 
-    // Simulate writing time
-    void simulateWriteData(double sizeInBytes);
+    void addRun(Run *run);
 
-    // Write data to HDD with given size in bytes
-    void writeData(unsigned long long sizeInBytes);
+    bool eraseRun(int runIdx);
 
+    int outputSpillState(const char *outputTXT);
     int outputAccessState(const char *accessType,
                           unsigned long long totalBytes,
                           const char *outputTXT);
+    int outputMergeMsg(const char *outputTXT);
+
+    // Smilate Reading data from SSD with given size in bytes
+    void readData(unsigned long long sizeInBytes);
+
+    // Smilate Writing runs to SSD
+    void writeData(unsigned long long sizeInBytes);
+
+    void cleanInvalidRuns();
 
     // Getters
-    double getLatency() const;
-    double getBandwidth() const;
+    int getNumRuns() const;
+    bool runIsValid(int idx) const;
+
+    long getLatency() const;
+    long getBandwidth() const;
+
+    Run *getRun(int k) const;
+    Run *getRunCopy(int k) const;
 
     void print() const;
 };

@@ -7,6 +7,9 @@
 extern const char *ACCESS_WRITE;
 extern const char *ACCESS_READ;
 
+extern const char *HDD;
+extern const char *SSD;
+
 extern unsigned long long CACHE_SIZE;
 
 extern unsigned long long DRAM_SIZE;

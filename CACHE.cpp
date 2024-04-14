@@ -1,7 +1,7 @@
 #include "CACHE.h"
 #include "defs.h"
 #include "Run.h"
-#include "HDD.h"
+#include "Disk.h"
 
 #include <iostream>
 #include <chrono>
@@ -61,7 +61,7 @@ double CACHE::getCapacity() const
 // g++ defs.cpp Run.cpp Record.cpp TreeOfLosers.cpp HDD.cpp CACHE.cpp -o cache
 // int main (int argc, char * argv []){
 //     // Create a hdd to store unsorted records
-// 	HDD * const hdd = new HDD ("", 5, 100);
+// 	Disk * const hdd = new HDD ("", 5, 100);
 
 //     int numRecords = 8;
 //     int recordSize = 20;
