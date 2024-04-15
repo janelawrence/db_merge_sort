@@ -45,10 +45,12 @@ public:
     int outputMergeMsg(const char *outputTXT);
 
     // Smilate Reading data from Disk with given size in bytes
-    void readData(unsigned long long sizeInBytes);
+    int readData(unsigned long long sizeInBytes);
 
     // Smilate Writing runs to Disk
-    void writeData(unsigned long long sizeInBytes);
+    int writeData(unsigned long long sizeInBytes);
+
+    int writeOutputTable(const char *outputTXT);
 
     // Clean std::<vecotr> runs physically based on bitmap
     void cleanInvalidRuns();

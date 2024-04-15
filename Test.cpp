@@ -20,19 +20,20 @@
 
 // unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024; // 1 MB
 // unsigned long long CACHE_SIZE = 100ULL * 1024; // 100 KB
-unsigned long long CACHE_SIZE = 500; // 100 KB
-
+unsigned long long CACHE_SIZE = 200; //
 // unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024; // 100 MB
 // unsigned long long DRAM_SIZE = 1ULL * 1024 * 1024; // 1MB
 unsigned long long DRAM_SIZE = 1000;
 
 // unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 1 GB
-unsigned long long SSD_SIZE = 3000;
+unsigned long long SSD_SIZE = 4000;
 
 unsigned long long HDD_SIZE = std::numeric_limits<int>::max();
 
 // char *INPUT_TXT = "medium_200_1024_input.txt";
 char *INPUT_TXT = "mini_200_20_input.txt";
+
+char *OUTPUT_TABLE = "output_table";
 
 // char * INPUT_TXT = "input.txt";
 // char *INPUT_TXT = "input_table";
@@ -78,7 +79,7 @@ Run *readRecords(const char *fileName, int recordSize, int numRecords, int total
 	size_t totalBytesInFile = inputFile.tellg();
 	inputFile.seekg(0, std::ios::beg);
 
-	printf("Size: %zu\n", totalBytesInFile);
+	printf("totalBytesInFile: %zu\n", totalBytesInFile);
 
 	if (totalBytesInFile > totalBytes + 2 * numRecords)
 	{
@@ -110,12 +111,14 @@ Run *readRecords(const char *fileName, int recordSize, int numRecords, int total
 	{
 		// Read at most nBuffersDRAM pages of data from HDD to DRAM
 		int bufferUsed = 0;
+
 		while (recordsOffsetHDD < totalBytesInFile && bufferUsed < nBuffersDRAM)
 		{
 			// Read records data into one page
 			Page *newPage = new Page(bufferUsed, maxRecordsInPage, PAGE_SIZE);
 			while (recordsOffsetHDD < totalBytesInFile && newPage->getNumRecords() < maxRecordsInPage)
 			{
+
 				// Organize records into pages
 				for (size_t j = 0; j < recordSize && (recordsOffsetHDD + j) < totalBytes; ++j)
 				{
@@ -124,6 +127,7 @@ Run *readRecords(const char *fileName, int recordSize, int numRecords, int total
 				Record *record = new Record(recordSize, rawRecord);
 				record->setSlot(bufferUsed);
 				newPage->addRecord(record);
+
 				recordsOffsetHDD += recordSize;
 				// skipping '\n' and nextline character
 				recordsOffsetHDD += 2;
@@ -131,7 +135,6 @@ Run *readRecords(const char *fileName, int recordSize, int numRecords, int total
 			allPages->appendPage(newPage);
 			bufferUsed++;
 		}
-		printf("recordsOffsetHDD: %d \n", recordsOffsetHDD);
 	}
 	delete[] inputData;
 	return allPages;
@@ -155,7 +158,7 @@ void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 		   "- Cache can store at most %d Record Pointer\n\n",
 		   CACHE_SIZE, nPagesFitInCache,
 		   nPagesFitInCache * maxRecordsInPage,
-		   CACHE_SIZE / sizeof(recordPtr));
+		   CACHE_SIZE / recordSize);
 	printf("DRAM size: %llu Bytes\n"
 		   "- Each DRAM-sized run can store %d pages\n"
 		   "---- %d are input buffers, %d are reserved buffers\n"
@@ -259,8 +262,8 @@ int main(int argc, char *argv[])
 		total_bytes_merged += allSortedMiniRuns[i]->getBytes();
 	}
 
-	printf("-----total bytes stored in allSortedMiniRuns: %d-----------------\n\n", total_bytes_merged);
-
+	printf("----- Input %d pages, Total bytes stored in %d allSortedMiniRuns: %d-----------------\n\n",
+		   allPages->getNumPages(), allSortedMiniRuns.size(), total_bytes_merged);
 	for (int level = 0; level < mergeLevels; level++)
 	{
 		// Print output to file
@@ -344,6 +347,9 @@ int main(int argc, char *argv[])
 			ssd.eraseRun(0);
 			ssd.setMaxCap(ssd.getMaxCap() - (unsigned long long)memorySizedRun->getBytes());
 			ssd.cleanInvalidRuns();
+			printf("******* cleaned ssd at end of merge level %d\n", level);
+			ssd.print();
+			// break; // debugging
 		}
 		else // Merge from HDD
 		{
@@ -391,7 +397,6 @@ int main(int argc, char *argv[])
 						hdd.eraseRun(i);
 					}
 				}
-				// TO CHANGE
 				// dram.mergeFromHDDtoHDD(&hdd, maxTreeSize, outputTXT);
 				dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
 				dram.clear();
@@ -408,18 +413,41 @@ int main(int argc, char *argv[])
 		printf("Total number of mem-sized runs on SSD: %d\n", memorySizedRunsOnSSD.size());
 		printf("Total number of mem-sized runs ON HDD: %d\n", memorySizedRunsOnHDD.size());
 
-		if (memorySizedRunsOnSSD.size() == 1 && memorySizedRunsOnHDD.size() == 0)
-		{
-			hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
-			printf("TODO: Write to a output_table");
-		}
 		// add memory-sized runs to SSD and HDD objects
 		Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD);
 		Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD);
 
-		// After creating memory-sized run:
-		// 		(1) If SSD is not full: Write memory-sized run to SSD
-		//		(2) If SSD is full: Write memory-sized run to HDD
+		int numMemSizedRunOnSSD = memorySizedRunsOnSSD.size();
+		int numMemSizedRunOnHDD = memorySizedRunsOnHDD.size();
+
+		if (numMemSizedRunOnSSD == 1 && numMemSizedRunOnHDD == 0)
+		{
+			ssd.addRun(memorySizedRunsOnSSD[0]);
+			hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
+			printf("TODO: Write to a output_table");
+			ssd.writeOutputTable(OUTPUT_TABLE);
+			return 0;
+		}
+
+		// for (int i = 0; i < numMemSizedRunOnSSD; i++)
+		// {
+		// 	ssd.addRun(memorySizedRunsOnSSD[i]->clone());
+		// }
+
+		// for (int i = 0; i < numMemSizedRunOnHDD; i++)
+		// {
+		// 	hdd.addRun(memorySizedRunsOnHDD[i]->clone());
+		// }
+
+		// while (ssd.getNumRuns() > 0)
+		// {
+		// 	dram.mergeFromSrcToDest(&ssd, &hdd, maxTreeSize, outputTXT);
+		// }
+
+		// while (hdd.getNumRuns() > 0)
+		// {
+		// 	dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
+		// }
 
 		//  delete dynamically allocated memory before exit program
 	}

@@ -129,7 +129,7 @@ int Disk::outputMergeMsg(const char *outputTXT)
 }
 
 // Method to simulate read operation
-void Disk::readData(unsigned long long sizeInBytes)
+int Disk::readData(unsigned long long sizeInBytes)
 {
     // Calculate transfer time based on bandwidth
     double transferTime = static_cast<double>(sizeInBytes) / bandwidth;
@@ -138,10 +138,11 @@ void Disk::readData(unsigned long long sizeInBytes)
     std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(latency)));
 
     std::cout << "Read " << sizeInBytes << " bytes from " << diskType << ". Transfer time: " << transferTime << " seconds\n";
+    return 0;
 }
 
 // Method to simulate write operation
-void Disk::writeData(unsigned long long sizeInBytes)
+int Disk::writeData(unsigned long long sizeInBytes)
 {
     // Calculate transfer time based on bandwidth
     double transferTime = static_cast<double>(sizeInBytes) / bandwidth;
@@ -150,6 +151,41 @@ void Disk::writeData(unsigned long long sizeInBytes)
 
     // Simulate latency
     std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(totalLatency)));
+    return 0;
+}
+
+int Disk::writeOutputTable(const char *outputTXT)
+{ // Open the output file in overwrite mode
+    std::ofstream outputFile(outputTXT, std::ios::binary);
+
+    // Check if the file opened successfully
+    if (!outputFile.is_open())
+    {
+        std::cerr << "\nError: Could not open file trace0.txt for writing." << std::endl;
+        return 1; // Return error code
+    }
+    if (numRuns != 1)
+    {
+        std::cerr << "\nThere are " << numRuns << " runs on disk " << diskType << std::endl;
+        std::cerr << "\nError: Should only write One unified sorted Run to a single table\nPlease check Calculations" << std::endl;
+        return 1; // Return error code
+    }
+    Run *outputRun = getRunCopy(0);
+    while (!outputRun->isEmpty())
+    {
+        Page *curr = outputRun->getFirstPage();
+        while (!curr->isEmpty())
+        {
+            char *bytes = curr->getFirstRecord()->serialize();
+            outputFile.write(bytes, strlen(bytes));
+            outputFile << '\n';
+            outputFile << '\n';
+            curr->removeFisrtRecord();
+        }
+        outputRun->removeFisrtPage();
+    }
+
+    outputFile.close();
 }
 
 void Disk::print() const
