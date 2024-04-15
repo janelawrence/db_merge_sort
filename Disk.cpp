@@ -22,30 +22,75 @@ bool Disk::addRun(Run *run)
 {
     if (run->getBytes() > capacity)
     {
-        printf("Disk does Not enough space");
+        printf("Disk does Not enough space\n");
         return false;
     }
-    runs.push_back(run->clone());
+    unsortedRuns.push_back(run->clone());
 
     // Decrease Disk capacity
     capacity -= run->getBytes();
     runBitmap.push_back(true);
-    numRuns++;
+    numUnsortedRuns++;
     // printf("WATCH ME: %d\n", static_cast<int>(runBitmap[runBitmap.size() - 1]));
     return true;
 }
 
+void Disk::moveRunToTempList(int runIdx)
+{
+    Run *run = getRunCopy(0);
+
+    if (!eraseRun(runIdx))
+    {
+        return;
+    }
+    addRunToTempList(run);
+}
+
+bool Disk::addRunToTempList(Run *run)
+{
+    if (run->getBytes() > capacity)
+    {
+        printf("Disk does Not enough space to store tempoarary run\n");
+        return false;
+    }
+    temp.push_back(run->clone());
+    // Decrease Disk capacity
+    capacity -= run->getBytes();
+    // tempRunBitmap.push_back(true);
+    numTempRuns++;
+    return true;
+}
+
+void Disk::swapTempAndUnsortedRuns()
+{
+    // Assume all runs in temps are valid
+    // Clean temp list
+    int usedBytes = 0;
+    capacity = MAX_CAPACITY;
+    unsortedRuns.swap(temp);
+    temp.clear();
+    numTempRuns = 0;
+    numUnsortedRuns = unsortedRuns.size();
+    runBitmap.clear();
+    for (int i = 0; i < unsortedRuns.size(); i++)
+    {
+        // Assume all runs in temps are valid
+        runBitmap.push_back(true);
+        capacity -= unsortedRuns[i]->getBytes();
+    }
+}
+
 bool Disk::eraseRun(int runIdx)
 {
-    if (runIdx > runs.size())
+    if (runIdx > unsortedRuns.size())
     {
         printf("run index invalid");
         return false;
     }
     // Increase Disk capacity
-    capacity += runs[runIdx]->getBytes();
+    capacity += unsortedRuns[runIdx]->getBytes();
     runBitmap[runIdx] = false;
-    numRuns--;
+    numUnsortedRuns--;
     return true;
 }
 
@@ -55,7 +100,7 @@ void Disk::clear()
     std::vector<Run *> emptyRuns;
     std::vector<bool> emptyRunBitmap;
 
-    runs.swap(emptyRuns);
+    unsortedRuns.swap(emptyRuns);
     runBitmap.swap(emptyRunBitmap);
 }
 
@@ -103,7 +148,7 @@ int Disk::outputAccessState(const char *accessType,
     std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
     // Print output to both console and file
-    outputFile << "ACCESS -> A " << accessType << " to Disk was made with size " << totalBytes << " bytes and latency " << duration.count() << " us\n";
+    outputFile << "ACCESS -> A " << accessType << " to " << diskType << " was made with size " << totalBytes << " bytes and latency " << duration.count() << " us\n";
 
     // close file
     outputFile.close();
@@ -164,9 +209,9 @@ int Disk::writeOutputTable(const char *outputTXT)
         std::cerr << "\nError: Could not open file trace0.txt for writing." << std::endl;
         return 1; // Return error code
     }
-    if (numRuns != 1)
+    if (numUnsortedRuns != 1)
     {
-        std::cerr << "\nThere are " << numRuns << " runs on disk " << diskType << std::endl;
+        std::cerr << "\nThere are " << numUnsortedRuns << " runs on disk " << diskType << std::endl;
         std::cerr << "\nError: Should only write One unified sorted Run to a single table\nPlease check Calculations" << std::endl;
         return 1; // Return error code
     }
@@ -192,11 +237,24 @@ void Disk::print() const
 {
     printf("\n------------------------------------%s Data------------------------------------\n", diskType);
     printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
-    printf("In total has %d runs\n", runs.size());
-    for (int i = 0; i < runs.size(); i++)
+    printf("In total has %d runs\n", unsortedRuns.size());
+    for (int i = 0; i < unsortedRuns.size(); i++)
     {
         printf(">>>>>>>>>>>>>>>>>>> %d th Run, valid: %d >>>>>>>>>>>>>>>>>>\n", i, static_cast<int>(runBitmap[i]));
-        runs[i]->print();
+        unsortedRuns[i]->print();
+    }
+    printf("--------------------------------------------------------------------\n");
+}
+
+void Disk::printTemp() const
+{
+    printf("\n------------------------------------%s Merged/Tempoary Saved Data------------------------------------\n", diskType);
+    printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+    printf("In total has %d merged runs\n", temp.size());
+    for (int i = 0; i < temp.size(); i++)
+    {
+        printf(">>>>>>>>>>>>>>>>>>> %d th Merged Run >>>>>>>>>>>>>>>>>>\n", i);
+        temp[i]->print();
     }
     printf("--------------------------------------------------------------------\n");
 }
@@ -218,23 +276,23 @@ long Disk::getLatency() const
 
 Run *Disk::getRunCopy(int k) const
 {
-    if (k < 0 || k >= runs.size() || runBitmap[k] == false)
+    if (k < 0 || k >= unsortedRuns.size() || runBitmap[k] == false)
     {
         printf("Invalid index k\n");
         return nullptr;
     }
-    return runs[k]->clone();
+    return unsortedRuns[k]->clone();
 }
 
 Run *Disk::getRun(int k) const
 {
-    if (k < 0 || k >= runs.size() || runBitmap[k] == false)
+    if (k < 0 || k >= unsortedRuns.size() || runBitmap[k] == false)
     {
         printf("Invalid index k\n");
         // print();
         return nullptr;
     }
-    return runs[k];
+    return unsortedRuns[k];
 }
 
 bool Disk::runIsValid(int idx) const
@@ -247,9 +305,14 @@ bool Disk::runIsValid(int idx) const
     return runBitmap[idx];
 }
 
-int Disk::getNumRuns() const
+int Disk::getNumUnsortedRuns() const
 {
-    return numRuns;
+    return numUnsortedRuns;
+}
+
+int Disk::getNumTempRuns() const
+{
+    return numTempRuns;
 }
 
 unsigned long long Disk::getMaxCap() const
@@ -263,18 +326,22 @@ void Disk::cleanInvalidRuns()
     std::vector<Run *> cleanedRuns;
     std::vector<bool> cleanedBitmap;
     unsigned long long used = 0;
-    for (int i = 0; i < runs.size(); i++)
+    for (int i = 0; i < unsortedRuns.size(); i++)
     {
         if (runBitmap[i])
         {
-            cleanedRuns.push_back(runs[i]->clone());
+            cleanedRuns.push_back(unsortedRuns[i]->clone());
             cleanedBitmap.push_back(true);
-            used += runs[i]->getBytes();
+            used += unsortedRuns[i]->getBytes();
         }
     }
-    numRuns = cleanedRuns.size();
+    for (int j = 0; j < temp.size(); j++)
+    {
+        used += temp[j]->getBytes();
+    }
+    numUnsortedRuns = cleanedRuns.size();
     capacity = MAX_CAPACITY - used;
-    runs.swap(cleanedRuns);
+    unsortedRuns.swap(cleanedRuns);
     runBitmap.swap(cleanedBitmap);
 }
 
