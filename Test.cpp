@@ -17,21 +17,22 @@
 #include <cmath>
 
 // Set global variable
-
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024; // 1 MB
-// unsigned long long CACHE_SIZE = 100ULL * 1024; // 100 KB
-unsigned long long CACHE_SIZE = 200; //
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024; // 100 MB
-// unsigned long long DRAM_SIZE = 1ULL * 1024 * 1024; // 1MB
-unsigned long long DRAM_SIZE = 1000;
-
+// Actual params
+// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100 MB
 // unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 1 GB
-unsigned long long SSD_SIZE = 4000;
+// int PAGE_SIZE = 10240;									  // 10 KB
+// char *INPUT_TXT = "input_table";
 
-unsigned long long HDD_SIZE = std::numeric_limits<int>::max();
-
+// Mini example params
+unsigned long long CACHE_SIZE = 200;
+unsigned long long DRAM_SIZE = 1000;
+unsigned long long SSD_SIZE = 2000;
+int PAGE_SIZE = 100;
 // char *INPUT_TXT = "medium_200_1024_input.txt";
 char *INPUT_TXT = "mini_200_20_input.txt";
+
+unsigned long long HDD_SIZE = std::numeric_limits<int>::max();
 
 char *OUTPUT_TABLE = "output_table";
 
@@ -43,12 +44,6 @@ unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 M
 
 long HDD_LAT = 500;										  // 5 ms = 0.005 s
 unsigned long long HDD_BAN = 100 * 1024 * 1024 / 1000000; // 100 MB/s = 100 MB/us
-
-int PAGE_SIZE = 100;
-// int PAGE_SIZE = 2048; // 5 KB
-// int PAGE_SIZE = 10240; // 10 KB
-// int PAGE_SIZE = 20480; // 20 KB
-// int PAGE_SIZE = 40; //40B
 
 int recordSize = 0;
 int numRecords = 0;
@@ -251,11 +246,10 @@ int main(int argc, char *argv[])
 	// Create all cache-sized mini-runs
 	std::vector<Run *> allSortedMiniRuns = cache.sort(allPages, maxRecordsInPage, PAGE_SIZE);
 	int start = 0;
-
+	printf("finish sorting at least\n");
 	std::vector<Run *> memorySizedRunsOnSSD;
 	std::vector<Run *> memorySizedRunsOnHDD;
 
-	// Debug
 	int total_bytes_merged = 0;
 	for (int i = 0; i < allSortedMiniRuns.size(); i++)
 	{
@@ -340,15 +334,12 @@ int main(int argc, char *argv[])
 				dram.clear();
 				// Physically Remove empty run spaces after cleaning, there's no invalid run in SSD
 				ssd.cleanInvalidRuns();
-				ssd.print();
 			}
 			Run *memorySizedRun = ssd.getRunCopy(0);
 			memorySizedRunsOnSSD.push_back(memorySizedRun);
 			ssd.eraseRun(0);
 			ssd.setMaxCap(ssd.getMaxCap() - (unsigned long long)memorySizedRun->getBytes());
 			ssd.cleanInvalidRuns();
-			printf("******* cleaned ssd at end of merge level %d\n", level);
-			ssd.print();
 			// break; // debugging
 		}
 		else // Merge from HDD
@@ -424,7 +415,7 @@ int main(int argc, char *argv[])
 		{
 			ssd.addRun(memorySizedRunsOnSSD[0]);
 			hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
-			printf("TODO: Write to a output_table");
+			printf("Write to a output_table file\n");
 			ssd.writeOutputTable(OUTPUT_TABLE);
 			return 0;
 		}
