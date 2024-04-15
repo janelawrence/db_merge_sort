@@ -36,11 +36,11 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 1. Cache-size mini runs            | CACHE.cpp                                                      |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 2. Device-optimized page sizes     | TO BE DONE                                                     |
+| 2. Device-optimized page sizes     | Test.cpp  (To be confirmed)                                    |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 3. Spilling memory-to-SSD          | TO BE DONE                                                     |
+| 3. Spilling memory-to-SSD          | Done                                                           |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 4. Spilling from SSD to disk       | TO BE DONE                                                     |
+| 4. Spilling from SSD to disk       | Done                                                           |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 5. Graceful degradation            | TO BE DONE                                                     |
 | a. into merging                    | TO BE DONE                                                     |
