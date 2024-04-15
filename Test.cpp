@@ -19,17 +19,14 @@
 // Set global variable
 
 // unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024; // 1 MB
-// unsigned long long CACHE_SIZE = 100ULL * 1024; // 100 KB
-unsigned long long CACHE_SIZE = 200; //
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024; // 100 MB
 // unsigned long long DRAM_SIZE = 1ULL * 1024 * 1024; // 1MB
-unsigned long long DRAM_SIZE = 1000;
-
 // unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 1 GB
-unsigned long long SSD_SIZE = 4000;
 
 unsigned long long HDD_SIZE = std::numeric_limits<int>::max();
 
+unsigned long long CACHE_SIZE = 200; //
+unsigned long long DRAM_SIZE = 1000;
+unsigned long long SSD_SIZE = 2000;
 // char *INPUT_TXT = "medium_200_1024_input.txt";
 char *INPUT_TXT = "mini_200_20_input.txt";
 
@@ -349,7 +346,6 @@ int main(int argc, char *argv[])
 			ssd.cleanInvalidRuns();
 			printf("******* cleaned ssd at end of merge level %d\n", level);
 			ssd.print();
-			// break; // debugging
 		}
 		else // Merge from HDD
 		{
@@ -411,45 +407,52 @@ int main(int argc, char *argv[])
 		}
 
 		printf("Total number of mem-sized runs on SSD: %d\n", memorySizedRunsOnSSD.size());
-		printf("Total number of mem-sized runs ON HDD: %d\n", memorySizedRunsOnHDD.size());
-
-		// add memory-sized runs to SSD and HDD objects
-		Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD);
-		Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD);
-
-		int numMemSizedRunOnSSD = memorySizedRunsOnSSD.size();
-		int numMemSizedRunOnHDD = memorySizedRunsOnHDD.size();
-
-		if (numMemSizedRunOnSSD == 1 && numMemSizedRunOnHDD == 0)
-		{
-			ssd.addRun(memorySizedRunsOnSSD[0]);
-			hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
-			printf("TODO: Write to a output_table");
-			ssd.writeOutputTable(OUTPUT_TABLE);
-			return 0;
-		}
-
-		// for (int i = 0; i < numMemSizedRunOnSSD; i++)
-		// {
-		// 	ssd.addRun(memorySizedRunsOnSSD[i]->clone());
-		// }
-
-		// for (int i = 0; i < numMemSizedRunOnHDD; i++)
-		// {
-		// 	hdd.addRun(memorySizedRunsOnHDD[i]->clone());
-		// }
-
-		// while (ssd.getNumRuns() > 0)
-		// {
-		// 	dram.mergeFromSrcToDest(&ssd, &hdd, maxTreeSize, outputTXT);
-		// }
-
-		// while (hdd.getNumRuns() > 0)
-		// {
-		// 	dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
-		// }
-
-		//  delete dynamically allocated memory before exit program
+		printf("Total number of mem-sized runs on HDD: %d\n", memorySizedRunsOnHDD.size());
 	}
+	// Before adding memory-sized runs to SSD and HDD objects
+	// clean ssd & hdd
+	ssd.clear();
+	ssd.setMaxCap(SSD_SIZE);
+	ssd.setCapacity(SSD_SIZE);
+
+	hdd.clear();
+	hdd.setMaxCap(SSD_SIZE);
+	hdd.setCapacity(SSD_SIZE);
+
+	// Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD);
+
+	int numMemSizedRunOnSSD = memorySizedRunsOnSSD.size();
+	int numMemSizedRunOnHDD = memorySizedRunsOnHDD.size();
+
+	if (numMemSizedRunOnSSD == 1 && numMemSizedRunOnHDD == 0)
+	{
+		ssd.addRun(memorySizedRunsOnSSD[0]);
+		hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
+		printf("TODO: Write to a output_table");
+		ssd.writeOutputTable(OUTPUT_TABLE);
+		return 0;
+	}
+
+	// for (int i = 0; i < numMemSizedRunOnSSD; i++)
+	// {
+	// 	ssd.addRun(memorySizedRunsOnSSD[i]->clone());
+	// }
+
+	// for (int i = 0; i < numMemSizedRunOnHDD; i++)
+	// {
+	// 	hdd.addRun(memorySizedRunsOnHDD[i]->clone());
+	// }
+
+	// while (ssd.getNumRuns() > 0)
+	// {
+	// 	dram.mergeFromSrcToDest(&ssd, &hdd, maxTreeSize, outputTXT);
+	// }
+
+	// while (hdd.getNumRuns() > 0)
+	// {
+	// 	dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
+	// }
+
+	//  delete dynamically allocated memory before exit program
 	return 0;
 }
