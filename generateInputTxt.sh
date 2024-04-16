@@ -1,2 +1,2 @@
 g++ -o Generator Generator.cpp -std=c++11
-./Generator -c 100 -s 20 -f mini_100_20_input.txt
+./Generator -c 51200 -s 1024 -f test1_51200_50MB_1024_input.txt
