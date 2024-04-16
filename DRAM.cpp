@@ -10,12 +10,12 @@
 #include <vector>
 
 // Constructor
-DRAM::DRAM(unsigned long long maxCap) : MAX_CAPACITY(maxCap), capacity(maxCap)
+DRAM::DRAM(unsigned long long maxCap) : MAX_CAPACITY(maxCap)
 {
     printf("Initialize DRAM\n");
     outputBuffers.nBuffer = 2;
     outputBuffers.wrapper = new Run();
-    outputBuffers.wrapper->print();
+    capacity = MAX_CAPACITY - 2 * PAGE_SIZE;
 }
 
 bool DRAM::addPage(Page *page)
@@ -72,6 +72,18 @@ bool DRAM::erasePage(int bufferIdx)
     return true;
 }
 
+bool DRAM::delFirstRecordFromBufferK(int k)
+{
+    if (k >= 0 && k < inputBuffers.size() && !inputBuffers[k]->isEmpty())
+    {
+        int rSize = inputBuffers[k]->getFirstRecord()->getSize();
+        inputBuffers[k]->removeFisrtRecord();
+        capacity += rSize;
+        return true;
+    }
+    return false;
+}
+
 void DRAM::clear()
 {
     capacity = MAX_CAPACITY;
@@ -99,6 +111,8 @@ void DRAM::mergeFromSrcToDest(Disk *src, Disk *dest, int maxTreeSize, const char
     TreeOfLosers tree;
     int i = 0;
     Run *curr = new Run();
+    maxTreeSize = std::min(maxTreeSize, buffersUsed);
+    printf("buffersUsed: %d\n", buffersUsed);
     while (buffersUsed > 0)
     {
         i = i % inputBuffers.size();
@@ -111,7 +125,7 @@ void DRAM::mergeFromSrcToDest(Disk *src, Disk *dest, int maxTreeSize, const char
                 newRecord->setSlot(i);
 
                 tree.insert(newRecord);
-                inputBuffers[i]->removeFisrtRecord();
+                delFirstRecordFromBufferK(i);
                 if (inputBuffers[i]->isEmpty())
                 {
                     erasePage(i);
@@ -162,7 +176,7 @@ void DRAM::mergeFromSrcToDest(Disk *src, Disk *dest, int maxTreeSize, const char
                     // set page idx in record
                     newRecord->setSlot(j);
                     tree.insert(newRecord);
-                    inputBuffers[j]->removeFisrtRecord();
+                    delFirstRecordFromBufferK(j);
                     if (inputBuffers[j]->isEmpty())
                     {
                         erasePage(j);
@@ -223,125 +237,17 @@ void DRAM::mergeFromSrcToDest(Disk *src, Disk *dest, int maxTreeSize, const char
     dest->addRun(curr);
 }
 
-// void DRAM::mergeFromSSDtoSSD(Disk *ssd, int maxTreeSize, const char *outputTXT)
-// {
-//     TreeOfLosers tree;
-//     int i = 0;
-//     Run *curr = new Run();
-//     while (buffersUsed > 0)
-//     {
-//         i = i % inputBuffers.size();
-//         if (tree.getSize() < maxTreeSize)
-//         {
-//             if (!inputBuffers[i]->isEmpty())
-//             {
-//                 Record *newRecord = new Record(*(inputBuffers[i]->getFirstRecord()));
-//                 // set page idx in record
-//                 newRecord->setSlot(i);
-//                 tree.insert(newRecord);
-//                 inputBuffers[i]->removeFisrtRecord();
-//                 if (inputBuffers[i]->isEmpty())
-//                 {
-//                     erasePage(i);
-//                     forecastFromSSD(i, ssd);
-//                 }
-//             }
-//             i++;
-//             continue;
-//         }
-//         else
-//         {
-//             // start prunning tree and add to output buffer
-//             Record *winner = new Record(*tree.getMin());
-//             tree.deleteMin();
-//             if (outputBuffers.isFull())
-//             {
-//                 // Report Spilling happen to output
-//                 ssd->outputSpillState(outputTXT);
-//                 // Simulate write to SSD
-//                 ssd->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-
-//                 while (!outputBuffers.wrapper->isEmpty())
-//                 {
-//                     curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
-//                     outputBuffers.wrapper->removeFisrtPage();
-//                 }
-//                 outputBuffers.clear();
-//             }
-//             // when prune winner, insert new record from winner source buffer
-//             int j = winner->getSlot();
-//             // write to output buffer
-//             winner->setSlot(-1); // reseting inputbuffer idx for winner
-//             outputBuffers.wrapper->addRecord(winner);
-//             // printf("\n %d\n", static_cast<int>(inputBuffersBitmap[j]));
-//             if (inputBuffersBitmap[j] && !inputBuffers[j]->isEmpty())
-//             {
-//                 Record *record = inputBuffers[j]->getFirstRecord();
-//                 if (record != nullptr)
-//                 {
-//                     Record *newRecord = new Record(*record);
-//                     // set page idx in record
-//                     newRecord->setSlot(j);
-//                     tree.insert(newRecord);
-//                     inputBuffers[j]->removeFisrtRecord();
-//                     if (inputBuffers[j]->isEmpty())
-//                     {
-//                         erasePage(j);
-//                         forecastFromSSD(j, ssd);
-//                     }
-//                 }
-//             }
-//         }
-//         i++;
-//     }
-//     // Empty tree to output buffer
-//     while (!tree.isEmpty())
-//     {
-//         // start prunning tree and add to output buffer
-//         Record *winner = new Record(*tree.getMin());
-//         tree.deleteMin();
-//         if (outputBuffers.isFull())
-//         {
-//             // Report Spilling happen to output
-//             ssd->outputSpillState(outputTXT);
-//             // Simulate write to SSD
-//             ssd->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-
-//             while (!outputBuffers.wrapper->isEmpty())
-//             {
-//                 curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
-//                 outputBuffers.wrapper->removeFisrtPage();
-//             }
-//             outputBuffers.clear();
-//         }
-//         // write to output buffer
-//         winner->setSlot(-1); // reseting inputbuffer idx for winner
-//         outputBuffers.wrapper->addRecord(winner);
-//     }
-
-//     if (!outputBuffers.isEmpty())
-//     {
-//         // write all remaining records in output buffers to the run on SSD
-//         // Report Spilling happen to output
-//         ssd->outputSpillState(outputTXT);
-//         // Simulate write to SSD
-//         ssd->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-
-//         while (!outputBuffers.wrapper->isEmpty())
-//         {
-//             curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
-//             outputBuffers.wrapper->removeFisrtPage();
-//         }
-//         outputBuffers.clear();
-//     }
-//     ssd->addRun(curr);
-// }
-
 void DRAM::forecastFromSSD(int bufferIdx, Disk *ssd)
 {
     // forecast, prefectch next page
     int runIdxOnSSD = inputBuffers[bufferIdx]->getIdx();
     Run *runOnSSD = ssd->getRun(runIdxOnSSD);
+    // if (runOnSSD != nullptr)
+    // {
+    //     printf("=====================\n");
+    //     runOnSSD->getFirstPage()->print();
+    //     printf("=====================\n");
+    // }
     if (runOnSSD != nullptr && !runOnSSD->isEmpty())
     {
         Page *pageFetched = runOnSSD->getFirstPage()->clone();

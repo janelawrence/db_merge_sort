@@ -52,6 +52,8 @@ public:
 
     bool erasePage(int pageIdx);
 
+    bool delFirstRecordFromBufferK(int k);
+
     void forecastFromSSD(int bufferIdx, Disk *ssd);
     void forecastFromHDD(int bufferIdx, Disk *hdd);
 

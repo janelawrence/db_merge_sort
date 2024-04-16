@@ -6,6 +6,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <fstream>
 #include <filesystem>
 #include <dirent.h>
 #include <vector>
@@ -51,6 +52,26 @@ std::vector<Run *> CACHE::sort(Run *pagesInDRAM, int maxRecordsInPage, int PAGE_
 		}
 	}
 	return miniRuns;
+}
+
+int CACHE::outputMiniRunState(
+	const char *outputTXT)
+{
+	// Open the output file in overwrite mode
+	std::ofstream outputFile(outputTXT, std::ios::app);
+
+	// Check if the file opened successfully
+	if (!outputFile.is_open())
+	{
+		std::cerr << "Error: Could not open file" << outputTXT << " for writing." << std::endl;
+		return 1; // Return error code
+	}
+
+	// Print output to both console and file
+	outputFile << "STATE -> SORT_MINI_RUNS: Sort cache-size mini runs\n";
+
+	// close file
+	outputFile.close();
 }
 
 double CACHE::getCapacity() const

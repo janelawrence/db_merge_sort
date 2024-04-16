@@ -19,6 +19,7 @@ public:
     // Constructor
     CACHE(int cacheSize, int nPages);
 
+    int outputMiniRunState(const char *outputTXT);
     // Output miniRuns
     std::vector<Run *> sort(Run *pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE);
 

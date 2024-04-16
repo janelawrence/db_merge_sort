@@ -20,7 +20,7 @@ Write cloned run to Disk
 */
 bool Disk::addRun(Run *run)
 {
-    if (run->getBytes() > capacity)
+    if (std::strcmp(diskType, SSD) > 0 && run->getBytes() > capacity)
     {
         printf("Disk does Not enough space\n");
         return false;
@@ -48,7 +48,7 @@ void Disk::moveRunToTempList(int runIdx)
 
 bool Disk::addRunToTempList(Run *run)
 {
-    if (run->getBytes() > capacity)
+    if (std::strcmp(diskType, SSD) > 0 && run->getBytes() > capacity)
     {
         printf("Disk does Not enough space to store tempoarary run\n");
         return false;
@@ -61,8 +61,12 @@ bool Disk::addRunToTempList(Run *run)
     return true;
 }
 
-void Disk::swapTempAndUnsortedRuns()
+void Disk::moveAllTempToUnsorted()
 {
+    if (temp.size() == 0)
+    {
+        return;
+    }
     // Assume all runs in temps are valid
     // Clean temp list
     int usedBytes = 0;
@@ -70,6 +74,7 @@ void Disk::swapTempAndUnsortedRuns()
     unsortedRuns.swap(temp);
     temp.clear();
     numTempRuns = 0;
+
     numUnsortedRuns = unsortedRuns.size();
     runBitmap.clear();
     for (int i = 0; i < unsortedRuns.size(); i++)
@@ -88,19 +93,37 @@ bool Disk::eraseRun(int runIdx)
         return false;
     }
     // Increase Disk capacity
-    capacity += unsortedRuns[runIdx]->getBytes();
+    if (std::strcmp(diskType, SSD) > 0)
+    {
+        capacity += unsortedRuns[runIdx]->getBytes();
+    }
     runBitmap[runIdx] = false;
     numUnsortedRuns--;
     return true;
+}
+
+bool Disk::delFirstPageFromRunK(int k)
+{
+    if (k >= 0 && k < unsortedRuns.size() && !unsortedRuns[k]->isEmpty())
+    {
+        int pSize = unsortedRuns[k]->getBytes();
+        unsortedRuns[k]->removeFisrtPage();
+        capacity += pSize;
+        return true;
+    }
+    return false;
 }
 
 void Disk::clear()
 {
     capacity = MAX_CAPACITY;
     std::vector<Run *> emptyRuns;
+    std::vector<Run *> emptyTemp;
+
     std::vector<bool> emptyRunBitmap;
 
     unsortedRuns.swap(emptyRuns);
+    temp.swap(emptyTemp);
     runBitmap.swap(emptyRunBitmap);
 }
 
@@ -117,7 +140,7 @@ int Disk::outputSpillState(const char *outputTXT)
     }
 
     // Print output to both console and file
-    outputFile << "STATE -> SPILL_RUNS_" << diskType << ": Spill sorted runs to the SSD device\n";
+    outputFile << "STATE -> SPILL_RUNS_" << diskType << ": Spill sorted runs to the " << diskType << " device\n";
 
     // close file
     outputFile.close();
@@ -209,6 +232,7 @@ int Disk::writeOutputTable(const char *outputTXT)
         std::cerr << "\nError: Could not open file trace0.txt for writing." << std::endl;
         return 1; // Return error code
     }
+    printf("numUnsortedRuns: %d\n", numUnsortedRuns);
     if (numUnsortedRuns != 1)
     {
         std::cerr << "\nThere are " << numUnsortedRuns << " runs on disk " << diskType << std::endl;
@@ -236,7 +260,14 @@ int Disk::writeOutputTable(const char *outputTXT)
 void Disk::print() const
 {
     printf("\n------------------------------------%s Data------------------------------------\n", diskType);
-    printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+    if (std::strcmp(diskType, SSD) == 0)
+    {
+        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+    }
+    else
+    {
+        printf("MAX Capacity INF bytes\n");
+    }
     printf("In total has %d runs\n", unsortedRuns.size());
     for (int i = 0; i < unsortedRuns.size(); i++)
     {
@@ -249,7 +280,14 @@ void Disk::print() const
 void Disk::printTemp() const
 {
     printf("\n------------------------------------%s Merged/Tempoary Saved Data------------------------------------\n", diskType);
-    printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+    if (std::strcmp(diskType, SSD) > 0)
+    {
+        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+    }
+    else
+    {
+        printf("MAX Capacity INF bytes\n");
+    }
     printf("In total has %d merged runs\n", temp.size());
     for (int i = 0; i < temp.size(); i++)
     {
@@ -266,6 +304,10 @@ bool Disk::isFull() const
 
 unsigned long long Disk::getCapacity() const
 {
+    if (std::strcmp(diskType, HDD) > 0)
+    {
+        printf("%s has unlimited capacity\n", HDD);
+    }
     return capacity;
 }
 
@@ -289,7 +331,6 @@ Run *Disk::getRun(int k) const
     if (k < 0 || k >= unsortedRuns.size() || runBitmap[k] == false)
     {
         printf("Invalid index k\n");
-        // print();
         return nullptr;
     }
     return unsortedRuns[k];

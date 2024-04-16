@@ -19,21 +19,45 @@
 // Set global variable
 
 // Actual params
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024; // 1 MB
-// unsigned long long DRAM_SIZE = 1ULL * 1024 * 1024; // 1MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 1 GB
-// int PAGE_SIZE = 10240; // 10 KB
+// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+// int PAGE_SIZE = 10240;									  // 10 KB
+// char *INPUT_TXT = "input_table";
 
-// >>>>>> Mini sized params Set up Start
-unsigned long long CACHE_SIZE = 200; //
-unsigned long long DRAM_SIZE = 1000;
-unsigned long long SSD_SIZE = 1000;
-int PAGE_SIZE = 100;
+// >>>>>> Mini test case 1
+// unsigned long long CACHE_SIZE = 200; //
+// unsigned long long DRAM_SIZE = 1000;
+// unsigned long long SSD_SIZE = 3000;
+// int PAGE_SIZE = 100;
+// char *INPUT_TXT = "mini_200_20_input.txt";
+// Mini test 1 Set up End <<<<<<<<<<
+
+// >>>>>> mini test case 2
+// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+// int PAGE_SIZE = 10240;									  // 10KB								  // 10 KB
 // char *INPUT_TXT = "medium_200_1024_input.txt";
-char *INPUT_TXT = "mini_200_20_input.txt";
-// Mini sized params Set up End <<<<<<<<<<
+// Mini test 2 Set up End <<<<<<<<<<
 
-unsigned long long HDD_SIZE = std::numeric_limits<int>::max();
+// >>>>>> test case 0
+// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+// int PAGE_SIZE = 10240;									  // 10KB								  // 10 KB
+// char *INPUT_TXT = "test0_10240_10MB_1024_input.txt";
+// test 0 Set up End <<<<<<<<<<
+
+// >>>>>> test case 1
+unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+int PAGE_SIZE = 10240;									  // 10KB								  // 10 KB
+char *INPUT_TXT = "test1_51200_50MB_1024_input.txt";
+// test 1 Set up End <<<<<<<<<<
+
+unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
 char *OUTPUT_TABLE = "output_table";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
@@ -227,23 +251,20 @@ int main(int argc, char *argv[])
 	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD);
 	DRAM dram(DRAM_SIZE);
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD);
-
+	hdd.print();
 	// Open the output file in overwrite mode
-	std::ofstream outputFile(outputTXT, std::ios::trunc);
+	// std::ofstream outputFile(outputTXT, std::ios::trunc);
 
 	// Check if the file opened successfully
-	if (!outputFile.is_open())
-	{
-		std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
-		return 1; // Return error code
-	}
+	// if (!outputFile.is_open())
+	// {
+	// 	std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
+	// 	return 1; // Return error code
+	// }
 
 	// Create all cache-sized mini-runs
 	std::vector<Run *> allSortedMiniRuns = cache.sort(allPages, maxRecordsInPage, PAGE_SIZE);
 	int start = 0;
-
-	std::vector<Run *> memorySizedRunsOnSSD;
-	std::vector<Run *> memorySizedRunsOnHDD;
 
 	// Debug
 	int total_bytes_merged = 0;
@@ -259,9 +280,10 @@ int main(int argc, char *argv[])
 		// Open the output file in overwrite mode
 		// std::ofstream outputFile(outputTXT, std::ios::trunc);
 		// Print output to file
-		std::string outputString = "STATE -> SORT_MINI_RUNS: Sort cache-size mini runs\n";
-		outputFile << outputString; // Print to file
-		outputFile.close();
+		// std::string outputString = "STATE -> SORT_MINI_RUNS: Sort cache-size mini runs\n";
+		// outputFile << outputString; // Print to file
+		// outputFile.close();
+		cache.outputMiniRunState(outputTXT);
 
 		// Get unmerged cache-sized mini-runs
 		std::vector<Run *> sortedMiniRuns;
@@ -292,6 +314,7 @@ int main(int argc, char *argv[])
 			// TODO: Decides whether to do Graceful Degradation
 
 			// Use Alternative 1
+			ssd.outputSpillState(outputTXT);
 			ssd.outputAccessState(ACCESS_WRITE, bytesWriteToDisk, outputTXT);
 
 			// merge cached-sized mini runs on SSD
@@ -313,8 +336,9 @@ int main(int argc, char *argv[])
 						pageFetched->setSource(FROM_SSD);
 						pageFetched->setIdx(i);
 						dram.addPage(pageFetched);
-						runOnSSD->removeFisrtPage();
-						ssd.setCapacity(ssd.getCapacity() + pageFetched->getBytes());
+						ssd.delFirstPageFromRunK(i);
+						// runOnSSD->removeFisrtPage();
+						// ssd.setCapacity(ssd.getCapacity() + pageFetched->getBytes());
 
 						if (runOnSSD->isEmpty())
 						{
@@ -334,7 +358,7 @@ int main(int argc, char *argv[])
 			ssd.moveRunToTempList(0);
 			ssd.cleanInvalidRuns();
 		}
-		else // Merge from HDD
+		else // SSD is out of space, Merge from HDD
 		{
 			// TODO: Check percentage of memory overflow
 			// TODO: Decides whether to do Graceful Degradation
@@ -344,9 +368,9 @@ int main(int argc, char *argv[])
 				hdd.addRun(sortedMiniRuns[i]);
 				bytesWriteToDisk += sortedMiniRuns[i]->getBytes();
 			}
-			// hdd.print();
-
 			// Use Alternative 1
+
+			hdd.outputSpillState(outputTXT);
 			hdd.outputAccessState(ACCESS_WRITE, bytesWriteToDisk, outputTXT);
 
 			// merge cached-sized mini runs on hdd
@@ -368,7 +392,8 @@ int main(int argc, char *argv[])
 						pageFetched->setSource(FROM_HDD);
 						pageFetched->setIdx(i);
 						dram.addPage(pageFetched);
-						runOnHDD->removeFisrtPage();
+						// runOnHDD->removeFisrtPage();
+						hdd.delFirstPageFromRunK(i);
 						if (runOnHDD->isEmpty())
 						{
 							hdd.eraseRun(i);
@@ -390,44 +415,106 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	hdd.clear();
-	hdd.setMaxCap(SSD_SIZE);
-	hdd.setCapacity(SSD_SIZE);
+	ssd.moveAllTempToUnsorted();
+	hdd.moveAllTempToUnsorted();
 
-	printf("Total number of mem-sized runs on SSD: %d\n", ssd.getNumTempRuns());
-	printf("Total number of mem-sized runs on HDD: %d\n", hdd.getNumTempRuns());
-
-	int numMemSizedRunOnSSD = memorySizedRunsOnSSD.size();
-	int numMemSizedRunOnHDD = memorySizedRunsOnHDD.size();
+	int numMemSizedRunOnSSD = ssd.getNumUnsortedRuns();
+	int numMemSizedRunOnHDD = hdd.getNumUnsortedRuns();
 
 	if (numMemSizedRunOnSSD == 1 && numMemSizedRunOnHDD == 0)
 	{
-		ssd.addRun(memorySizedRunsOnSSD[0]);
+		hdd.outputSpillState(outputTXT);
 		hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
-		printf("TODO: Write to a output_table");
+		printf("line 412, Write to a output_table\n");
 		ssd.writeOutputTable(OUTPUT_TABLE);
 		return 0;
 	}
+	else
+	{
+		// merge all runs on SSD and write to HDD
+		while (ssd.getNumUnsortedRuns() > 0)
+		{
+			ssd.outputMergeMsg(outputTXT);
+			// pages to read from SSD
+			int pagesToRead = std::min(maxTreeSize, nInputBuffersDRAM);
+			pagesToRead = std::min(pagesToRead, ssd.getNumUnsortedRuns());
 
-	// for (int i = 0; i < numMemSizedRunOnSSD; i++)
-	// {
-	// 	ssd.addRun(memorySizedRunsOnSSD[i]->clone());
-	// }
+			ssd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
+			printf("Physically reading %d pages\n", pagesToRead);
+			// Physically adding pages into DRAM
+			for (int i = 0; i < pagesToRead; i++)
+			{
+				Run *runOnSSD = ssd.getRun(i);
+				if (!runOnSSD->isEmpty())
+				{
+					Page *pageFetched = runOnSSD->getFirstPage()->clone();
+					pageFetched->setSource(FROM_SSD);
+					pageFetched->setIdx(i);
+					dram.addPage(pageFetched);
+					ssd.delFirstPageFromRunK(i);
+					// runOnSSD->removeFisrtPage();
+					// ssd.setCapacity(ssd.getCapacity() + pageFetched->getBytes());
 
-	// for (int i = 0; i < numMemSizedRunOnHDD; i++)
-	// {
-	// 	hdd.addRun(memorySizedRunsOnHDD[i]->clone());
-	// }
+					if (runOnSSD->isEmpty())
+					{
+						ssd.eraseRun(i);
+					}
+				}
+				else
+				{
+					ssd.eraseRun(i);
+				}
+			}
+			ssd.cleanInvalidRuns();
+			dram.mergeFromSrcToDest(&ssd, &hdd, maxTreeSize, outputTXT);
+			ssd.cleanInvalidRuns();
+		}
 
-	// while (ssd.getNumUnsortedRuns() > 0)
-	// {
-	// 	dram.mergeFromSrcToDest(&ssd, &hdd, maxTreeSize, outputTXT);
-	// }
+		// merge all runs on HDD and write to HDD
+		while (hdd.getNumUnsortedRuns() > 1)
+		{
+			hdd.outputMergeMsg(outputTXT);
+			// pages to read from HDD
+			int pagesToRead = std::min(maxTreeSize, nInputBuffersDRAM);
+			pagesToRead = std::min(pagesToRead, hdd.getNumUnsortedRuns());
 
-	// while (hdd.getNumUnsortedRuns() > 0)
-	// {
-	// 	dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
-	// }
+			hdd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
+			printf("Physically reading %d pages\n", pagesToRead);
+			// Physically adding pages into DRAM
+			for (int i = 0; i < pagesToRead; i++)
+			{
+				Run *runOnHDD = hdd.getRun(i);
+				if (!runOnHDD->isEmpty())
+				{
+					Page *pageFetched = runOnHDD->getFirstPage()->clone();
+					pageFetched->setSource(FROM_HDD);
+					pageFetched->setIdx(i);
+					dram.addPage(pageFetched);
+					hdd.delFirstPageFromRunK(i);
+
+					if (runOnHDD->isEmpty())
+					{
+						hdd.eraseRun(i);
+					}
+				}
+				else
+				{
+					hdd.eraseRun(i);
+				}
+			}
+			hdd.cleanInvalidRuns();
+			dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
+			hdd.cleanInvalidRuns();
+		}
+
+		if (hdd.getNumUnsortedRuns() == 1)
+		{
+			hdd.print();
+			hdd.outputSpillState(outputTXT);
+			hdd.outputAccessState(ACCESS_WRITE, hdd.getRun(0)->getBytes(), outputTXT);
+			hdd.writeOutputTable(OUTPUT_TABLE);
+		}
+	}
 
 	//  delete dynamically allocated memory before exit program
 	return 0;

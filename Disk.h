@@ -18,23 +18,33 @@ private:
     long latency;                    // Latency in microseconds
     long bandwidth;                  // Bandwidth in MB/s
 
-    int numRuns;
+    int numUnsortedRuns;
     const char *diskType;
-    std::vector<Run *> runs;
-
+    std::vector<Run *> unsortedRuns;
     // runBitmap[i] = true if run is valid
     // runBitmap[i] = false if run is been evicted
     std::vector<bool> runBitmap;
-    // std::vector<bool> dramRunBitmap;
+
+    int numTempRuns;
+    std::vector<Run *> temp; // stored intermiate merged runs
 
 public:
     // Constructor
     Disk(unsigned long long maxCap, long lat, long bw, const char *dType);
 
     // return false if Disk is out of space
+    // add to unsortedRuns
     bool addRun(Run *run);
 
+    bool addRunToTempList(Run *run);
+
+    void moveRunToTempList(int runIdx);
+
+    void moveAllTempToUnsorted();
+
     bool eraseRun(int runIdx);
+
+    bool delFirstPageFromRunK(int k);
 
     void clear();
 
@@ -55,16 +65,13 @@ public:
     // Clean std::<vecotr> runs physically based on bitmap
     void cleanInvalidRuns();
 
-    // Merge DRAM-Size Runs into Disk-Size Runs
-    // std::vector<Run*> merge(std::vector<Run*> runs, int recordSize);
     bool isFull() const;
     // Getters
     unsigned long long getCapacity() const;
-    int getNumRuns() const;
-    unsigned long long getMaxCap() const;
+    int getNumUnsortedRuns() const;
+    int getNumTempRuns() const;
 
-    // int getNumCacheSizedRuns() const;
-    // int getNumDramSizedRuns() const;
+    unsigned long long getMaxCap() const;
 
     bool runIsValid(int idx) const;
 
@@ -76,6 +83,8 @@ public:
     Run *getRunCopy(int k) const;
 
     void print() const;
+
+    void printTemp() const;
 
     // Setter
     void setMaxCap(unsigned long long newCap);
