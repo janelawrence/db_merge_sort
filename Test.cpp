@@ -251,16 +251,6 @@ int main(int argc, char *argv[])
 	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD);
 	DRAM dram(DRAM_SIZE);
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD);
-	hdd.print();
-	// Open the output file in overwrite mode
-	// std::ofstream outputFile(outputTXT, std::ios::trunc);
-
-	// Check if the file opened successfully
-	// if (!outputFile.is_open())
-	// {
-	// 	std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
-	// 	return 1; // Return error code
-	// }
 
 	// Create all cache-sized mini-runs
 	std::vector<Run *> allSortedMiniRuns = cache.sort(allPages, maxRecordsInPage, PAGE_SIZE);
@@ -280,9 +270,6 @@ int main(int argc, char *argv[])
 		// Open the output file in overwrite mode
 		// std::ofstream outputFile(outputTXT, std::ios::trunc);
 		// Print output to file
-		// std::string outputString = "STATE -> SORT_MINI_RUNS: Sort cache-size mini runs\n";
-		// outputFile << outputString; // Print to file
-		// outputFile.close();
 		cache.outputMiniRunState(outputTXT);
 
 		// Get unmerged cache-sized mini-runs
@@ -337,8 +324,6 @@ int main(int argc, char *argv[])
 						pageFetched->setIdx(i);
 						dram.addPage(pageFetched);
 						ssd.delFirstPageFromRunK(i);
-						// runOnSSD->removeFisrtPage();
-						// ssd.setCapacity(ssd.getCapacity() + pageFetched->getBytes());
 
 						if (runOnSSD->isEmpty())
 						{
