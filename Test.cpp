@@ -19,11 +19,11 @@
 // Set global variable
 
 // Actual params
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-// int PAGE_SIZE = 10240;									  // 10 KB
-// char *INPUT_TXT = "input_table";
+unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+int PAGE_SIZE = 10240;									  // 10 KB
+char *INPUT_TXT = "input_table";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 200; //
@@ -50,11 +50,11 @@
 // test 0 Set up End <<<<<<<<<<
 
 // >>>>>> test case 1
-unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-int PAGE_SIZE = 10240;									  // 10KB								  // 10 KB
-char *INPUT_TXT = "test1_51200_50MB_1024_input.txt";
+// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+// int PAGE_SIZE = 10240;									  // 10KB								  // 10 KB
+// char *INPUT_TXT = "test1_51200_50MB_1024_input.txt";
 // test 1 Set up End <<<<<<<<<<
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
@@ -120,7 +120,7 @@ Run *readRecords(const char *fileName, int recordSize, int numRecords, int total
 
 	size_t recordsOffsetHDD = 0;
 	Run *allPages = new Run();
-
+	return 0;
 	while (recordsOffsetHDD < totalBytesInFile)
 	{
 		// Read at most nBuffersDRAM pages of data from HDD to DRAM
@@ -138,9 +138,12 @@ Run *readRecords(const char *fileName, int recordSize, int numRecords, int total
 				{
 					rawRecord[j] = inputData[recordsOffsetHDD + j];
 				}
+				printf("\nHIHI\n");
+				printf("%s\n", rawRecord);
 				Record *record = new Record(recordSize, rawRecord);
 				record->setSlot(bufferUsed);
 				newPage->addRecord(record);
+				// record->printRecord();
 
 				recordsOffsetHDD += recordSize;
 				// skipping '\n' and nextline character
