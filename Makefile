@@ -50,10 +50,10 @@ run: $(TARGET)
 
 $(OBJS) : Makefile defs.h
 Test.o : Record.h Disk.h TreeOfLosers.h Run.h CACHE.h DRAM.h Page.h TournamentTree.h
-CACHE.o: CACHE.h Run.h Disk.h
+Page.o: Page.h Record.h
 Run.o: Run.h Record.h Page.h
+CACHE.o: CACHE.h Run.h Disk.h
 DRAM.o: defs.h Run.h TreeOfLosers.h Disk.h
-Page.o: Page.h Record.h Page.h
 TournamentTree.o: TournamentTree.h Record.h Run.h
 TreeOfLosers.o: Record.h Page.h TreeOfLosers.h
 
