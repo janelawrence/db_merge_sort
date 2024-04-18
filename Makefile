@@ -14,19 +14,16 @@ SCRS=
 
 # headers and code sources
 HDRS=	defs.h \
-		Iterator.h Scan.h Filter.h Sort.h \
 		Record.h Disk.h TreeOfLosers.h Run.h \
-		CACHE.h DRAM.h Page.h\
+		CACHE.h DRAM.h Page.h TournamentTree.h\
 SRCS=	defs.cpp Assert.cpp Test.cpp \
-		Iterator.cpp Scan.cpp Filter.cpp Sort.cpp \
 		Record.cpp Disk.cpp TreeOfLosers.cpp Run.cpp \
-		CACHE.cpp DRAM.cpp Page.cpp\
+		CACHE.cpp DRAM.cpp Page.cpp TournamentTree.cpp\
 
 # compilation targets
 OBJS=	defs.o Assert.o Test.o \
-		Iterator.o Scan.o Filter.o Sort.o \
 		Record.o Disk.o TreeOfLosers.o Run.o \
-		CACHE.o DRAM.o Page.o\
+		CACHE.o DRAM.o Page.o TournamentTree.o\
 
 # RCS assists
 REV=-q -f
@@ -40,7 +37,7 @@ $(TARGET) : Makefile $(OBJS)
 	g++ $(CPPFLAGS) $(OBJS) -o $@
 
 run: $(TARGET)
-	./$(TARGET) -c 200 -s 1024 -o trace0.txt
+	./$(TARGET) -c 20 -s 1024 -o trace0.txt
 
 # trace : Test.exe Makefile
 # 	@date > trace
@@ -52,11 +49,12 @@ run: $(TARGET)
 
 
 $(OBJS) : Makefile defs.h
-Test.o : Record.h Disk.h TreeOfLosers.h Run.h CACHE.h DRAM.h Page.h
+Test.o : Record.h Disk.h TreeOfLosers.h Run.h CACHE.h DRAM.h Page.h TournamentTree.h
 CACHE.o: CACHE.h Run.h Disk.h
 Run.o: Run.h Record.h Page.h
-DRAM.o: defs.h Run.h TreeOfLosers.h
-Page.o: Record.h Page.h
+DRAM.o: defs.h Run.h TreeOfLosers.h Disk.h
+Page.o: Page.h Record.h Page.h
+TournamentTree.o: TournamentTree.h Record.h Run.h
 TreeOfLosers.o: Record.h Page.h TreeOfLosers.h
 
 

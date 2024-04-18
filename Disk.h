@@ -10,6 +10,26 @@
 #include <vector>
 #include <string>
 
+struct OutputBuffers
+{
+    int nBuffer;
+    Run *wrapper;
+
+    bool isFull()
+    {
+        return wrapper->getNumPages() == nBuffer && wrapper->getFirstPage()->isFull() && wrapper->getLastPage()->isFull();
+    }
+
+    bool isEmpty()
+    {
+        return wrapper->isEmpty();
+    }
+    void clear()
+    {
+        wrapper->clear();
+    }
+};
+
 class Disk
 {
 private:
@@ -19,6 +39,7 @@ private:
     long bandwidth;                  // Bandwidth in MB/s
 
     int numUnsortedRuns;
+    int nOutputBuffer;
     const char *diskType;
     std::vector<Run *> unsortedRuns;
     // runBitmap[i] = true if run is valid
@@ -26,11 +47,12 @@ private:
     std::vector<bool> runBitmap;
 
     int numTempRuns;
-    std::vector<Run *> temp; // stored intermiate merged runs
+    std::vector<Run *> temp;     // stored intermiate merged runs
+    OutputBuffers outputBuffers; // wrapping x output buffers in a run
 
 public:
     // Constructor
-    Disk(unsigned long long maxCap, long lat, long bw, const char *dType);
+    Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBuffer);
 
     // return false if Disk is out of space
     // add to unsortedRuns
@@ -45,6 +67,8 @@ public:
     bool eraseRun(int runIdx);
 
     bool delFirstPageFromRunK(int k);
+
+    void mergeFromSelfToDest(Disk *dest, const char *outputTXT);
 
     void clear();
 
@@ -65,7 +89,6 @@ public:
     // Clean std::<vecotr> runs physically based on bitmap
     void cleanInvalidRuns();
 
-    bool isFull() const;
     // Getters
     unsigned long long getCapacity() const;
     int getNumUnsortedRuns() const;
@@ -74,7 +97,7 @@ public:
     unsigned long long getMaxCap() const;
 
     bool runIsValid(int idx) const;
-
+    bool isFull() const;
     long getLatency() const;
     long getBandwidth() const;
     const char *getType() const;

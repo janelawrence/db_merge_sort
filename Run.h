@@ -9,7 +9,7 @@ private:
     Page *pageHead;
     Page *pageTail;
     int numPage;
-    unsigned long long bytes;
+    unsigned long long bytes; // size used in bytes
 
 public:
     Run();
@@ -17,9 +17,11 @@ public:
     void appendPage(Page *);
     void removeFisrtPage();
     void addRecord(Record *);
+    Record *popFirstRecord();
     void clear();
     void print(bool listPage = true) const;
     Run *clone();
+
     // Getters
     Page *getFirstPage();
     Page *getLastPage();

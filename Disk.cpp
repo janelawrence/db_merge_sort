@@ -1,6 +1,7 @@
 #include "Disk.h"
 #include "DRAM.h"
 #include "defs.h"
+#include "TournamentTree.h"
 
 #include <iostream>
 #include <fstream>
@@ -9,10 +10,17 @@
 #include <vector>
 
 // Constructor
-Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType) : MAX_CAPACITY(maxCap), latency(lat), bandwidth(bw)
+Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBuffer)
+    : MAX_CAPACITY(maxCap), latency(lat), bandwidth(bw), nOutputBuffer(nOutputBuffer)
 {
     capacity = maxCap;
     diskType = dType;
+    if (nOutputBuffer > 0)
+    { // HDD doesn't need output buffers
+        outputBuffers.nBuffer = 2;
+        outputBuffers.wrapper = new Run();
+        capacity = MAX_CAPACITY - 2 * PAGE_SIZE;
+    }
 }
 
 /*
@@ -114,6 +122,53 @@ bool Disk::delFirstPageFromRunK(int k)
     return false;
 }
 
+void Disk::mergeFromSelfToDest(Disk *dest, const char *outputTXT)
+{
+    int fanIn = numUnsortedRuns;
+    TournamentTree *tree = new TournamentTree(fanIn, unsortedRuns);
+    Run *curr = new Run();
+    // write sorted output to output buffer
+    while (tree->hasNext())
+    {
+        Record *winner = tree->popWinner();
+
+        //      if output buffer is full
+        if (outputBuffers.isFull())
+        {
+            // Report Spilling happen to output
+            dest->outputSpillState(outputTXT);
+            // Simulate write to SSD
+            dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
+
+            while (!outputBuffers.wrapper->isEmpty())
+            {
+                // Write to curr run in dest Disk
+                curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
+                outputBuffers.wrapper->removeFisrtPage();
+            }
+            outputBuffers.clear();
+        }
+        outputBuffers.wrapper->addRecord(winner);
+    }
+    if (!outputBuffers.isEmpty())
+    {
+        // write all remaining records in output buffers to the run on SSD
+        // Report Spilling happen to output
+        dest->outputSpillState(outputTXT);
+        // Simulate write to SSD
+        dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
+
+        while (!outputBuffers.wrapper->isEmpty())
+        {
+            curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
+            outputBuffers.wrapper->removeFisrtPage();
+        }
+        outputBuffers.clear();
+    }
+    dest->addRun(curr);
+    clear();
+}
+
 void Disk::clear()
 {
     capacity = MAX_CAPACITY;
@@ -125,6 +180,12 @@ void Disk::clear()
     unsortedRuns.swap(emptyRuns);
     temp.swap(emptyTemp);
     runBitmap.swap(emptyRunBitmap);
+    numUnsortedRuns = 0;
+    if (nOutputBuffer > 0)
+    {
+        outputBuffers.clear();
+        capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE;
+    }
 }
 
 int Disk::outputSpillState(const char *outputTXT)
@@ -248,7 +309,6 @@ int Disk::writeOutputTable(const char *outputTXT)
             char *bytes = curr->getFirstRecord()->serialize();
             outputFile.write(bytes, strlen(bytes));
             outputFile << '\n';
-            outputFile << '\n';
             curr->removeFisrtRecord();
         }
         outputRun->removeFisrtPage();
@@ -304,7 +364,7 @@ bool Disk::isFull() const
 
 unsigned long long Disk::getCapacity() const
 {
-    if (std::strcmp(diskType, HDD) > 0)
+    if (std::strcmp(diskType, HDD) == 0)
     {
         printf("%s has unlimited capacity\n", HDD);
     }

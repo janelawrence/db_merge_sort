@@ -60,8 +60,15 @@ void Run::removeFisrtPage()
     pageHead = pageHead->getNext();
 }
 
+/*Add a record to the last page, add a page if needed */
 void Run::addRecord(Record *record)
 {
+    if (pageHead->getIdx() == -1)
+    {
+        pageHead = new Page(0, PAGE_SIZE / recordSize, PAGE_SIZE);
+        pageTail = pageHead;
+        numPage++;
+    }
     if (pageTail->isFull() || pageTail->getSize() - pageTail->getBytes() < record->getSize())
     {
         Page *newPage = new Page(pageTail->getIdx() + 1, PAGE_SIZE / recordSize, PAGE_SIZE);
@@ -73,6 +80,24 @@ void Run::addRecord(Record *record)
         pageTail->addRecord(record);
         bytes += recordSize;
     }
+}
+
+Record *Run::popFirstRecord()
+{
+    if (!isEmpty() && !pageHead->isEmpty())
+    {
+        Record *record = pageHead->getFirstRecord();
+        pageHead->removeFisrtRecord();
+        bytes -= recordSize;
+        //  if this is the last record of the page
+        if (pageHead->isEmpty())
+        {
+            numPage--;
+            pageHead = pageHead->getNext();
+        }
+        return record;
+    }
+    return nullptr;
 }
 
 void Run::clear()

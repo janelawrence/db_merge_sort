@@ -27,7 +27,7 @@ int PAGE_SIZE = 10240;									  // 10 KB
 char *INPUT_TXT = "input_table";
 
 // >>>>>> Mini test case 1
-// unsigned long long CACHE_SIZE = 200; //
+// unsigned long long CACHE_SIZE = 200;
 // unsigned long long DRAM_SIZE = 1000;
 // unsigned long long SSD_SIZE = 3000;
 // int PAGE_SIZE = 100;
@@ -91,98 +91,12 @@ Run *readRecords(const char *fileName, int recordSize, int numRecords, int total
 		{
 			// printf("%d\n%s\n\n", strlen(line.c_str()), line.c_str());
 			Record *r = new Record(recordSize, line.c_str());
-			r->printRecord();
 			allPages->addRecord(r);
 		}
 		file.close();
 	}
 	return allPages;
 }
-
-/* Function to read records from the input file
-	Return: pages in DRAM sized stored in a Run *
-*/
-// Run *readRecords(const char *fileName, int recordSize, int numRecords, int totalBytes,
-// 				 int nBuffersDRAM, int maxRecordsInPage)
-// {
-// 	//  Read input.txt = input data stored in HDD
-// 	std::ifstream inputFile(fileName, std::ios::binary);
-// 	if (!inputFile.is_open())
-// 	{
-// 		std::cerr << "Error: Could not open file " << INPUT_TXT << std::endl;
-// 		return nullptr;
-// 	}
-// 	// Get the file size
-// 	inputFile.seekg(0, std::ios::end);
-// 	size_t totalBytesInFile = inputFile.tellg();
-// 	inputFile.seekg(0, std::ios::beg);
-
-// 	printf("totalBytesInFile: %zu\n", totalBytesInFile);
-
-// 	if (totalBytesInFile > totalBytes + 2 * numRecords)
-// 	{
-// 		printf("ERROR: bytes in input file is %d bytes larger than recordSize * numRecord\n\n",
-// 			   totalBytesInFile - (numRecords + totalBytes));
-// 	}
-
-// 	// Allocate buffer to hold the data
-// 	char *inputData = new char[totalBytes];
-
-// 	// Read data from the file
-// 	inputFile.read(inputData, totalBytes);
-
-// 	if (inputFile.fail())
-// 	{
-// 		std::cerr << "Error while reading file " << INPUT_TXT << std::endl;
-// 		delete[] inputData;
-// 		return nullptr;
-// 	}
-
-// 	inputFile.close();
-
-// 	char rawRecord[recordSize];
-
-// 	size_t recordsOffsetHDD = 0;
-// 	Run *allPages = new Run();
-// 	while (recordsOffsetHDD < totalBytesInFile)
-// 	{
-// 		// Read at most nBuffersDRAM pages of data from HDD to DRAM
-// 		int bufferUsed = 0;
-
-// 		while (recordsOffsetHDD < totalBytesInFile && bufferUsed < nBuffersDRAM)
-// 		{
-// 			// Read records data into one page
-// 			Page *newPage = new Page(bufferUsed, maxRecordsInPage, PAGE_SIZE);
-// 			while (recordsOffsetHDD < totalBytesInFile && newPage->getNumRecords() < maxRecordsInPage)
-// 			{
-
-// 				printf("Read from offset %d\n", recordsOffsetHDD);
-
-// 				// Organize records into pages
-// 				for (size_t j = 0; j < recordSize && (recordsOffsetHDD + j) < totalBytesInFile; ++j)
-// 				{
-// 					// printf("%d,", recordsOffsetHDD + j);
-// 					rawRecord[j] = inputData[recordsOffsetHDD + j];
-// 					// printf("\n;");
-// 				}
-// 				printf("\nHIHI\n");
-// 				printf("%s\n", rawRecord);
-// 				Record *record = new Record(recordSize, rawRecord);
-// 				record->setSlot(bufferUsed);
-// 				newPage->addRecord(record);
-// 				// record->printRecord();
-
-// 				recordsOffsetHDD += recordSize;
-// 				// skipping '\n' and nextline character
-// 				recordsOffsetHDD += 2;
-// 			}
-// 			allPages->appendPage(newPage);
-// 			bufferUsed++;
-// 		}
-// 	}
-// 	delete[] inputData;
-// 	return allPages;
-// }
 
 void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 				int nPagesFitInCache, int nBuffersDRAM, int nBuffersReserved,
@@ -256,6 +170,7 @@ int main(int argc, char *argv[])
 	// Calculate stats
 	size_t totalBytes = numRecords * recordSize;
 
+	// Number of mem-sized run created in DRAM
 	int mergeLevels = static_cast<int>(std::ceil(static_cast<double>(totalBytes) / DRAM_SIZE));
 
 	int maxRecordsInPage = PAGE_SIZE / recordSize;
@@ -264,14 +179,14 @@ int main(int argc, char *argv[])
 	int maxTreeSize = CACHE_SIZE / recordSize;
 
 	int nBuffersDRAM = DRAM_SIZE / PAGE_SIZE;
-	int nBuffersReserved = 2;
+	int nOutputBuffers = 2;
 	// Fan-in F during merging
-	int nInputBuffersDRAM = nBuffersDRAM - nBuffersReserved; // reserve 2 page according for output
+	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve 2 page according for output
 
 	int nBuffersSSD = SSD_SIZE / PAGE_SIZE;
 
 	printStats(numRecords, recordSize, maxRecordsInPage, nPagesFitInCache, nBuffersDRAM,
-			   nBuffersReserved, nInputBuffersDRAM, nBuffersSSD, mergeLevels);
+			   nOutputBuffers, nInputBuffersDRAM, nBuffersSSD, mergeLevels);
 
 	// prepare all records stored in pages
 
@@ -281,8 +196,8 @@ int main(int argc, char *argv[])
 
 	CACHE cache(CACHE_SIZE, nPagesFitInCache);
 	DRAM dram(DRAM_SIZE);
-	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD);
-	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD);
+	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD, nOutputBuffers);
+	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD, 0);
 
 	// Create all cache-sized mini-runs
 	std::vector<Run *> allSortedMiniRuns = cache.sort(allPages, maxRecordsInPage, PAGE_SIZE);
@@ -298,8 +213,12 @@ int main(int argc, char *argv[])
 		   allPages->getNumPages(), allSortedMiniRuns.size(), total_bytes_merged);
 	for (int level = 0; level < mergeLevels; level++)
 	{
-		// trace
-		cache.outputMiniRunState(outputTXT);
+		if (level == mergeLevels - 1)
+		{
+			// last run in current merge pass
+			// TODO: consider Graceful degradation
+			printf("TODO: consider Graceful degradation\n");
+		}
 
 		// Get unmerged cache-sized mini-runs
 		std::vector<Run *> sortedMiniRuns;
@@ -307,239 +226,165 @@ int main(int argc, char *argv[])
 
 		// Simulate reading data in trunks based on DRAM size [2pts]
 		int nRuns = static_cast<int>(std::ceil(nBuffersDRAM / nPagesFitInCache));
+		unsigned long long bytesWriteToDisk = 0;
 		for (int i = 0; start < allSortedMiniRuns.size() && i < nRuns; start++, i++)
 		{
 			sortedMiniRuns.push_back(allSortedMiniRuns[start]->clone());
+			bytesWriteToDisk += sortedMiniRuns[i]->getBytes();
 		}
 		// trace sorting mini runs state
 		cache.outputMiniRunState(outputTXT);
 
 		// create memory-sized sorted runs using Tournament Tree
-		// TO CHANGE: MERGE THEM DIRECTLY IN MEMORY
 		printf("At merge level %d, created %d cache-sized runs\n", level, sortedMiniRuns.size());
-		unsigned long long bytesWriteToDisk = 0;
-		for (int i = 0; i < sortedMiniRuns.size(); i++)
-		{
-			bytesWriteToDisk += sortedMiniRuns[i]->getBytes();
-		}
+
 		// Use Tournament Tree here
 		TournamentTree *loserTree = new TournamentTree(sortedMiniRuns.size(), sortedMiniRuns);
-		return 0;
-		// ------------------TO BE ORGANIZE------------------------------------------------------------------------
+		Run *memSizedRun = new Run();
+		while (loserTree->hasNext())
+		{
+			cout << "The new winner is: Contestant ";
+			Record *winner = loserTree->popWinner();
+			winner->printRecord();
+			if (winner == nullptr)
+			{
+				break;
+			}
+			memSizedRun->addRecord(winner);
+		}
+		// memSizedRun->print();
+		if (ssd.getCapacity() < bytesWriteToDisk)
+		{
+			ssd.mergeFromSelfToDest(&hdd, outputTXT);
+		}
 
 		if (ssd.getCapacity() >= bytesWriteToDisk)
 		{
-			for (int i = 0; i < sortedMiniRuns.size(); i++)
-			{
-				if (!ssd.addRun(sortedMiniRuns[i]))
-				{
-					break;
-				}
-			}
-			// TODO: Check percentage of memory overflow
-			// TODO: Decides whether to do Graceful Degradation
-
 			// Use Alternative 1
 			ssd.outputSpillState(outputTXT);
 			ssd.outputAccessState(ACCESS_WRITE, bytesWriteToDisk, outputTXT);
 
-			// merge cached-sized mini runs on SSD
-			ssd.outputMergeMsg(outputTXT);
-
-			while (ssd.getNumUnsortedRuns() != 1)
-			// merge until one run left in SSD
-			{
-				int pagesToRead = std::min(maxTreeSize, nInputBuffersDRAM);
-				pagesToRead = std::min(pagesToRead, ssd.getNumUnsortedRuns());
-				// Fetch the first page of each of the runs on SSD into DRAM
-				ssd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
-
-				for (int i = 0; i < pagesToRead; i++)
-				{
-					Run *runOnSSD = ssd.getRun(i);
-					if (!runOnSSD->isEmpty())
-					{
-						Page *pageFetched = runOnSSD->getFirstPage()->clone();
-						pageFetched->setSource(FROM_SSD);
-						pageFetched->setIdx(i);
-						dram.addPage(pageFetched);
-						ssd.delFirstPageFromRunK(i);
-
-						if (runOnSSD->isEmpty())
-						{
-							ssd.eraseRun(i);
-						}
-					}
-					else
-					{
-						ssd.eraseRun(i);
-					}
-				}
-				dram.mergeFromSrcToDest(&ssd, &ssd, maxTreeSize, outputTXT);
-				dram.clear();
-				// Physically Remove empty run spaces after cleaning, there's no invalid run in SSD
-				ssd.cleanInvalidRuns();
-			}
-			ssd.moveRunToTempList(0);
-			ssd.cleanInvalidRuns();
-		}
-		else // SSD is out of space, Merge from HDD
-		{
-			// TODO: Check percentage of memory overflow
-			// TODO: Decides whether to do Graceful Degradation
-
-			for (int i = 0; i < sortedMiniRuns.size(); i++)
-			{
-				hdd.addRun(sortedMiniRuns[i]);
-				bytesWriteToDisk += sortedMiniRuns[i]->getBytes();
-			}
-			// Use Alternative 1
-
-			hdd.outputSpillState(outputTXT);
-			hdd.outputAccessState(ACCESS_WRITE, bytesWriteToDisk, outputTXT);
-
-			// merge cached-sized mini runs on hdd
-			hdd.outputMergeMsg(outputTXT);
-
-			while (hdd.getNumUnsortedRuns() != 1)
-			// merge until one run left in hdd
-			{
-				int pagesToRead = std::min(maxTreeSize, nInputBuffersDRAM);
-				pagesToRead = std::min(pagesToRead, hdd.getNumUnsortedRuns());
-				// Fetch the first page of each of the runs on hdd into DRAM
-				hdd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
-				for (int i = 0; i < pagesToRead; i++)
-				{
-					Run *runOnHDD = hdd.getRun(i);
-					if (!runOnHDD->isEmpty())
-					{
-						Page *pageFetched = runOnHDD->getFirstPage()->clone();
-						pageFetched->setSource(FROM_HDD);
-						pageFetched->setIdx(i);
-						dram.addPage(pageFetched);
-						// runOnHDD->removeFisrtPage();
-						hdd.delFirstPageFromRunK(i);
-						if (runOnHDD->isEmpty())
-						{
-							hdd.eraseRun(i);
-						}
-					}
-					else
-					{
-						hdd.eraseRun(i);
-					}
-				}
-				dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
-				dram.clear();
-				// // Physically Remove empty run spaces
-				// // after cleaning, there's no invalid run in hdd
-				hdd.cleanInvalidRuns();
-			}
-			hdd.moveRunToTempList(0);
-			hdd.cleanInvalidRuns();
+			ssd.addRun(memSizedRun);
 		}
 	}
-
-	ssd.moveAllTempToUnsorted();
-	hdd.moveAllTempToUnsorted();
-
-	int numMemSizedRunOnSSD = ssd.getNumUnsortedRuns();
-	int numMemSizedRunOnHDD = hdd.getNumUnsortedRuns();
-
-	if (numMemSizedRunOnSSD == 1 && numMemSizedRunOnHDD == 0)
+	if (ssd.getNumUnsortedRuns() > 0)
 	{
-		hdd.outputSpillState(outputTXT);
-		hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
-		printf("line 412, Write to a output_table\n");
-		ssd.writeOutputTable(OUTPUT_TABLE);
-		return 0;
+		ssd.mergeFromSelfToDest(&hdd, outputTXT);
+	}
+	ssd.print();
+	hdd.print();
+
+	if (hdd.getNumUnsortedRuns() == 1)
+	{
+		hdd.writeOutputTable(OUTPUT_TABLE);
 	}
 	else
 	{
-		// merge all runs on SSD and write to HDD
-		while (ssd.getNumUnsortedRuns() > 0)
-		{
-			ssd.outputMergeMsg(outputTXT);
-			// pages to read from SSD
-			int pagesToRead = std::min(maxTreeSize, nInputBuffersDRAM);
-			pagesToRead = std::min(pagesToRead, ssd.getNumUnsortedRuns());
-
-			ssd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
-			printf("Physically reading %d pages\n", pagesToRead);
-			// Physically adding pages into DRAM
-			for (int i = 0; i < pagesToRead; i++)
-			{
-				Run *runOnSSD = ssd.getRun(i);
-				if (!runOnSSD->isEmpty())
-				{
-					Page *pageFetched = runOnSSD->getFirstPage()->clone();
-					pageFetched->setSource(FROM_SSD);
-					pageFetched->setIdx(i);
-					dram.addPage(pageFetched);
-					ssd.delFirstPageFromRunK(i);
-					// runOnSSD->removeFisrtPage();
-					// ssd.setCapacity(ssd.getCapacity() + pageFetched->getBytes());
-
-					if (runOnSSD->isEmpty())
-					{
-						ssd.eraseRun(i);
-					}
-				}
-				else
-				{
-					ssd.eraseRun(i);
-				}
-			}
-			ssd.cleanInvalidRuns();
-			dram.mergeFromSrcToDest(&ssd, &hdd, maxTreeSize, outputTXT);
-			ssd.cleanInvalidRuns();
-		}
-
-		// merge all runs on HDD and write to HDD
-		while (hdd.getNumUnsortedRuns() > 1)
-		{
-			hdd.outputMergeMsg(outputTXT);
-			// pages to read from HDD
-			int pagesToRead = std::min(maxTreeSize, nInputBuffersDRAM);
-			pagesToRead = std::min(pagesToRead, hdd.getNumUnsortedRuns());
-
-			hdd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
-			printf("Physically reading %d pages\n", pagesToRead);
-			// Physically adding pages into DRAM
-			for (int i = 0; i < pagesToRead; i++)
-			{
-				Run *runOnHDD = hdd.getRun(i);
-				if (!runOnHDD->isEmpty())
-				{
-					Page *pageFetched = runOnHDD->getFirstPage()->clone();
-					pageFetched->setSource(FROM_HDD);
-					pageFetched->setIdx(i);
-					dram.addPage(pageFetched);
-					hdd.delFirstPageFromRunK(i);
-
-					if (runOnHDD->isEmpty())
-					{
-						hdd.eraseRun(i);
-					}
-				}
-				else
-				{
-					hdd.eraseRun(i);
-				}
-			}
-			hdd.cleanInvalidRuns();
-			dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
-			hdd.cleanInvalidRuns();
-		}
-
-		if (hdd.getNumUnsortedRuns() == 1)
-		{
-			hdd.print();
-			hdd.outputSpillState(outputTXT);
-			hdd.outputAccessState(ACCESS_WRITE, hdd.getRun(0)->getBytes(), outputTXT);
-			hdd.writeOutputTable(OUTPUT_TABLE);
-		}
+		// Read Page from hdd to ssd, then merge???
+		printf("TODO\n");
 	}
+
+	return 0;
+	// ssd.moveAllTempToUnsorted();
+	// hdd.moveAllTempToUnsorted();
+
+	// int numMemSizedRunOnSSD = ssd.getNumUnsortedRuns();
+	// int numMemSizedRunOnHDD = hdd.getNumUnsortedRuns();
+
+	// if (numMemSizedRunOnSSD == 1 && numMemSizedRunOnHDD == 0)
+	// {
+	// 	hdd.outputSpillState(outputTXT);
+	// 	hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
+	// 	printf("line 412, Write to a output_table\n");
+	// 	ssd.writeOutputTable(OUTPUT_TABLE);
+	// 	return 0;
+	// }
+	// else
+	// {
+	// 	// merge all runs on SSD and write to HDD
+	// 	while (ssd.getNumUnsortedRuns() > 0)
+	// 	{
+	// 		ssd.outputMergeMsg(outputTXT);
+	// 		// pages to read from SSD
+	// 		int pagesToRead = std::min(maxTreeSize, nInputBuffersDRAM);
+	// 		pagesToRead = std::min(pagesToRead, ssd.getNumUnsortedRuns());
+
+	// 		ssd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
+	// 		printf("Physically reading %d pages\n", pagesToRead);
+	// 		// Physically adding pages into DRAM
+	// 		for (int i = 0; i < pagesToRead; i++)
+	// 		{
+	// 			Run *runOnSSD = ssd.getRun(i);
+	// 			if (!runOnSSD->isEmpty())
+	// 			{
+	// 				Page *pageFetched = runOnSSD->getFirstPage()->clone();
+	// 				pageFetched->setSource(FROM_SSD);
+	// 				pageFetched->setIdx(i);
+	// 				dram.addPage(pageFetched);
+	// 				ssd.delFirstPageFromRunK(i);
+	// 				// runOnSSD->removeFisrtPage();
+	// 				// ssd.setCapacity(ssd.getCapacity() + pageFetched->getBytes());
+
+	// 				if (runOnSSD->isEmpty())
+	// 				{
+	// 					ssd.eraseRun(i);
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				ssd.eraseRun(i);
+	// 			}
+	// 		}
+	// 		ssd.cleanInvalidRuns();
+	// 		dram.mergeFromSrcToDest(&ssd, &hdd, maxTreeSize, outputTXT);
+	// 		ssd.cleanInvalidRuns();
+	// 	}
+
+	// 	// merge all runs on HDD and write to HDD
+	// 	while (hdd.getNumUnsortedRuns() > 1)
+	// 	{
+	// 		hdd.outputMergeMsg(outputTXT);
+	// 		// pages to read from HDD
+	// 		int pagesToRead = std::min(maxTreeSize, nInputBuffersDRAM);
+	// 		pagesToRead = std::min(pagesToRead, hdd.getNumUnsortedRuns());
+
+	// 		hdd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
+	// 		printf("Physically reading %d pages\n", pagesToRead);
+	// 		// Physically adding pages into DRAM
+	// 		for (int i = 0; i < pagesToRead; i++)
+	// 		{
+	// 			Run *runOnHDD = hdd.getRun(i);
+	// 			if (!runOnHDD->isEmpty())
+	// 			{
+	// 				Page *pageFetched = runOnHDD->getFirstPage()->clone();
+	// 				pageFetched->setSource(FROM_HDD);
+	// 				pageFetched->setIdx(i);
+	// 				dram.addPage(pageFetched);
+	// 				hdd.delFirstPageFromRunK(i);
+
+	// 				if (runOnHDD->isEmpty())
+	// 				{
+	// 					hdd.eraseRun(i);
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				hdd.eraseRun(i);
+	// 			}
+	// 		}
+	// 		hdd.cleanInvalidRuns();
+	// 		dram.mergeFromSrcToDest(&hdd, &hdd, maxTreeSize, outputTXT);
+	// 		hdd.cleanInvalidRuns();
+	// 	}
+
+	// 	if (hdd.getNumUnsortedRuns() == 1)
+	// 	{
+	// 		hdd.print();
+	// 		hdd.outputSpillState(outputTXT);
+	// 		hdd.outputAccessState(ACCESS_WRITE, hdd.getRun(0)->getBytes(), outputTXT);
+	// 		hdd.writeOutputTable(OUTPUT_TABLE);
+	// 	}
+	// }
 
 	//  delete dynamically allocated memory before exit program
 	return 0;
