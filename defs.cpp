@@ -94,3 +94,37 @@ int ceilDiv(int dividend, int divisor)
 		return dividend / divisor + 1;
 	}
 }
+
+void printStats(int numRecords, int recordSize, int maxRecordsInPage,
+				int nPagesFitInCache, int nBuffersDRAM, int nBuffersReserved,
+				int nInputBuffersDRAM, int nBuffersSSD, int mergeLevels)
+{
+	printf("--------------------------------------------System stats--------------------------------------\n");
+	printf("Number of records: %d, "
+		   "Record size: %d\n\n",
+		   numRecords, recordSize);
+	printf("Page size: %d Bytes\n"
+		   "- Each page can store %d records\n\n",
+		   PAGE_SIZE, maxRecordsInPage);
+	printf("Cache size: %llu Bytes\n"
+		   "- Each cache-sized run can store at most %d pages\n"
+		   "- Each cache-sized run can store at most %d records\n"
+		   "- Cache can store at most %d Record Pointer\n\n",
+		   CACHE_SIZE, nPagesFitInCache,
+		   nPagesFitInCache * maxRecordsInPage,
+		   CACHE_SIZE / recordSize);
+	printf("DRAM size: %llu Bytes\n"
+		   "- Each DRAM-sized run can store %d pages\n"
+		   "---- %d are input buffers, %d are reserved buffers\n"
+		   "- Each DRAM-sized run can store %d records\n\n",
+		   DRAM_SIZE, nBuffersDRAM,
+		   nInputBuffersDRAM, nBuffersReserved,
+		   nInputBuffersDRAM * maxRecordsInPage);
+	printf("Merge Levels : %d\n\n",
+		   mergeLevels);
+	printf("SSD size: %llu Bytes\n"
+		   "- Each SSD-sized run can store %d pages\n"
+		   "- Each SSD-sized run can store %d records\n\n",
+		   SSD_SIZE, nBuffersSSD,
+		   nBuffersSSD * maxRecordsInPage);
+}

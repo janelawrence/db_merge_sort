@@ -9,26 +9,6 @@
 
 #include <vector>
 
-// struct OutputBuffers
-// {
-//     int nBuffer;
-//     Run *wrapper;
-
-//     bool isFull()
-//     {
-//         return wrapper->getNumPages() == nBuffer && wrapper->getFirstPage()->isFull() && wrapper->getLastPage()->isFull();
-//     }
-
-//     bool isEmpty()
-//     {
-//         return wrapper->isEmpty();
-//     }
-//     void clear()
-//     {
-//         wrapper->clear();
-//     }
-// };
-
 class DRAM
 {
 private:
@@ -56,6 +36,9 @@ public:
 
     void forecastFromSSD(int bufferIdx, Disk *ssd);
     void forecastFromHDD(int bufferIdx, Disk *hdd);
+
+    Run *readRecords(const char *fileName, int recordSize, int numRecords, int totalBytes,
+                     int nBuffersDRAM, int maxRecordsInPage);
 
     void clear();
 

@@ -2,12 +2,12 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <fstream>
+#include <vector>
 
 #include "Run.h"
 #include "defs.h"
 #include "TreeOfLosers.h"
-
-#include <vector>
 
 // Constructor
 DRAM::DRAM(unsigned long long maxCap) : MAX_CAPACITY(maxCap)
@@ -82,6 +82,28 @@ bool DRAM::delFirstRecordFromBufferK(int k)
         return true;
     }
     return false;
+}
+
+/* Function to read records from the input file
+    Return: a run * of pages, this run has size same as DRAM size
+*/
+Run *DRAM::readRecords(const char *fileName, int recordSize, int numRecords, int totalBytes,
+                       int nBuffersDRAM, int maxRecordsInPage)
+{
+    std::ifstream file(fileName);
+    Run *allPages = new Run();
+    if (file.is_open())
+    {
+        std::string line;
+        while (std::getline(file, line))
+        {
+            // printf("%d\n%s\n\n", strlen(line.c_str()), line.c_str());
+            Record *r = new Record(recordSize, line.c_str());
+            allPages->addRecord(r);
+        }
+        file.close();
+    }
+    return allPages;
 }
 
 void DRAM::clear()

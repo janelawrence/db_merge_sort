@@ -171,3 +171,6 @@ int msbi(size_t const x);
 char const *YesNo(bool const b);
 char const *OkBad(bool const b);
 int ceilDiv(int dividend, int divisor);
+void printStats(int numRecords, int recordSize, int maxRecordsInPage,
+				int nPagesFitInCache, int nBuffersDRAM, int nBuffersReserved,
+				int nInputBuffersDRAM, int nBuffersSSD, int mergeLevels);
