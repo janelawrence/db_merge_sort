@@ -1,14 +1,23 @@
 #include <iostream>
 #include <vector>
 #include "Record.h"
+#include "Run.h"
 #include "TournamentTree.h"
+
+int PAGE_SIZE = 20;
+int recordSize = 10;
 
 bool TournamentTree::isGhostNode(int node)
 {
-    return tree[node] == -1;
+    if (node >= 0 && node < tree.size())
+    {
+        return tree[node] == -1;
+    }
+    return true;
 }
 
-TournamentTree::TournamentTree(int n)
+TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable)
+    : runTable(rTable)
 {
     // Calculate the size of the tree based on the number of contestants
     size = 2;
@@ -18,7 +27,10 @@ TournamentTree::TournamentTree(int n)
     }
     // Resize the tree to accommodate all matches
     tree.resize(2 * size);
+    losers.resize(2 * size);
+
     assignGhost();
+    initialize();
 }
 
 TournamentTree::~TournamentTree()
@@ -31,6 +43,16 @@ void TournamentTree::assignGhost()
     {
         // tree[i].winner = std::numeric_limits<int>::max();
         tree[i] = -1;
+        losers[i] = -1;
+    }
+}
+
+void TournamentTree::initialize()
+{
+    for (int i = 0; i < runTable.size(); i++)
+    {
+        Record *r = runTable[i]->popFirstRecord();
+        update(i, r);
     }
 }
 
@@ -50,27 +72,33 @@ void TournamentTree::update(int index, Record *record)
     {
         index /= 2;
         // perforam competition upward
-        tree[index] = compete(index);
+        compete(index);
     }
 }
 
+/*
+Insert into index, and trigger competitions
+ */
 void TournamentTree::insert(int index, Record *record)
 {
     // - Before looking up treeIdx of this rec
     // delete the mem allo to this record from records vector
     // and then assign the new one to the released mem
-    delete records[index];
+    if (records[index] != nullptr)
+    {
+        delete records[index];
+        records[index] = nullptr;
+    }
     records[index] = record;
-
+    tree[index + size] = index;
     index += size;
-    TRACE(true);
-
+    // TRACE(true);
     // Competing/Update parent nodes
     while (index > 1)
     {
         index /= 2;
         // perforam competition upward
-        tree[index] = compete(index);
+        compete(index);
     }
 }
 
@@ -91,44 +119,93 @@ void TournamentTree::replaceWinner(Record *record)
     else
     {
         // The rec to be replaced is located at records[winnerRecIndx]
-        // TODO: find node idx of winner in tree
-        // int startIdx = recIdx2TreeIdx[winnerRecIndx];
         insert(winnerRecIndx, record);
     }
 }
 
-void TournamentTree::popWinner()
+bool TournamentTree::hasNext()
 {
-    int winnerRecIndx = tree[1];
+    return tree[1] != GHOST_KEY;
+}
+
+/*
+    Pop winner out and replace it with a ghost key/late fence
+*/
+Record *TournamentTree::popWinner()
+{
+    Record *winner = new Record(*getWinner());
+    int winnerRecIdx = tree[1];
+    if (winnerRecIdx == -1)
+    {
+        printf("Tree is empty, nothing to pop\n");
+        return nullptr;
+    }
 
     // Insert ghostKey into leaf idx of this winner
+    int index = size + winnerRecIdx;
 
-    // And start competing such that
+    tree[index] = -1;
 
-    delete records[winnerRecIndx];
+    // And start competing until reach the top
+    while (index > 1)
+    {
+        index /= 2;
+        // perforam competition upward
+        compete(index);
+    }
+
+    delete records[winnerRecIdx];
+    records[winnerRecIdx] = nullptr;
+    // Insert new record from runTable if needed
+    if (!runTable[winnerRecIdx]->isEmpty())
+    {
+        Record *r = runTable[winnerRecIdx]->popFirstRecord();
+        insert(winnerRecIdx, r);
+    }
+    return winner;
 }
 
 int TournamentTree::compete(int node)
 {
-    int left = 2 * node;
-    int right = left + 1;
-    int winner = node;
+    int left = 2 * node;  // tree index
+    int right = left + 1; // tree index
+    int winner = node;    // tree index
+    int loser = node;     // tree index
+    bool leftIsGhost = isGhostNode(left);
+    bool rightIsGhost = isGhostNode(right);
+
     if (right < tree.size() && left < tree.size())
     {
-        bool leftIsGhost = isGhostNode(left);
-        bool rightIsGhost = isGhostNode(right);
-        if (leftIsGhost && !rightIsGhost)
+        if (leftIsGhost && rightIsGhost)
         {
-            return tree[right];
+            tree[node] = -1;
+            losers[node] = -1;
+        }
+        else if (leftIsGhost && !rightIsGhost)
+        {
+            tree[node] = tree[right];
+            losers[node] = -1;
         }
         else if (!leftIsGhost && rightIsGhost)
         {
-            return tree[left];
+            tree[node] = tree[left];
+            losers[node] = -1;
         }
-
-        return std::strcmp(getRecordKey(left), getRecordKey(right)) < 0 ? tree[left] : tree[right];
+        else
+        {
+            if (std::strcmp(getRecordKey(left), getRecordKey(right)) <= 0)
+            {
+                tree[node] = tree[left];
+                losers[node] = tree[right];
+            }
+            else
+            {
+                tree[node] = tree[right];
+                losers[node] = tree[left];
+            }
+        }
     }
-    return -1;
+    return 0;
 }
 
 int TournamentTree::compareRecordsInNodes(int node1, int node2)
@@ -165,14 +242,14 @@ void TournamentTree::printTree() const
         {
             if (records[recIdx] == nullptr)
             {
-                printf("%d, ", -1);
+                printf("%d, ", GHOST_KEY);
                 continue;
             }
             printf("%s, ", records[recIdx]->getKey());
         }
         else
         {
-            printf("%d, ", -1);
+            printf("%d, ", GHOST_KEY);
         }
     }
     printf("\n");
@@ -181,44 +258,75 @@ void TournamentTree::printTree() const
 int main()
 {
     int n = 6;
-    TournamentTree tournament(n);
     // std::vector<Record *> candidates;
+    Record *r1 = new Record(10, "Hasdfweasd");
+    Record *r2 = new Record(10, "Zasdfweasd");
+    Record *r3 = new Record(10, "Basdfweasd");
+    Record *r4 = new Record(10, "Yasdfweasd");
+    Record *r5 = new Record(10, "Dasdfweasd");
+    Record *r6 = new Record(10, "Tasdfweasd");
+    Record *r7 = new Record(10, "Easdfweasd");
 
-    std::vector<Record *> candidates = {new Record(10, "Zasdfweasd"),
-                                        new Record(10, "Hasdfweasd"),
-                                        new Record(10, "Yasdfweasd"),
-                                        new Record(10, "Basdfweasd"),
-                                        new Record(10, "Tasdfweasd"),
-                                        new Record(10, "Dasdfweasd")};
-    Record *rec = new Record(10, "Easdfweasd");
+    Run *run1 = new Run();
+    run1->addRecord(r1);
+    run1->addRecord(r2);
 
-    std::vector<Record *> temp;
-    for (int i = 0; i < n; ++i)
+    Run *run2 = new Run();
+    run2->addRecord(r3);
+    run2->addRecord(r4);
+
+    Run *run3 = new Run();
+    run3->addRecord(r5);
+    run3->addRecord(r6);
+
+    Run *run4 = new Run();
+    run4->addRecord(r7);
+
+    std::vector<Run *> runs = {run1, run2, run3};
+
+    TournamentTree tournament(n, runs);
+    // std::vector<Record *> candidates = {new Record(10, "Zasdfweasd"),
+    //                                     new Record(10, "Hasdfweasd"),
+    //                                     new Record(10, "Yasdfweasd"),
+    //                                     new Record(10, "Basdfweasd"),
+    //                                     new Record(10, "Tasdfweasd"),
+    //                                     new Record(10, "Dasdfweasd")};
+
+    // for (int i = 0; i < n; ++i)
+    // {
+    //     if (candidates[i] == nullptr)
+    //     {
+    //         printf("----------\n");
+    //     }
+    //     // tournament.printTree();
+    //     tournament.update(i, candidates[i]);
+    //     bool isfull = tournament.isFull();
+    //     printf("full? %d\n", static_cast<int>(isfull));
+    //     // tournament.printTree();
+    // }
+
+    // std::vector<Record *> sortedRecords;
+    // cout << "The winner is: Contestant ";
+    // tournament.getWinner()->printRecord();
+
+    // tournament.replaceWinner(rec);
+
+    while (tournament.hasNext())
     {
-        if (candidates[i] == nullptr)
+        cout << "The new winner is: Contestant ";
+        Record *winner = tournament.popWinner();
+        if (winner == nullptr)
         {
-            printf("----------\n");
+            break;
         }
-        // tournament.printTree();
-        tournament.update(i, candidates[i]);
-        bool isfull = tournament.isFull();
-        printf("full? %d\n", static_cast<int>(isfull));
+        winner->printRecord();
         // tournament.printTree();
     }
 
-    std::vector<Record *> sortedRecords;
-    cout << "The winner is: Contestant ";
-    tournament.getWinner()->printRecord();
-
-    tournament.replaceWinner(rec);
-
-    cout << "The new winner is: Contestant ";
-    tournament.getWinner()->printRecord();
-    // tournament.printTree();
-
-    for (int i = 0; i < candidates.size(); i++)
+    for (int i = 0; i < runs.size(); i++)
     {
-        delete candidates[i];
+        delete runs[i];
+        runs[i] = nullptr;
     }
     return 0;
 }
