@@ -20,19 +20,19 @@
 // Set global variable
 
 // Actual params
-unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-int PAGE_SIZE = 10240;									  // 10 KB
-char *INPUT_TXT = "input_table";
+// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+// int PAGE_SIZE = 10240;									  // 10 KB
+// char *INPUT_TXT = "input_table";
 
 // >>>>>> Mini test case 1
-// unsigned long long CACHE_SIZE = 200;
-// unsigned long long DRAM_SIZE = 1000;
-// unsigned long long SSD_SIZE = 3000;
-// int PAGE_SIZE = 100;
-// char *INPUT_TXT = "mini_200_20_input.txt";
-// Mini test 1 Set up End <<<<<<<<<<
+unsigned long long CACHE_SIZE = 200;
+unsigned long long DRAM_SIZE = 1000;
+unsigned long long SSD_SIZE = 3000;
+int PAGE_SIZE = 100;
+char *INPUT_TXT = "mini_200_20_input.txt";
+// Mini test 1 Set up End < < < < < < < < < <
 
 // >>>>>> mini test case 2
 // unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
@@ -168,6 +168,7 @@ int mergeSort()
 		// memSizedRun->print();
 		if (ssd.getCapacity() < bytesWriteToDisk)
 		{
+			ssd.outputMergeMsg(outputTXT);
 			ssd.mergeFromSelfToDest(&hdd, outputTXT);
 		}
 
