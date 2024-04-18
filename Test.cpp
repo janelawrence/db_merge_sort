@@ -4,6 +4,7 @@
 #include "Run.h"
 #include "DRAM.h"
 #include "Disk.h"
+#include "TournamentTree.h"
 
 #include <limits>
 #include <cstdlib> // For atoi function
@@ -76,86 +77,112 @@ const char *ACCESS_WRITE = "write";
 const char *ACCESS_READ = "read";
 
 /* Function to read records from the input file
-	Return: pages in DRAM stored in a Run *
+	Return: a run * of pages, this run has size same as DRAM size
 */
 Run *readRecords(const char *fileName, int recordSize, int numRecords, int totalBytes,
 				 int nBuffersDRAM, int maxRecordsInPage)
 {
-	//  Read input.txt = input data stored in HDD
-	std::ifstream inputFile(fileName, std::ios::binary);
-	if (!inputFile.is_open())
-	{
-		std::cerr << "Error: Could not open file " << INPUT_TXT << std::endl;
-		return nullptr;
-	}
-	// Get the file size
-	inputFile.seekg(0, std::ios::end);
-	size_t totalBytesInFile = inputFile.tellg();
-	inputFile.seekg(0, std::ios::beg);
-
-	printf("totalBytesInFile: %zu\n", totalBytesInFile);
-
-	if (totalBytesInFile > totalBytes + 2 * numRecords)
-	{
-		printf("ERROR: bytes in input file is %d bytes larger than recordSize * numRecord\n\n",
-			   totalBytesInFile - (numRecords + totalBytes));
-	}
-
-	// Allocate buffer to hold the data
-	char *inputData = new char[totalBytes];
-
-	// Read data from the file
-	inputFile.read(inputData, totalBytes);
-
-	if (inputFile.fail())
-	{
-		std::cerr << "Error while reading file " << INPUT_TXT << std::endl;
-		delete[] inputData;
-		return nullptr;
-	}
-
-	inputFile.close();
-
-	char rawRecord[recordSize];
-
-	size_t recordsOffsetHDD = 0;
+	std::ifstream file(fileName);
 	Run *allPages = new Run();
-	return 0;
-	while (recordsOffsetHDD < totalBytesInFile)
+	if (file.is_open())
 	{
-		// Read at most nBuffersDRAM pages of data from HDD to DRAM
-		int bufferUsed = 0;
-
-		while (recordsOffsetHDD < totalBytesInFile && bufferUsed < nBuffersDRAM)
+		std::string line;
+		while (std::getline(file, line))
 		{
-			// Read records data into one page
-			Page *newPage = new Page(bufferUsed, maxRecordsInPage, PAGE_SIZE);
-			while (recordsOffsetHDD < totalBytesInFile && newPage->getNumRecords() < maxRecordsInPage)
-			{
-
-				// Organize records into pages
-				for (size_t j = 0; j < recordSize && (recordsOffsetHDD + j) < totalBytes; ++j)
-				{
-					rawRecord[j] = inputData[recordsOffsetHDD + j];
-				}
-				printf("\nHIHI\n");
-				printf("%s\n", rawRecord);
-				Record *record = new Record(recordSize, rawRecord);
-				record->setSlot(bufferUsed);
-				newPage->addRecord(record);
-				// record->printRecord();
-
-				recordsOffsetHDD += recordSize;
-				// skipping '\n' and nextline character
-				recordsOffsetHDD += 2;
-			}
-			allPages->appendPage(newPage);
-			bufferUsed++;
+			// printf("%d\n%s\n\n", strlen(line.c_str()), line.c_str());
+			Record *r = new Record(recordSize, line.c_str());
+			r->printRecord();
+			allPages->addRecord(r);
 		}
+		file.close();
 	}
-	delete[] inputData;
 	return allPages;
 }
+
+/* Function to read records from the input file
+	Return: pages in DRAM sized stored in a Run *
+*/
+// Run *readRecords(const char *fileName, int recordSize, int numRecords, int totalBytes,
+// 				 int nBuffersDRAM, int maxRecordsInPage)
+// {
+// 	//  Read input.txt = input data stored in HDD
+// 	std::ifstream inputFile(fileName, std::ios::binary);
+// 	if (!inputFile.is_open())
+// 	{
+// 		std::cerr << "Error: Could not open file " << INPUT_TXT << std::endl;
+// 		return nullptr;
+// 	}
+// 	// Get the file size
+// 	inputFile.seekg(0, std::ios::end);
+// 	size_t totalBytesInFile = inputFile.tellg();
+// 	inputFile.seekg(0, std::ios::beg);
+
+// 	printf("totalBytesInFile: %zu\n", totalBytesInFile);
+
+// 	if (totalBytesInFile > totalBytes + 2 * numRecords)
+// 	{
+// 		printf("ERROR: bytes in input file is %d bytes larger than recordSize * numRecord\n\n",
+// 			   totalBytesInFile - (numRecords + totalBytes));
+// 	}
+
+// 	// Allocate buffer to hold the data
+// 	char *inputData = new char[totalBytes];
+
+// 	// Read data from the file
+// 	inputFile.read(inputData, totalBytes);
+
+// 	if (inputFile.fail())
+// 	{
+// 		std::cerr << "Error while reading file " << INPUT_TXT << std::endl;
+// 		delete[] inputData;
+// 		return nullptr;
+// 	}
+
+// 	inputFile.close();
+
+// 	char rawRecord[recordSize];
+
+// 	size_t recordsOffsetHDD = 0;
+// 	Run *allPages = new Run();
+// 	while (recordsOffsetHDD < totalBytesInFile)
+// 	{
+// 		// Read at most nBuffersDRAM pages of data from HDD to DRAM
+// 		int bufferUsed = 0;
+
+// 		while (recordsOffsetHDD < totalBytesInFile && bufferUsed < nBuffersDRAM)
+// 		{
+// 			// Read records data into one page
+// 			Page *newPage = new Page(bufferUsed, maxRecordsInPage, PAGE_SIZE);
+// 			while (recordsOffsetHDD < totalBytesInFile && newPage->getNumRecords() < maxRecordsInPage)
+// 			{
+
+// 				printf("Read from offset %d\n", recordsOffsetHDD);
+
+// 				// Organize records into pages
+// 				for (size_t j = 0; j < recordSize && (recordsOffsetHDD + j) < totalBytesInFile; ++j)
+// 				{
+// 					// printf("%d,", recordsOffsetHDD + j);
+// 					rawRecord[j] = inputData[recordsOffsetHDD + j];
+// 					// printf("\n;");
+// 				}
+// 				printf("\nHIHI\n");
+// 				printf("%s\n", rawRecord);
+// 				Record *record = new Record(recordSize, rawRecord);
+// 				record->setSlot(bufferUsed);
+// 				newPage->addRecord(record);
+// 				// record->printRecord();
+
+// 				recordsOffsetHDD += recordSize;
+// 				// skipping '\n' and nextline character
+// 				recordsOffsetHDD += 2;
+// 			}
+// 			allPages->appendPage(newPage);
+// 			bufferUsed++;
+// 		}
+// 	}
+// 	delete[] inputData;
+// 	return allPages;
+// }
 
 void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 				int nPagesFitInCache, int nBuffersDRAM, int nBuffersReserved,
@@ -246,20 +273,21 @@ int main(int argc, char *argv[])
 	printStats(numRecords, recordSize, maxRecordsInPage, nPagesFitInCache, nBuffersDRAM,
 			   nBuffersReserved, nInputBuffersDRAM, nBuffersSSD, mergeLevels);
 
-	// all pages
+	// prepare all records stored in pages
+
 	Run *allPages = readRecords(INPUT_TXT, recordSize, numRecords,
 								totalBytes, nBuffersDRAM, maxRecordsInPage);
+	printf("%d pages read \n", allPages->getNumPages());
 
 	CACHE cache(CACHE_SIZE, nPagesFitInCache);
-	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD);
 	DRAM dram(DRAM_SIZE);
+	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD);
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD);
 
 	// Create all cache-sized mini-runs
 	std::vector<Run *> allSortedMiniRuns = cache.sort(allPages, maxRecordsInPage, PAGE_SIZE);
 	int start = 0;
 
-	// Debug
 	int total_bytes_merged = 0;
 	for (int i = 0; i < allSortedMiniRuns.size(); i++)
 	{
@@ -270,27 +298,35 @@ int main(int argc, char *argv[])
 		   allPages->getNumPages(), allSortedMiniRuns.size(), total_bytes_merged);
 	for (int level = 0; level < mergeLevels; level++)
 	{
-		// Open the output file in overwrite mode
-		// std::ofstream outputFile(outputTXT, std::ios::trunc);
-		// Print output to file
+		// trace
 		cache.outputMiniRunState(outputTXT);
 
 		// Get unmerged cache-sized mini-runs
 		std::vector<Run *> sortedMiniRuns;
 		unsigned long long bytesRead = 0;
+
+		// Simulate reading data in trunks based on DRAM size [2pts]
 		int nRuns = static_cast<int>(std::ceil(nBuffersDRAM / nPagesFitInCache));
 		for (int i = 0; start < allSortedMiniRuns.size() && i < nRuns; start++, i++)
 		{
 			sortedMiniRuns.push_back(allSortedMiniRuns[start]->clone());
 		}
+		// trace sorting mini runs state
+		cache.outputMiniRunState(outputTXT);
 
-		// create memory-sized sorted runs
+		// create memory-sized sorted runs using Tournament Tree
+		// TO CHANGE: MERGE THEM DIRECTLY IN MEMORY
 		printf("At merge level %d, created %d cache-sized runs\n", level, sortedMiniRuns.size());
 		unsigned long long bytesWriteToDisk = 0;
 		for (int i = 0; i < sortedMiniRuns.size(); i++)
 		{
 			bytesWriteToDisk += sortedMiniRuns[i]->getBytes();
 		}
+		// Use Tournament Tree here
+		TournamentTree *loserTree = new TournamentTree(sortedMiniRuns.size(), sortedMiniRuns);
+		return 0;
+		// ------------------TO BE ORGANIZE------------------------------------------------------------------------
+
 		if (ssd.getCapacity() >= bytesWriteToDisk)
 		{
 			for (int i = 0; i < sortedMiniRuns.size(); i++)
@@ -317,6 +353,7 @@ int main(int argc, char *argv[])
 				pagesToRead = std::min(pagesToRead, ssd.getNumUnsortedRuns());
 				// Fetch the first page of each of the runs on SSD into DRAM
 				ssd.outputAccessState(ACCESS_READ, pagesToRead * PAGE_SIZE, outputTXT);
+
 				for (int i = 0; i < pagesToRead; i++)
 				{
 					Run *runOnSSD = ssd.getRun(i);
