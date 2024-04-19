@@ -73,6 +73,7 @@ public:
     void clear();
 
     int outputSpillState(const char *outputTXT);
+    int outputReadSortedRunState(const char *outputTXT);
     int outputAccessState(const char *accessType,
                           unsigned long long totalBytes,
                           const char *outputTXT);

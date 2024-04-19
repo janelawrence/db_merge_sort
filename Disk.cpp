@@ -135,6 +135,8 @@ void Disk::mergeFromSelfToDest(Disk *dest, const char *outputTXT)
         //      if output buffer is full
         if (outputBuffers.isFull())
         {
+            outputReadSortedRunState(outputTXT);
+            outputAccessState(ACCESS_READ, outputBuffers.wrapper->getBytes(), outputTXT);
             // Report Spilling happen to output
             dest->outputSpillState(outputTXT);
             // Simulate write to SSD
@@ -154,12 +156,13 @@ void Disk::mergeFromSelfToDest(Disk *dest, const char *outputTXT)
     {
         // write all remaining records in output buffers to the run on SSD
         // Report Spilling happen to output
-        dest->outputSpillState(outputTXT);
-        // Simulate write to SSD
-        dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-
         while (!outputBuffers.wrapper->isEmpty())
         {
+            outputReadSortedRunState(outputTXT);
+            outputAccessState(ACCESS_READ, outputBuffers.wrapper->getBytes(), outputTXT);
+            dest->outputSpillState(outputTXT);
+            // Simulate write to SSD
+            dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
             curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
             outputBuffers.wrapper->removeFisrtPage();
         }
@@ -202,6 +205,25 @@ int Disk::outputSpillState(const char *outputTXT)
 
     // Print output to both console and file
     outputFile << "STATE -> SPILL_RUNS_" << diskType << ": Spill sorted runs to the " << diskType << " device\n";
+
+    // close file
+    outputFile.close();
+}
+
+int Disk::outputReadSortedRunState(const char *outputTXT)
+{
+    // Open the output file in overwrite mode
+    std::ofstream outputFile(outputTXT, std::ios::app);
+
+    // Check if the file opened successfully
+    if (!outputFile.is_open())
+    {
+        std::cerr << "Error: Could not open file trace0.txt for writing." << std::endl;
+        return 1; // Return error code
+    }
+
+    // Print output to both console and file
+    outputFile << "STATE -> READ_RUN_PAGES_" << diskType << ": Read sorted run pages from the " << diskType << " device\n";
 
     // close file
     outputFile.close();
