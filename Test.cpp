@@ -20,18 +20,18 @@
 // Set global variable
 
 // Actual params
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-// int PAGE_SIZE = 10240;									  // 10 KB
-// char *INPUT_TXT = "input_table";
+unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+int PAGE_SIZE = 10240;									  // 10 KB
+char *INPUT_TXT = "input_table";
 
 // >>>>>> Mini test case 1
-unsigned long long CACHE_SIZE = 200;
-unsigned long long DRAM_SIZE = 1000;
-unsigned long long SSD_SIZE = 3000;
-int PAGE_SIZE = 100;
-char *INPUT_TXT = "mini_200_20_input.txt";
+// unsigned long long CACHE_SIZE = 200;
+// unsigned long long DRAM_SIZE = 1000;
+// unsigned long long SSD_SIZE = 3000;
+// int PAGE_SIZE = 100;
+// char *INPUT_TXT = "mini_200_20_input.txt";
 // Mini test 1 Set up End < < < < < < < < < <
 
 // >>>>>> mini test case 2
@@ -190,6 +190,8 @@ int mergeSort()
 
 	if (hdd.getNumUnsortedRuns() == 1)
 	{
+		hdd.outputReadSortedRunState(outputTXT);
+		hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
 		hdd.writeOutputTable(OUTPUT_TABLE);
 	}
 	else
@@ -199,6 +201,34 @@ int mergeSort()
 	}
 
 	return 0;
+}
+
+bool verityOrder()
+{
+	std::ifstream file(OUTPUT_TABLE);
+	char lastKey[9];
+	char currentKey[9];
+
+	int i = 0;
+	if (file.is_open())
+	{
+		std::string line;
+		while (std::getline(file, line))
+		{
+			line.copy(currentKey, 8, 0);
+			if (i > 0)
+			{
+				if (std::strcmp(lastKey, currentKey) > 0)
+				{
+					return false;
+				}
+			}
+			line.copy(lastKey, 8, 0);
+			i++;
+		}
+		file.close();
+	}
+	return true;
 }
 
 /**
@@ -236,6 +266,13 @@ int main(int argc, char *argv[])
 	}
 
 	mergeSort();
-
+	if (verityOrder())
+	{
+		printf("Verified sorting order is correct\n");
+	}
+	else
+	{
+		printf("Wrong sorting");
+	}
 	return 0;
 }
