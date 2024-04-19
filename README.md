@@ -36,7 +36,9 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 1. Cache-size mini runs            | CACHE.cpp                                                      |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 2. Device-optimized page sizes     | Test.cpp  (To be confirmed)                                    |
+| 2. Minimum count of row            | show where we did the calculations                             |
+| ---------------------------------- | -------------------------------------------------------------- |
+| 2. Device-optimized page sizes     | WRITE ANALYSIS HERE                                            |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 3. Spilling memory-to-SSD          | Done                                                           |
 | ---------------------------------- | -------------------------------------------------------------- |
@@ -46,10 +48,11 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 | a. into merging                    | TO BE DONE                                                     |
 | b. beyond one merge step           | TO BE DONE                                                     |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 6. Optimized merge patterns        | Using pointers to records instead of index                     |
+| 6. Optimized merge patterns        | Using pointers to records instead of index (explain)           |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 7. Verifying: sort order           | TO BE DONE                                                     |
-| a. sets of rows & values           | TO BE DONE                                                     |
-| b. offset-value codes              | TO BE DONE                                                     |
+| 7. Verifying: sort order           | Test.cpp -> verityOrder()                                      |
+| a. sets of rows & values           |                                                                |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 8. Tournament Trees                | TreeOfLosers.h, TreeOfLosers.cpp                               |
+| 8. Tournament Trees                | TournamenTree.h, TournamenTree.cpp                             |
+| ---------------------------------- | -------------------------------------------------------------- |
+| 9. Duplicate Removel               | TournamenTree.h, TournamenTree.cpp                             |
