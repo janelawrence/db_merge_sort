@@ -203,6 +203,7 @@ int mergeSort()
 	return 0;
 }
 
+// Verifying sort order [2]
 bool verityOrder()
 {
 	std::ifstream file(OUTPUT_TABLE);
@@ -218,7 +219,7 @@ bool verityOrder()
 			line.copy(currentKey, 8, 0);
 			if (i > 0)
 			{
-				if (std::strcmp(lastKey, currentKey) > 0)
+				if (std::strcmp(lastKey, currentKey) >= 0)
 				{
 					return false;
 				}
