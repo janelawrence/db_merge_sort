@@ -104,7 +104,7 @@ int mergeSort()
 
 	CACHE cache(CACHE_SIZE, nPagesFitInCache);
 	DRAM dram(DRAM_SIZE);
-	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD, nOutputBuffers);
+	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD, 0);
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD, 0);
 	// prepare all records stored in pages
 
@@ -168,8 +168,11 @@ int mergeSort()
 		// memSizedRun->print();
 		if (ssd.getCapacity() < bytesWriteToDisk)
 		{
-			ssd.outputMergeMsg(outputTXT);
-			ssd.mergeFromSelfToDest(&hdd, outputTXT);
+			// ssd.outputMergeMsg(outputTXT);
+			// ssd.mergeFromSelfToDest(&hdd, outputTXT);
+			hdd.outputSpillState(outputTXT);
+			hdd.outputAccessState(ACCESS_WRITE, ssd.getMaxCap() - ssd.getCapacity(), outputTXT);
+			ssd.clear();
 		}
 
 		if (ssd.getCapacity() >= bytesWriteToDisk)
