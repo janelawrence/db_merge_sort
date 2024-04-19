@@ -64,7 +64,7 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 5. Spilling from SSD to disk
 6. Graceful degradation
 7. Optimized merge patterns
-   a. Using pointers to records instead of index (explain)
+   - Using pointers to records instead of index (explain)
 8. Verifying: sort order
 9. Tournament Trees
 10. Duplicate Removel
