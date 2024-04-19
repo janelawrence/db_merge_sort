@@ -55,4 +55,4 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 8. Tournament Trees                | TournamenTree.h, TournamenTree.cpp                             |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 9. Duplicate Removel               | TournamenTree.h, TournamenTree.cpp                             |
+| 9. Duplicate Removel               | TO BE DONE                                                     |
