@@ -60,7 +60,9 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 #### Method used: alternative 1
 
 1. Cache-size mini runs
-   Cache.cpp -> sort(), creates sorted mini runs and in each run, records are store in pages
+
+- Cache.cpp -> sort(), creates sorted mini runs and in each run, records are store in pages
+
 2. Minimum count of row
 3. Device-optimized page sizes
 4. Spilling memory-to-SSD
