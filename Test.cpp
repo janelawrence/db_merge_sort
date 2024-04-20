@@ -86,7 +86,7 @@ int mergeSort()
 	size_t totalBytes = numRecords * recordSize;
 
 	// Number of mem-sized run created in DRAM
-	int mergeLevels = static_cast<int>(std::ceil(static_cast<double>(totalBytes) / DRAM_SIZE));
+	int passes = static_cast<int>(std::ceil(static_cast<double>(totalBytes) / DRAM_SIZE));
 
 	int maxRecordsInPage = PAGE_SIZE / recordSize;
 	int nPagesFitInCache = CACHE_SIZE / PAGE_SIZE;
@@ -101,7 +101,7 @@ int mergeSort()
 	int nBuffersSSD = SSD_SIZE / PAGE_SIZE;
 
 	printStats(numRecords, recordSize, maxRecordsInPage, nPagesFitInCache, nBuffersDRAM,
-			   nOutputBuffers, nInputBuffersDRAM, nBuffersSSD, mergeLevels);
+			   nOutputBuffers, nInputBuffersDRAM, nBuffersSSD, passes);
 
 	CACHE cache(CACHE_SIZE, nPagesFitInCache);
 	DRAM dram(DRAM_SIZE);
@@ -112,6 +112,9 @@ int mergeSort()
 	ScanPlan sp(recordSize);
 	// Filter out duplicate records and store in pages
 	Run *uniqueRecordsInPages = sp.scan(INPUT_TXT);
+
+	int totalBytesUnique = uniqueRecordsInPages->getBytes();
+	passes = static_cast<int>(std::ceil(static_cast<double>(totalBytesUnique) / DRAM_SIZE));
 
 	// Run *allPages = dram.readRecords(INPUT_TXT, recordSize, numRecords,
 	//  totalBytes, nBuffersDRAM, maxRecordsInPage);
@@ -129,9 +132,9 @@ int mergeSort()
 
 	printf("----- Input %d pages, Total bytes stored in %d allSortedMiniRuns: %d-----------------\n\n",
 		   uniqueRecordsInPages->getNumPages(), allSortedMiniRuns.size(), total_bytes_merged);
-	for (int level = 0; level < mergeLevels; level++)
+	for (int pass = 0; pass < passes; pass++)
 	{
-		if (level == mergeLevels - 1)
+		if (pass == passes - 1)
 		{
 			// last run in current merge pass
 			// TODO: consider Graceful degradation
@@ -154,10 +157,10 @@ int mergeSort()
 		cache.outputMiniRunState(outputTXT);
 
 		// create memory-sized sorted runs using Tournament Tree
-		printf("At merge level %d, created %d cache-sized runs\n", level, sortedMiniRuns.size());
+		printf("At scanning pass %d, created %d cache-sized runs\n", pass, sortedMiniRuns.size());
 
 		// Use Tournament Tree here
-		TournamentTree *loserTree = new TournamentTree(sortedMiniRuns.size(), sortedMiniRuns);
+		TournamentTree *loserTree = new TournamentTree(sortedMiniRuns.size(), sortedMiniRuns, nullptr);
 		Run *memSizedRun = new Run();
 		while (loserTree->hasNext())
 		{
@@ -191,21 +194,34 @@ int mergeSort()
 	}
 	if (ssd.getNumUnsortedRuns() > 0)
 	{
-		ssd.mergeFromSelfToDest(&hdd, outputTXT);
+		hdd.outputSpillState(outputTXT);
+		hdd.outputAccessState(ACCESS_WRITE, ssd.getMaxCap() - ssd.getCapacity(), outputTXT);
+		while (ssd.getNumUnsortedRuns() > 0)
+		{
+			Run *r = ssd.getRunCopy(0);
+			hdd.addRun(r);
+			ssd.eraseRun(0);
+			ssd.cleanInvalidRuns();
+		}
+		ssd.clear();
 	}
 	ssd.print();
 	hdd.print();
 
 	if (hdd.getNumUnsortedRuns() == 1)
 	{
+		printf("No merging needs to happen in HDD");
 		hdd.outputReadSortedRunState(outputTXT);
-		hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
+		hdd.outputAccessState(ACCESS_WRITE, totalBytesUnique, outputTXT);
 		hdd.writeOutputTable(OUTPUT_TABLE);
 	}
 	else
 	{
-		// Read Page from hdd to ssd, then merge???
-		printf("TODO\n");
+		printf("merging on HDD starts");
+		// Start merging mem-sized runs
+		hdd.mergeFromSelfToSelf(outputTXT);
+		hdd.outputAccessState(ACCESS_WRITE, totalBytesUnique, outputTXT);
+		hdd.writeOutputTable(OUTPUT_TABLE);
 	}
 
 	return 0;

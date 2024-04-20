@@ -125,7 +125,7 @@ bool Disk::delFirstPageFromRunK(int k)
 void Disk::mergeFromSelfToDest(Disk *dest, const char *outputTXT)
 {
     int fanIn = numUnsortedRuns;
-    TournamentTree *tree = new TournamentTree(fanIn, unsortedRuns);
+    TournamentTree *tree = new TournamentTree(fanIn, unsortedRuns, this);
     Run *curr = new Run();
     // write sorted output to output buffer
     while (tree->hasNext())
@@ -170,6 +170,24 @@ void Disk::mergeFromSelfToDest(Disk *dest, const char *outputTXT)
     }
     dest->addRun(curr);
     clear();
+}
+
+void Disk::mergeFromSelfToSelf(const char *outputTXT)
+{
+    int fanIn = numUnsortedRuns;
+    TournamentTree *tree = new TournamentTree(fanIn, unsortedRuns, this);
+    Run *curr = new Run();
+    int bytesToWrite = 0;
+    // write sorted output to output buffer
+    while (tree->hasNext())
+    {
+        Record *winner = tree->popWinner();
+        curr->addRecord(winner);
+        bytesToWrite += winner->getSize();
+    }
+
+    addRunToTempList(curr);
+    moveAllTempToUnsorted();
 }
 
 void Disk::clear()

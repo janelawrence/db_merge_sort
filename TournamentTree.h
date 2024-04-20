@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "Record.h"
+#include "Disk.h"
 
 using namespace std;
 
@@ -10,8 +11,9 @@ const int GHOST_KEY = -1;
 class TournamentTree
 {
 private:
-    std::vector<int> tree;   // each node is a winner of a match
-    std::vector<int> losers; // each node is a winner of a match
+    std::vector<int> tree; // each node is a winner of a match
+
+    Disk *disk;
 
     std::vector<Record *> records;
     std::vector<Run *> runTable;
@@ -29,7 +31,7 @@ private:
 
 public:
     // Constructor
-    TournamentTree(int n, std::vector<Run *> &rTable);
+    TournamentTree(int n, std::vector<Run *> &rTable, Disk *d);
 
     ~TournamentTree();
 
