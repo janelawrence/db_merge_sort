@@ -24,8 +24,8 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
    - Number of pages can fit in cache = C/P
    - Number of records can fit in cache =
      (pages can fit in cache) \* (records in a page)= (C/P) \* (P/R)
-3. Write mini-runs to DRAM, then write them to SSD
-4. State: Merge Runs on SSD:
+3. Write mini-runs to DRAM, merge in memory then write mem-sized runs to SSD, and then HDD
+4. State: Merge Runs on HDD:
    - Read F = (M/P - 2) pages from SSD to DRAM
 
 ### Teammate contributions
@@ -64,7 +64,7 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 5. Spilling from SSD to disk
 6. Graceful degradation
 7. Optimized merge patterns
-   a. Using pointers to records instead of index (explain)
+   - Using pointers to records instead of index (explain)
 8. Verifying: sort order
 9. Tournament Trees
 10. Duplicate Removel
