@@ -53,11 +53,14 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 9. Tournament Trees                | (Jane)TournamenTree.h, TournamenTree.cpp                       |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 10. Duplicate Removel              | (Jane) TO BE DONE                                              |
+| 10. Duplicate Removel              | (Jane) Scan.cpp -> Run *ScanPlan::scan(const char *INPUT_TXT)  |
 
 ### Explain
 
+#### Method used: alternative 1
+
 1. Cache-size mini runs
+   Cache.cpp -> sort(), creates sorted mini runs and in each run, records are store in pages
 2. Minimum count of row
 3. Device-optimized page sizes
 4. Spilling memory-to-SSD
@@ -66,5 +69,14 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 7. Optimized merge patterns
    - Using pointers to records instead of index (explain)
 8. Verifying: sort order
+
+- Test.cpp -> verityOrder()
+
 9. Tournament Trees
 10. Duplicate Removel
+
+- In `Scan.cpp -> Run *ScanPlan::scan(const char *INPUT_TXT)`
+  It scan through the input table txt, and use a hashmap to store
+  hashed record data. When hashed value has existed in the hashmap,
+  skip reading in this record, and continue.
+  Returns records stored in pages and wrapped in a wrapper class Run.
