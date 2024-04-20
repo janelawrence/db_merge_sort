@@ -5,6 +5,7 @@
 #include "DRAM.h"
 #include "Disk.h"
 #include "TournamentTree.h"
+#include "Scan.h"
 
 #include <limits>
 #include <cstdlib> // For atoi function
@@ -31,7 +32,7 @@ unsigned long long CACHE_SIZE = 200;
 unsigned long long DRAM_SIZE = 1000;
 unsigned long long SSD_SIZE = 3000;
 int PAGE_SIZE = 100;
-char *INPUT_TXT = "mini_200_20_input.txt";
+char *INPUT_TXT = "mini_200_20_dup_input.txt";
 // Mini test 1 Set up End < < < < < < < < < <
 
 // >>>>>> mini test case 2
@@ -59,7 +60,7 @@ char *INPUT_TXT = "mini_200_20_input.txt";
 // test 1 Set up End <<<<<<<<<<
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
-char *OUTPUT_TABLE = "output_table";
+char *OUTPUT_TABLE = "output_table_remove_dup";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -108,12 +109,16 @@ int mergeSort()
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD, 0);
 	// prepare all records stored in pages
 
-	Run *allPages = dram.readRecords(INPUT_TXT, recordSize, numRecords,
-									 totalBytes, nBuffersDRAM, maxRecordsInPage);
-	printf("%d pages read \n", allPages->getNumPages());
+	ScanPlan sp(recordSize);
+	// Filter out duplicate records and store in pages
+	Run *uniqueRecordsInPages = sp.scan(INPUT_TXT);
+
+	// Run *allPages = dram.readRecords(INPUT_TXT, recordSize, numRecords,
+	//  totalBytes, nBuffersDRAM, maxRecordsInPage);
+	printf("%d pages read \n", uniqueRecordsInPages->getNumPages());
 
 	// Create all cache-sized mini-runs
-	std::vector<Run *> allSortedMiniRuns = cache.sort(allPages, maxRecordsInPage, PAGE_SIZE);
+	std::vector<Run *> allSortedMiniRuns = cache.sort(uniqueRecordsInPages, maxRecordsInPage, PAGE_SIZE);
 	int start = 0;
 
 	int total_bytes_merged = 0;
@@ -123,7 +128,7 @@ int mergeSort()
 	}
 
 	printf("----- Input %d pages, Total bytes stored in %d allSortedMiniRuns: %d-----------------\n\n",
-		   allPages->getNumPages(), allSortedMiniRuns.size(), total_bytes_merged);
+		   uniqueRecordsInPages->getNumPages(), allSortedMiniRuns.size(), total_bytes_merged);
 	for (int level = 0; level < mergeLevels; level++)
 	{
 		if (level == mergeLevels - 1)
@@ -193,6 +198,8 @@ int mergeSort()
 
 	if (hdd.getNumUnsortedRuns() == 1)
 	{
+		hdd.outputReadSortedRunState(outputTXT);
+		hdd.outputAccessState(ACCESS_WRITE, totalBytes, outputTXT);
 		hdd.writeOutputTable(OUTPUT_TABLE);
 	}
 	else
@@ -202,6 +209,35 @@ int mergeSort()
 	}
 
 	return 0;
+}
+
+// Verifying sort order [2]
+bool verityOrder()
+{
+	std::ifstream file(OUTPUT_TABLE);
+	char lastKey[9];
+	char currentKey[9];
+
+	int i = 0;
+	if (file.is_open())
+	{
+		std::string line;
+		while (std::getline(file, line))
+		{
+			line.copy(currentKey, 8, 0);
+			if (i > 0)
+			{
+				if (std::strcmp(lastKey, currentKey) >= 0)
+				{
+					return false;
+				}
+			}
+			line.copy(lastKey, 8, 0);
+			i++;
+		}
+		file.close();
+	}
+	return true;
 }
 
 /**
@@ -239,6 +275,14 @@ int main(int argc, char *argv[])
 	}
 
 	mergeSort();
+	if (verityOrder())
+	{
+		printf("Verified sorting order is correct\n");
+	}
+	else
+	{
+		printf("Wrong sorting");
+	}
 
 	return 0;
 }

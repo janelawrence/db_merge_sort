@@ -13,15 +13,15 @@ DOCS=Tasks.txt
 SCRS=
 
 # headers and code sources
-HDRS=	defs.h \
+HDRS=	defs.h Scan.h Iterator.h\
 		Record.h Disk.h TreeOfLosers.h Run.h \
 		CACHE.h DRAM.h Page.h TournamentTree.h\
-SRCS=	defs.cpp Assert.cpp Test.cpp \
+SRCS=	defs.cpp Assert.cpp Test.cpp Scan.cpp Iterator.cpp\
 		Record.cpp Disk.cpp TreeOfLosers.cpp Run.cpp \
 		CACHE.cpp DRAM.cpp Page.cpp TournamentTree.cpp\
 
 # compilation targets
-OBJS=	defs.o Assert.o Test.o \
+OBJS=	defs.o Assert.o Test.o Scan.o Iterator.o\
 		Record.o Disk.o TreeOfLosers.o Run.o \
 		CACHE.o DRAM.o Page.o TournamentTree.o\
 
@@ -37,7 +37,7 @@ $(TARGET) : Makefile $(OBJS)
 	g++ $(CPPFLAGS) $(OBJS) -o $@
 
 run: $(TARGET)
-	./$(TARGET) -c 200 -s 20 -o trace0.txt
+	./$(TARGET) -c 20 -s 20 -o trace0.txt
 
 # trace : Test.exe Makefile
 # 	@date > trace
@@ -49,7 +49,8 @@ run: $(TARGET)
 
 
 $(OBJS) : Makefile defs.h
-Test.o : Record.h Disk.h TreeOfLosers.h Run.h CACHE.h DRAM.h Page.h TournamentTree.h
+Test.o : Record.h Disk.h TreeOfLosers.h Run.h CACHE.h DRAM.h Page.h TournamentTree.h Scan.h Iterator.h
+Iterator.o: Iterator.h Record.h
 Page.o: Page.h Record.h
 Run.o: Run.h Record.h Page.h
 CACHE.o: CACHE.h Run.h Disk.h

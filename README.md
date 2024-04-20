@@ -24,32 +24,47 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
    - Number of pages can fit in cache = C/P
    - Number of records can fit in cache =
      (pages can fit in cache) \* (records in a page)= (C/P) \* (P/R)
-3. Write mini-runs to DRAM, then write them to SSD
-4. State: Merge Runs on SSD:
-   - Read F = (M/P - 3) pages from SSD to DRAM
+3. Write mini-runs to DRAM, merge in memory then write mem-sized runs to SSD, and then HDD
+4. State: Merge Runs on HDD:
+   - Read F = (M/P - 2) pages from SSD to DRAM
 
 ### Teammate contributions
 
-### Techniques and implementation breakdown
-
-| Techniques                         | Where in Code                                                  |
+| Techniques                         | contributions                                                  |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 1. Cache-size mini runs            | CACHE.cpp                                                      |
+| 1. Cache-size mini runs            | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 2. Device-optimized page sizes     | Test.cpp  (To be confirmed)                                    |
+| 2. Minimum count of row            | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 3. Spilling memory-to-SSD          | Done                                                           |
+| 3. Device-optimized page sizes     | WRITE ANALYSIS in next section                                 |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 4. Spilling from SSD to disk       | Done                                                           |
+| 4. Spilling memory-to-SSD          | Done                                                           |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 5. Graceful degradation            | TO BE DONE                                                     |
+| 5. Spilling from SSD to disk       | Done                                                           |
+| ---------------------------------- | -------------------------------------------------------------- |
+| 6. Graceful degradation            | TO BE DONE                                                     |
 | a. into merging                    | TO BE DONE                                                     |
 | b. beyond one merge step           | TO BE DONE                                                     |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 6. Optimized merge patterns        | Using pointers to records instead of index                     |
+| 7. Optimized merge patterns        | Using pointers to records instead of index (explain)           |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 7. Verifying: sort order           | TO BE DONE                                                     |
-| a. sets of rows & values           | TO BE DONE                                                     |
-| b. offset-value codes              | TO BE DONE                                                     |
+| 8. Verifying: sort order           | (Jane) Test.cpp -> verityOrder()                               |
+| a. sets of rows & values           |                                                                |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 8. Tournament Trees                | TreeOfLosers.h, TreeOfLosers.cpp                               |
+| 9. Tournament Trees                | (Jane)TournamenTree.h, TournamenTree.cpp                       |
+| ---------------------------------- | -------------------------------------------------------------- |
+| 10. Duplicate Removel              | (Jane) TO BE DONE                                              |
+
+### Explain
+
+1. Cache-size mini runs
+2. Minimum count of row
+3. Device-optimized page sizes
+4. Spilling memory-to-SSD
+5. Spilling from SSD to disk
+6. Graceful degradation
+7. Optimized merge patterns
+   - Using pointers to records instead of index (explain)
+8. Verifying: sort order
+9. Tournament Trees
+10. Duplicate Removel
