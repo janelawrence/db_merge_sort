@@ -11,7 +11,7 @@ bool TournamentTree::isGhostNode(int node)
 {
     if (node >= 0 && node < tree.size())
     {
-        return tree[node] == -1;
+        return tree[node] == GHOST_KEY;
     }
     return true;
 }
@@ -42,8 +42,8 @@ void TournamentTree::assignGhost()
     for (int i = 0; i < tree.size(); i++)
     {
         // tree[i].winner = std::numeric_limits<int>::max();
-        tree[i] = -1;
-        losers[i] = -1;
+        tree[i] = GHOST_KEY;
+        losers[i] = GHOST_KEY;
     }
 }
 
@@ -135,7 +135,7 @@ Record *TournamentTree::popWinner()
 {
     Record *winner = new Record(*getWinner());
     int winnerRecIdx = tree[1];
-    if (winnerRecIdx == -1)
+    if (winnerRecIdx == GHOST_KEY)
     {
         printf("Tree is empty, nothing to pop\n");
         return nullptr;
@@ -144,7 +144,7 @@ Record *TournamentTree::popWinner()
     // Insert ghostKey into leaf idx of this winner
     int index = size + winnerRecIdx;
 
-    tree[index] = -1;
+    tree[index] = GHOST_KEY;
 
     // And start competing until reach the top
     while (index > 1)
@@ -178,18 +178,18 @@ int TournamentTree::compete(int node)
     {
         if (leftIsGhost && rightIsGhost)
         {
-            tree[node] = -1;
-            losers[node] = -1;
+            tree[node] = GHOST_KEY;
+            losers[node] = GHOST_KEY;
         }
         else if (leftIsGhost && !rightIsGhost)
         {
             tree[node] = tree[right];
-            losers[node] = -1;
+            losers[node] = GHOST_KEY;
         }
         else if (!leftIsGhost && rightIsGhost)
         {
             tree[node] = tree[left];
-            losers[node] = -1;
+            losers[node] = GHOST_KEY;
         }
         else
         {
@@ -238,7 +238,7 @@ void TournamentTree::printTree() const
     for (int i = 0; i < tree.size(); i++)
     {
         int recIdx = tree[i];
-        if (recIdx != -1 && tree[recIdx] < records.size())
+        if (recIdx != GHOST_KEY && tree[recIdx] < records.size())
         {
             if (records[recIdx] == nullptr)
             {
