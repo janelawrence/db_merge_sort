@@ -17,9 +17,9 @@ N = numRecords
 I = totalInputBytes = R \* N  
 P = PAGE_SIZE  
 n = recordsPerPage  
-F = Fan-in = number of pages read to memory = (M/P - 3)
+F = Fan-in = number of pages read to memory = (M/P - 2)
 
-1. For every M = DRAM_SIZE data, read M/P pages into DRAM
+1. For every M = DRAM_SIZE data, read M/P number of pages into DRAM
 2. Use Cache to create mini-runs
    - Number of pages can fit in cache = C/P
    - Number of records can fit in cache =
