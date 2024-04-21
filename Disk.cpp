@@ -19,7 +19,7 @@ Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int 
     { // HDD doesn't need output buffers
         outputBuffers.nBuffer = 2;
         outputBuffers.wrapper = new Run();
-        capacity = MAX_CAPACITY - 2 * PAGE_SIZE;
+        capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE;
     }
 }
 
@@ -122,72 +122,54 @@ bool Disk::delFirstPageFromRunK(int k)
     return false;
 }
 
-void Disk::mergeFromSelfToDest(Disk *dest, const char *outputTXT)
-{
-    int fanIn = numUnsortedRuns;
-    TournamentTree *tree = new TournamentTree(fanIn, unsortedRuns, this);
-    Run *curr = new Run();
-    // write sorted output to output buffer
-    while (tree->hasNext())
-    {
-        Record *winner = tree->popWinner();
-
-        //      if output buffer is full
-        if (outputBuffers.isFull())
-        {
-            outputReadSortedRunState(outputTXT);
-            outputAccessState(ACCESS_READ, outputBuffers.wrapper->getBytes(), outputTXT);
-            // Report Spilling happen to output
-            dest->outputSpillState(outputTXT);
-            // Simulate write to SSD
-            dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-
-            while (!outputBuffers.wrapper->isEmpty())
-            {
-                // Write to curr run in dest Disk
-                curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
-                outputBuffers.wrapper->removeFisrtPage();
-            }
-            outputBuffers.clear();
-        }
-        outputBuffers.wrapper->addRecord(winner);
-    }
-    if (!outputBuffers.isEmpty())
-    {
-        // write all remaining records in output buffers to the run on SSD
-        // Report Spilling happen to output
-        while (!outputBuffers.wrapper->isEmpty())
-        {
-            outputReadSortedRunState(outputTXT);
-            outputAccessState(ACCESS_READ, outputBuffers.wrapper->getBytes(), outputTXT);
-            dest->outputSpillState(outputTXT);
-            // Simulate write to SSD
-            dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-            curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
-            outputBuffers.wrapper->removeFisrtPage();
-        }
-        outputBuffers.clear();
-    }
-    dest->addRun(curr);
-    clear();
-}
-
 void Disk::mergeFromSelfToSelf(const char *outputTXT)
 {
-    int fanIn = numUnsortedRuns;
-    TournamentTree *tree = new TournamentTree(fanIn, unsortedRuns, this);
-    Run *curr = new Run();
-    int bytesToWrite = 0;
-    // write sorted output to output buffer
-    while (tree->hasNext())
+    // Create SSD-Sized runs first
+    int fanIn = SSD_SIZE / DRAM_SIZE;
+    fanIn = std::min(numUnsortedRuns, fanIn);
+    while (numUnsortedRuns > 0)
     {
-        Record *winner = tree->popWinner();
-        curr->addRecord(winner);
-        bytesToWrite += winner->getSize();
+        std::vector<Run *> currMemSizedRuns;
+        for (int i = 0; i < fanIn; i++)
+        {
+            currMemSizedRuns.push_back(unsortedRuns[i]->clone());
+            // set bit to invalid
+            eraseRun(i);
+        }
+        // clean segmented free space
+        cleanInvalidRuns();
+
+        TournamentTree *tree = new TournamentTree(fanIn, currMemSizedRuns, this);
+        Run *curr = new Run();
+        int bytesToWrite = 0;
+        // write sorted output to output buffer
+        while (tree->hasNext())
+        {
+            Record *winner = tree->popWinner();
+            curr->addRecord(winner);
+            bytesToWrite += winner->getSize();
+        }
+        // Add SSD-Sized run to a temp vector
+        addRunToTempList(curr);
+        outputAccessState(ACCESS_WRITE, curr->getBytes(), outputTXT);
     }
 
-    addRunToTempList(curr);
     moveAllTempToUnsorted();
+    // Merge all SSD-Sized runs at once
+    if (numUnsortedRuns > 1)
+    {
+        TournamentTree *tree = new TournamentTree(fanIn, unsortedRuns, this);
+        Run *curr = new Run();
+        int bytesToWrite = 0;
+        // write sorted output to output buffer
+        while (tree->hasNext())
+        {
+            Record *winner = tree->popWinner();
+            curr->addRecord(winner);
+            bytesToWrite += winner->getSize();
+        }
+        addRun(curr);
+    }
 }
 
 void Disk::clear()
@@ -507,12 +489,12 @@ void Disk::setCapacity(unsigned long long newCap)
 }
 
 // To test this main individually:
-// use: g++ Run.cpp Record.cpp TreeOfLosers.cpp DRAM.cpp SSD.cpp -o ssd
+// use: g++ Run.cpp Record.cpp HeapSort.cpp DRAM.cpp SSD.cpp -o ssd
 // int main() {
 
-//     TreeOfLosers tree1;
-//     TreeOfLosers tree2;
-//     TreeOfLosers tree3;
+//     HeapSort tree1;
+//     HeapSort tree2;
+//     HeapSort tree3;
 
 //     int recordSize = 20;
 //     int numRecords = 15;
@@ -574,7 +556,7 @@ void Disk::setCapacity(unsigned long long newCap)
 //     tree3.insert(r14);
 //     tree3.insert(r15);
 
-//     std::vector<TreeOfLosers*> runs;
+//     std::vector<HeapSort*> runs;
 //     runs.push_back(&tree1);
 //     runs.push_back(&tree2);
 //     runs.push_back(&tree3);

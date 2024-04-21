@@ -5,7 +5,7 @@
 #include "Page.h"
 #include "Disk.h"
 #include "Disk.h"
-#include "TreeOfLosers.h"
+#include "TournamentTree.h"
 
 #include <vector>
 
@@ -13,19 +13,21 @@ class DRAM
 {
 private:
     unsigned long long MAX_CAPACITY; // in Bytes
-    unsigned long long capacity;     // Capacity in Bytes
+    unsigned long long capacity;     // Input buffer Capacity in Bytes
 
-    int buffersUsed;
-    std::vector<Page *> inputBuffers; // wrapping intput buffers in a run
+    int buffersUsed; // number of input buffers, each buffer holds one page
+    int numOutputBuffers;
+    std::vector<Page *> inputBuffers; // vecotr of intput buffers
     std::vector<bool> inputBuffersBitmap;
-    // Page *forecastBuffer;        // points to the empty input buffer
-    OutputBuffers outputBuffers; // wrapping 2 output buffers in a run
 
 public:
+    OutputBuffers outputBuffers; // wrapping numOutputBuffers output buffers in a run
+
     // Constructor
-    DRAM(unsigned long long maxCap);
+    DRAM(unsigned long long maxCap, int nOutputBuffers);
 
     // return false if memory is out of space
+    //  Add to input buffer
     bool addPage(Page *page);
 
     bool insertPage(Page *page, int idx);
@@ -34,9 +36,6 @@ public:
 
     bool delFirstRecordFromBufferK(int k);
 
-    void forecastFromSSD(int bufferIdx, Disk *ssd);
-    void forecastFromHDD(int bufferIdx, Disk *hdd);
-
     Run *readRecords(const char *fileName, int recordSize, int numRecords, int totalBytes,
                      int nBuffersDRAM, int maxRecordsInPage);
 
@@ -44,13 +43,8 @@ public:
 
     bool isFull() const;
 
-    // merge in DRAM and output runs
-    // void mergeFromSSDtoSSD(Disk *ssd, int maxTreeSize, const char *outputTXT);
-    // void mergeFromHDDtoHDD(Disk *hdd, int maxTreeSize, const char *outputTXT);
-    // void mergeFromSSDtoHDD(Disk *ssd, Disk *hdd, int maxTreeSize, const char *outputTXT);
-
-    // merge data on Src and output runs to Dest
-    void mergeFromSrcToDest(Disk *src, Disk *dest, int maxTreeSize, const char *outputTXT);
+    // merge data on dram and output runs to Dest
+    void mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Run *> &rTable);
 
     // Getters
     unsigned long long getCapacity() const;

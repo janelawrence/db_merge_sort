@@ -1,5 +1,5 @@
-#ifndef TREEOFLOSER_H
-#define TREEOFLOSER_H
+#ifndef HEAPSORT_H
+#define HEAPSORT_H
 
 #include "Record.h"
 #include "Page.h"
@@ -12,7 +12,6 @@ struct Node
     Record *winner;
     Record *left;
     Record *right;
-    
 };
 
 struct CompareNode
@@ -32,7 +31,7 @@ struct Compare
     }
 };
 
-class TreeOfLosers
+class HeapSort
 {
 private:
     int size;
@@ -40,10 +39,10 @@ private:
 
 public:
     // Constructor
-    TreeOfLosers();
-    TreeOfLosers *clone();
+    HeapSort();
+    HeapSort *clone();
 
-    ~TreeOfLosers();
+    ~HeapSort();
 
     // Insert(char* key)
     void insert(Record *record);
@@ -63,4 +62,4 @@ public:
     Page *toNewPages(int pageIdx, int maxRecordsInPage, int pageSize);
 };
 
-#endif // TREEOFLOSER_H
+#endif // HEAPSORT_H

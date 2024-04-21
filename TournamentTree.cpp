@@ -4,9 +4,6 @@
 #include "Run.h"
 #include "TournamentTree.h"
 
-// int PAGE_SIZE = 20;
-// int recordSize = 10;
-
 bool TournamentTree::isGhostNode(int node)
 {
     if (node >= 0 && node < tree.size())

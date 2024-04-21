@@ -7,15 +7,16 @@
 
 #include "Run.h"
 #include "defs.h"
-#include "TreeOfLosers.h"
 
 // Constructor
-DRAM::DRAM(unsigned long long maxCap) : MAX_CAPACITY(maxCap)
+DRAM::DRAM(unsigned long long maxCap, int nOutputBuffers)
+    : MAX_CAPACITY(maxCap), numOutputBuffers(nOutputBuffers)
 {
     printf("Initialize DRAM\n");
-    outputBuffers.nBuffer = 2;
+    outputBuffers.nBuffer = nOutputBuffers;
     outputBuffers.wrapper = new Run();
-    capacity = MAX_CAPACITY - 2 * PAGE_SIZE;
+    // Input buffer Capacity in Bytes
+    capacity = MAX_CAPACITY - nOutputBuffers * PAGE_SIZE;
 }
 
 bool DRAM::addPage(Page *page)
@@ -113,7 +114,7 @@ void DRAM::clear()
     std::vector<bool> emptyBitmap;
     Page *emptyPage;
     OutputBuffers emptyOutputBuffers;
-    emptyOutputBuffers.nBuffer = 2;
+    emptyOutputBuffers.nBuffer = numOutputBuffers;
     emptyOutputBuffers.wrapper = new Run();
 
     inputBuffers.swap(emptyPages);
@@ -121,6 +122,7 @@ void DRAM::clear()
     // forecastBuffer = emptyPage;
     buffersUsed = 0;
     outputBuffers.clear();
+    capacity = MAX_CAPACITY - numOutputBuffers * PAGE_SIZE;
 }
 
 bool DRAM::isFull() const
@@ -128,185 +130,55 @@ bool DRAM::isFull() const
     return capacity == MAX_CAPACITY;
 }
 
-void DRAM::mergeFromSrcToDest(Disk *src, Disk *dest, int maxTreeSize, const char *outputTXT)
+void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Run *> &rTable)
 {
-    TreeOfLosers tree;
+    // Setup of total output buffers size makes sure that
+    // output buffers can hold the maximum number of records,
+    // where it's equal to the maximum number of cachesized runs;
+    int fanin = rTable.size();
+    TournamentTree *tree = new TournamentTree(fanin, rTable, nullptr);
     int i = 0;
     Run *curr = new Run();
-    maxTreeSize = std::min(maxTreeSize, buffersUsed);
     printf("buffersUsed: %d\n", buffersUsed);
-    while (buffersUsed > 0)
-    {
-        i = i % inputBuffers.size();
-        if (tree.getSize() < maxTreeSize)
-        {
-            if (!inputBuffers[i]->isEmpty())
-            {
-                Record *newRecord = new Record(*(inputBuffers[i]->getFirstRecord()));
-                // set page idx in record
-                newRecord->setSlot(i);
 
-                tree.insert(newRecord);
-                delFirstRecordFromBufferK(i);
-                if (inputBuffers[i]->isEmpty())
-                {
-                    erasePage(i);
-                    if (std::strcmp(SSD, src->getType()) == 0)
-                    {
-                        forecastFromSSD(i, src);
-                    }
-                    else
-                    {
-                        forecastFromHDD(i, src);
-                    }
-                }
-            }
-            i++;
-            continue;
-        }
-        else
-        {
-            // start prunning tree and add to output buffer
-            Record *winner = new Record(*tree.getMin());
-            tree.deleteMin();
-            if (outputBuffers.isFull())
-            {
-                // Report Spilling happen to output
-                dest->outputSpillState(outputTXT);
-                // Simulate write to SSD
-                dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-
-                while (!outputBuffers.wrapper->isEmpty())
-                {
-                    curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
-                    outputBuffers.wrapper->removeFisrtPage();
-                }
-                outputBuffers.clear();
-            }
-            // when prune winner, insert new record from winner source buffer
-            int j = winner->getSlot();
-            // write to output buffer
-            winner->setSlot(-1); // reseting inputbuffer idx for winner
-            outputBuffers.wrapper->addRecord(winner);
-            // printf("\n %d\n", static_cast<int>(inputBuffersBitmap[j]));
-            if (inputBuffersBitmap[j] && !inputBuffers[j]->isEmpty())
-            {
-                Record *record = inputBuffers[j]->getFirstRecord();
-                if (record != nullptr)
-                {
-                    Record *newRecord = new Record(*record);
-                    // set page idx in record
-                    newRecord->setSlot(j);
-                    tree.insert(newRecord);
-                    delFirstRecordFromBufferK(j);
-                    if (inputBuffers[j]->isEmpty())
-                    {
-                        erasePage(j);
-                        if (std::strcmp(SSD, src->getType()) == 0)
-                        {
-                            forecastFromSSD(j, src);
-                        }
-                        else
-                        {
-                            forecastFromHDD(j, src);
-                        }
-                    }
-                }
-            }
-        }
-        i++;
-    }
-    // Empty tree to output buffer
-    while (!tree.isEmpty())
+    while (tree->hasNext())
     {
-        // start prunning tree and add to output buffer
-        Record *winner = new Record(*tree.getMin());
-        tree.deleteMin();
+        Record *winner = tree->popWinner();
+
+        // if output buffer is full
         if (outputBuffers.isFull())
         {
-            // Report Spilling happen to output
+            // Report Spilling happen to trace.txt
             dest->outputSpillState(outputTXT);
             // Simulate write to SSD
             dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
 
             while (!outputBuffers.wrapper->isEmpty())
             {
+                // Write to curr run in dest Disk
                 curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
                 outputBuffers.wrapper->removeFisrtPage();
             }
             outputBuffers.clear();
         }
-        // write to output buffer
-        winner->setSlot(-1); // reseting inputbuffer idx for winner
         outputBuffers.wrapper->addRecord(winner);
     }
-
     if (!outputBuffers.isEmpty())
     {
         // write all remaining records in output buffers to the run on SSD
         // Report Spilling happen to output
-        dest->outputSpillState(outputTXT);
-        // Simulate write to SSD
-        dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-
         while (!outputBuffers.wrapper->isEmpty())
         {
+            dest->outputSpillState(outputTXT);
+            // Simulate write to SSD
+            dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
             curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
             outputBuffers.wrapper->removeFisrtPage();
         }
         outputBuffers.clear();
     }
+    // Physically add to destination disk
     dest->addRun(curr);
-}
-
-void DRAM::forecastFromSSD(int bufferIdx, Disk *ssd)
-{
-    // forecast, prefectch next page
-    int runIdxOnSSD = inputBuffers[bufferIdx]->getIdx();
-    Run *runOnSSD = ssd->getRun(runIdxOnSSD);
-    // if (runOnSSD != nullptr)
-    // {
-    //     printf("=====================\n");
-    //     runOnSSD->getFirstPage()->print();
-    //     printf("=====================\n");
-    // }
-    if (runOnSSD != nullptr && !runOnSSD->isEmpty())
-    {
-        Page *pageFetched = runOnSSD->getFirstPage()->clone();
-        pageFetched->setSource(FROM_SSD);
-        pageFetched->setIdx(runIdxOnSSD);
-        // add copy of first page in run to DRAM buffer
-        insertPage(pageFetched, bufferIdx);
-
-        runOnSSD->removeFisrtPage();
-        ssd->setCapacity(ssd->getCapacity() + pageFetched->getBytes());
-
-        if (runOnSSD->isEmpty())
-        {
-            ssd->eraseRun(runIdxOnSSD);
-        }
-    }
-}
-
-void DRAM::forecastFromHDD(int bufferIdx, Disk *hdd)
-{
-    // forecast, prefectch next page
-    int runIdxOnHDD = inputBuffers[bufferIdx]->getIdx();
-    Run *runOnHDD = hdd->getRun(runIdxOnHDD);
-    if (runOnHDD != nullptr)
-    {
-        Page *pageFetched = runOnHDD->getFirstPage()->clone();
-        pageFetched->setSource(FROM_HDD);
-        pageFetched->setIdx(runIdxOnHDD);
-        // add copy of first page in run to DRAM buffer
-        insertPage(pageFetched, bufferIdx);
-
-        runOnHDD->removeFisrtPage();
-        if (runOnHDD->isEmpty())
-        {
-            hdd->eraseRun(runIdxOnHDD);
-        }
-    }
 }
 
 unsigned long long
@@ -314,5 +186,7 @@ DRAM::getCapacity() const
 {
     return capacity;
 }
+
+std::vector<Page *> DRAM::getInputBuffers() const { return inputBuffers; };
 
 OutputBuffers DRAM::getOuputBuffers() const { return outputBuffers; }

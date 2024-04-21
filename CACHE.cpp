@@ -8,47 +8,49 @@
 #include <thread>
 #include <fstream>
 #include <filesystem>
-#include <dirent.h>
+// #include <dirent.h>
 #include <vector>
 
 // Constructor
 CACHE::CACHE(int cacheSize, int nPages) : MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages) {}
 
-std::vector<Run *> CACHE::sort(Run *pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE)
+std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE)
 {
 
-	Page *curr = pagesInDRAM->getFirstPage();
+	// Page *curr = pagesInDRAM->getFirstPage();
 	std::vector<Run *> miniRuns;
 	Run *miniRun = new Run();
 	int count = 0;
-	while (curr)
+	int pageIdx = 0;
+	while (pageIdx < pagesInDRAM.size())
 	{
-		if (count >= nPagesFitInCache)
+		Page *curr = pagesInDRAM[pageIdx];
+		if (count == nPagesFitInCache)
 		{
 			// one cache-sized run has been filled
-			miniRun->appendPage(tree.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
 			miniRuns.push_back(miniRun);
 			miniRun = new Run();
 
 			count = 0;
-			tree.clear();
+			heap.clear();
 		}
 
 		while (curr->getNumRecords() > 0)
 		{
 			Record *record = curr->getFirstRecord();
 			record->setSlot(-1);
-			tree.insert(record);
+			heap.insert(record);
 			curr->removeFisrtRecord();
 		}
 		count++;
-		curr = curr->getNext(); // Get next page in memory
-		if (!curr && !tree.isEmpty())
+		pageIdx++;
+		if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
 		{
-			miniRun->appendPage(tree.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
 			miniRuns.push_back(miniRun);
 			Run *miniRun = new Run();
-			tree.clear();
+			heap.clear();
 		}
 	}
 	return miniRuns;
@@ -79,7 +81,7 @@ double CACHE::getCapacity() const
 	return capacity;
 }
 
-// g++ defs.cpp Run.cpp Record.cpp TreeOfLosers.cpp HDD.cpp CACHE.cpp -o cache
+// g++ defs.cpp Run.cpp Record.cpp HeapSort.cpp HDD.cpp CACHE.cpp -o cache
 // int main (int argc, char * argv []){
 //     // Create a hdd to store unsorted records
 // 	Disk * const hdd = new HDD ("", 5, 100);

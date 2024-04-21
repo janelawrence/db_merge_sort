@@ -1,10 +1,9 @@
 #include "Record.h"
-#include "TreeOfLosers.h"
+#include "HeapSort.h"
 #include "CACHE.h"
 #include "Run.h"
 #include "DRAM.h"
 #include "Disk.h"
-#include "TournamentTree.h"
 #include "Scan.h"
 
 #include <limits>
@@ -21,18 +20,18 @@
 // Set global variable
 
 // Actual params
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-// int PAGE_SIZE = 10240;									  // 10 KB
-// char *INPUT_TXT = "input_table";
+unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+int PAGE_SIZE = 8192;									  // 8 KB
+char *INPUT_TXT = "input_50mb_51200_1024.txt";
 
 // >>>>>> Mini test case 1
-unsigned long long CACHE_SIZE = 200;
-unsigned long long DRAM_SIZE = 1000;
-unsigned long long SSD_SIZE = 3000;
-int PAGE_SIZE = 100;
-char *INPUT_TXT = "mini_200_20_dup_input.txt";
+// unsigned long long CACHE_SIZE = 200;
+// unsigned long long DRAM_SIZE = 1000;
+// unsigned long long SSD_SIZE = 3000;
+// int PAGE_SIZE = 100;
+// char *INPUT_TXT = "mini_200_20_dup_input.txt";
 // Mini test 1 Set up End < < < < < < < < < <
 
 // >>>>>> mini test case 2
@@ -60,7 +59,7 @@ char *INPUT_TXT = "mini_200_20_dup_input.txt";
 // test 1 Set up End <<<<<<<<<<
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
-char *OUTPUT_TABLE = "output_table_remove_dup";
+char *OUTPUT_TABLE = "output_table_50mb_51200_1024";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -81,12 +80,13 @@ const char *outputTXT = nullptr;
 
 int mergeSort()
 {
+	ScanPlan sp(recordSize);
+	// prepare all records stored in pages
+	// Filter out duplicate records and store in pages
+	Run *uniqueRecordsInPages = sp.scan(INPUT_TXT);
 
 	// Calculate stats
 	size_t totalBytes = numRecords * recordSize;
-
-	// Number of mem-sized run created in DRAM
-	int passes = static_cast<int>(std::ceil(static_cast<double>(totalBytes) / DRAM_SIZE));
 
 	int maxRecordsInPage = PAGE_SIZE / recordSize;
 	int nPagesFitInCache = CACHE_SIZE / PAGE_SIZE;
@@ -94,45 +94,33 @@ int mergeSort()
 	int maxTreeSize = CACHE_SIZE / recordSize;
 
 	int nBuffersDRAM = DRAM_SIZE / PAGE_SIZE;
-	int nOutputBuffers = 2;
-	// Fan-in F during merging
-	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve 2 page according for output
+	//  Should be enough to hold the tree of fan - in size
+	int nOutputBuffers = 16;
+
+	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
 	int nBuffersSSD = SSD_SIZE / PAGE_SIZE;
+
+	int nOutputBuffersSSD = nBuffersSSD / 2; //????
+
+	// Number of mem-sized run will be created in DRAM
+	int passes = static_cast<int>(std::ceil(static_cast<double>(uniqueRecordsInPages->getNumPages()) / nInputBuffersDRAM));
 
 	printStats(numRecords, recordSize, maxRecordsInPage, nPagesFitInCache, nBuffersDRAM,
 			   nOutputBuffers, nInputBuffersDRAM, nBuffersSSD, passes);
 
 	CACHE cache(CACHE_SIZE, nPagesFitInCache);
-	DRAM dram(DRAM_SIZE);
+	DRAM dram(DRAM_SIZE, nOutputBuffers);
 	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD, 0);
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD, 0);
-	// prepare all records stored in pages
-
-	ScanPlan sp(recordSize);
-	// Filter out duplicate records and store in pages
-	Run *uniqueRecordsInPages = sp.scan(INPUT_TXT);
 
 	int totalBytesUnique = uniqueRecordsInPages->getBytes();
-	passes = static_cast<int>(std::ceil(static_cast<double>(totalBytesUnique) / DRAM_SIZE));
 
-	// Run *allPages = dram.readRecords(INPUT_TXT, recordSize, numRecords,
-	//  totalBytes, nBuffersDRAM, maxRecordsInPage);
 	printf("%d pages read \n", uniqueRecordsInPages->getNumPages());
 
-	// Create all cache-sized mini-runs
-	std::vector<Run *> allSortedMiniRuns = cache.sort(uniqueRecordsInPages, maxRecordsInPage, PAGE_SIZE);
-	int start = 0;
-
-	int total_bytes_merged = 0;
-	for (int i = 0; i < allSortedMiniRuns.size(); i++)
-	{
-		total_bytes_merged += allSortedMiniRuns[i]->getBytes();
-	}
-
-	printf("----- Input %d pages, Total bytes stored in %d allSortedMiniRuns: %d-----------------\n\n",
-		   uniqueRecordsInPages->getNumPages(), allSortedMiniRuns.size(), total_bytes_merged);
-	for (int pass = 0; pass < passes; pass++)
+	printf("----- Input %d pages, Total bytes stored %d-----------------\n\n",
+		   uniqueRecordsInPages->getNumPages(), totalBytesUnique);
+	for (int pass = 0; pass < passes; pass++) // I/M
 	{
 		if (pass == passes - 1)
 		{
@@ -141,56 +129,63 @@ int mergeSort()
 			printf("TODO: consider Graceful degradation???\n");
 		}
 
-		// Get unmerged cache-sized mini-runs
-		std::vector<Run *> sortedMiniRuns;
+		//  Read pages into DRAM
+		int pagesToRead = std::min(nInputBuffersDRAM, uniqueRecordsInPages->getNumPages());
 		unsigned long long bytesRead = 0;
-
-		// Simulate reading data in trunks based on DRAM size [2pts]
-		int nRuns = static_cast<int>(std::ceil(nBuffersDRAM / nPagesFitInCache));
-		unsigned long long bytesWriteToDisk = 0;
-		for (int i = 0; start < allSortedMiniRuns.size() && i < nRuns; start++, i++)
+		for (int i = 0; i < pagesToRead; i++)
 		{
-			sortedMiniRuns.push_back(allSortedMiniRuns[start]->clone());
-			bytesWriteToDisk += sortedMiniRuns[i]->getBytes();
+			Page *nextPage = uniqueRecordsInPages->getFirstPage()->clone();
+			if (dram.getCapacity() >= nextPage->getSize())
+			{
+				dram.addPage(nextPage);
+				uniqueRecordsInPages->removeFisrtPage();
+				bytesRead += nextPage->getBytes();
+			}
+			else
+			{
+				break;
+			}
 		}
+		// TODO: Check whether to do GD before sorting here
+		//  1. if only oversize a little be,
+		//  2. store few pages from DRAM into cache,
+		//  3. Then empty these pages, and read in the new slightly over-sized data
+		//  4. Then sorting them altogether
+
+		// Get unmerged cache-sized mini-runs
+		std::vector<Run *> sortedMiniRuns = cache.sort(dram.getInputBuffers(), maxRecordsInPage, PAGE_SIZE);
+
 		// trace sorting mini runs state
 		cache.outputMiniRunState(outputTXT);
 
 		// create memory-sized sorted runs using Tournament Tree
 		printf("At scanning pass %d, created %d cache-sized runs\n", pass, sortedMiniRuns.size());
 
-		// Use Tournament Tree here
-		TournamentTree *loserTree = new TournamentTree(sortedMiniRuns.size(), sortedMiniRuns, nullptr);
-		Run *memSizedRun = new Run();
-		while (loserTree->hasNext())
+		// if ssd have enough space to store the next mem-sized run
+		if (ssd.getCapacity() >= bytesRead)
 		{
-			cout << "The new winner is: Contestant ";
-			Record *winner = loserTree->popWinner();
-			winner->printRecord();
-			if (winner == nullptr)
-			{
-				break;
-			}
-			memSizedRun->addRecord(winner);
+			// memory-sized run are created by merging,
+			// and saved to SSD
+			dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns);
 		}
-		// memSizedRun->print();
-		if (ssd.getCapacity() < bytesWriteToDisk)
+		else
 		{
-			// ssd.outputMergeMsg(outputTXT);
-			// ssd.mergeFromSelfToDest(&hdd, outputTXT);
+			// In alternative 1, all runs on SSD are of memory-sized
+			// Set the number of output buffers in SSD such that in total the output buffer size
+			// is roughly equal to memory-sized or multiple of memory size
+			// write runs on SSD to HDD, then clear SSD
+
 			hdd.outputSpillState(outputTXT);
-			hdd.outputAccessState(ACCESS_WRITE, ssd.getMaxCap() - ssd.getCapacity(), outputTXT);
-			ssd.clear();
+			// write the first run to HDD, and then clear space
+			ssd.outputReadSortedRunState(outputTXT);
+			Run *r = ssd.getRunCopy(0);
+			hdd.outputAccessState(ACCESS_WRITE, r->getBytes(), outputTXT);
+			hdd.addRun(r);
+			ssd.eraseRun(0);
+			ssd.cleanInvalidRuns();
 		}
 
-		if (ssd.getCapacity() >= bytesWriteToDisk)
-		{
-			// Use Alternative 1
-			ssd.outputSpillState(outputTXT);
-			ssd.outputAccessState(ACCESS_WRITE, bytesWriteToDisk, outputTXT);
-
-			ssd.addRun(memSizedRun);
-		}
+		dram.clear();
 	}
 	if (ssd.getNumUnsortedRuns() > 0)
 	{
@@ -205,8 +200,6 @@ int mergeSort()
 		}
 		ssd.clear();
 	}
-	ssd.print();
-	hdd.print();
 
 	if (hdd.getNumUnsortedRuns() == 1)
 	{
@@ -218,9 +211,10 @@ int mergeSort()
 	else
 	{
 		printf("merging on HDD starts");
-		// Start merging mem-sized runs
+		// Start merging mem-sized runs on HDD
 		hdd.mergeFromSelfToSelf(outputTXT);
 		hdd.outputAccessState(ACCESS_WRITE, totalBytesUnique, outputTXT);
+		hdd.print();
 		hdd.writeOutputTable(OUTPUT_TABLE);
 	}
 

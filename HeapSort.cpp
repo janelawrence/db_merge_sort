@@ -3,18 +3,18 @@
 #include <vector>
 
 #include "Record.h"
-#include "TreeOfLosers.h"
+#include "HeapSort.h"
 
-TreeOfLosers::TreeOfLosers() {}
+HeapSort::HeapSort() {}
 
-TreeOfLosers *TreeOfLosers::clone()
+HeapSort *HeapSort::clone()
 {
-    TreeOfLosers *clonedTree = new TreeOfLosers();
+    HeapSort *clonedTree = new HeapSort();
     clonedTree->minHeap = minHeap;
     return clonedTree;
 }
 
-TreeOfLosers::~TreeOfLosers()
+HeapSort::~HeapSort()
 {
     while (!minHeap.empty())
     {
@@ -24,13 +24,13 @@ TreeOfLosers::~TreeOfLosers()
 }
 
 // Method to insert a key into the tree
-void TreeOfLosers::insert(Record *record)
+void HeapSort::insert(Record *record)
 {
     minHeap.push(record);
 }
 
 // Method to delete the minimum key from the tree
-void TreeOfLosers::deleteMin()
+void HeapSort::deleteMin()
 {
     if (!minHeap.empty())
     {
@@ -45,7 +45,7 @@ void TreeOfLosers::deleteMin()
 }
 
 // Method to get the minimum key from the tree
-Record *TreeOfLosers::getMin()
+Record *HeapSort::getMin()
 {
     if (!minHeap.empty())
     {
@@ -58,17 +58,17 @@ Record *TreeOfLosers::getMin()
     }
 }
 
-int TreeOfLosers::getSize()
+int HeapSort::getSize()
 {
     return minHeap.size();
 }
 
-bool TreeOfLosers::isEmpty()
+bool HeapSort::isEmpty()
 {
     return minHeap.empty();
 }
 
-void TreeOfLosers::print()
+void HeapSort::print()
 {
     if (isEmpty())
     {
@@ -83,14 +83,14 @@ void TreeOfLosers::print()
     }
 }
 
-void TreeOfLosers::clear()
+void HeapSort::clear()
 {
     // Create an empty priority queue and swap its contents with minHeap
     std::priority_queue<Record *, std::vector<Record *>, Compare> emptyQueue;
     minHeap.swap(emptyQueue);
 }
 
-std::list<Record *> TreeOfLosers::toList()
+std::list<Record *> HeapSort::toList()
 {
     std::list<Record *> lst;
     std::priority_queue<Record *, std::vector<Record *>, Compare> copyHeap = minHeap;
@@ -103,7 +103,7 @@ std::list<Record *> TreeOfLosers::toList()
     return lst;
 }
 
-std::vector<Record *> TreeOfLosers::toVector()
+std::vector<Record *> HeapSort::toVector()
 {
     std::vector<Record *> vec;
     std::priority_queue<Record *, std::vector<Record *>, Compare> copyHeap = minHeap;
@@ -116,7 +116,7 @@ std::vector<Record *> TreeOfLosers::toVector()
     return vec;
 }
 
-Page *TreeOfLosers::toNewPages(int pageIdx, int maxRecordsInPage, int pageSize)
+Page *HeapSort::toNewPages(int pageIdx, int maxRecordsInPage, int pageSize)
 {
     Page *sentinalPage = new Page(-1, 0, pageSize);
     Page *newPage = new Page(pageIdx, maxRecordsInPage, pageSize);
@@ -139,9 +139,9 @@ Page *TreeOfLosers::toNewPages(int pageIdx, int maxRecordsInPage, int pageSize)
 
 // Main function for testing
 // To test this main individually:
-// use: g++ Record.cpp TreeOfLosers.cpp -o tree
+// use: g++ Record.cpp HeapSort.cpp -o tree
 // int main() {
-//     TreeOfLosers tree;
+//     HeapSort tree;
 //     Record * r1 = new Record(20, "alsdfeei");
 //     Record * r2 = new Record(20, "ewfeasdf");
 //     Record * r3 = new Record(20, "bdfsewfh");
@@ -161,7 +161,7 @@ Page *TreeOfLosers::toNewPages(int pageIdx, int maxRecordsInPage, int pageSize)
 //     tree.insert(r4);
 //     tree.insert(r5);
 
-//     TreeOfLosers* cloned = tree.clone();
+//     HeapSort* cloned = tree.clone();
 
 //     // Get and print the minimum key again
 //     // while(!cloned->isEmpty()) {

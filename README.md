@@ -10,6 +10,10 @@
 
 ### Steps:
 
+Memory access latency: 6375 nanoseconds
+Memory bandwidth: 1.0016 GB/s
+Page Size roughly = 6375 nanoseconds \* 1.0016 GB/m = roughly 6.7 KB = take 8 KB = 8192 B
+
 M = DRAM_SIZE  
 C = CACHE_SIZE  
 R = recordSize  
@@ -38,9 +42,9 @@ F = Fan-in = number of pages read to memory = (M/P - 3)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 3. Device-optimized page sizes     | WRITE ANALYSIS in next section                                 |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 4. Spilling memory-to-SSD          | Done                                                           |
+| 4. Spilling memory-to-SSD          | (Jane) Done                                                    |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 5. Spilling from SSD to disk       | Done                                                           |
+| 5. Spilling from SSD to disk       | (Jane) Done                                                    |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 6. Graceful degradation            | TO BE DONE                                                     |
 | a. into merging                    | TO BE DONE                                                     |

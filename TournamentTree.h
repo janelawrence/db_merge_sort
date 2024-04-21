@@ -1,3 +1,6 @@
+#ifndef TOURNAMENTTREE_H
+#define TOURNAMENTTREE_H
+
 #include <iostream>
 #include <vector>
 #include "Record.h"
@@ -56,3 +59,5 @@ public:
     bool isFull() const;
     bool isEmpty() const;
 };
+
+#endif
