@@ -70,6 +70,8 @@ public:
 
     void mergeFromSelfToDest(Disk *dest, const char *outputTXT);
 
+    void mergeFromSelfToSelf(const char *outputTXT);
+
     void clear();
 
     int outputSpillState(const char *outputTXT);

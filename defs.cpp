@@ -120,7 +120,7 @@ void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 		   DRAM_SIZE, nBuffersDRAM,
 		   nInputBuffersDRAM, nBuffersReserved,
 		   nInputBuffersDRAM * maxRecordsInPage);
-	printf("Merge Levels : %d\n\n",
+	printf("Number of reading passes : %d\n\n",
 		   mergeLevels);
 	printf("SSD size: %llu Bytes\n"
 		   "- Each SSD-sized run can store %d pages\n"

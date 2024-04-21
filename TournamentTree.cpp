@@ -4,9 +4,6 @@
 #include "Run.h"
 #include "TournamentTree.h"
 
-// int PAGE_SIZE = 20;
-// int recordSize = 10;
-
 bool TournamentTree::isGhostNode(int node)
 {
     if (node >= 0 && node < tree.size())
@@ -16,8 +13,8 @@ bool TournamentTree::isGhostNode(int node)
     return true;
 }
 
-TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable)
-    : runTable(rTable)
+TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable, Disk *d)
+    : runTable(rTable), disk(d)
 {
     // Calculate the size of the tree based on the number of contestants
     size = 2;
@@ -27,7 +24,6 @@ TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable)
     }
     // Resize the tree to accommodate all matches
     tree.resize(2 * size);
-    losers.resize(2 * size);
 
     assignGhost();
     initialize();
@@ -43,7 +39,6 @@ void TournamentTree::assignGhost()
     {
         // tree[i].winner = std::numeric_limits<int>::max();
         tree[i] = GHOST_KEY;
-        losers[i] = GHOST_KEY;
     }
 }
 
@@ -51,8 +46,14 @@ void TournamentTree::initialize()
 {
     for (int i = 0; i < runTable.size(); i++)
     {
+        int fetchedPageSize = runTable[i]->getFirstPage()->getBytes();
         Record *r = runTable[i]->popFirstRecord();
         update(i, r);
+        if (disk != nullptr)
+        {
+            disk->outputReadSortedRunState(outputTXT);
+            disk->outputAccessState(ACCESS_READ, fetchedPageSize, outputTXT);
+        }
     }
 }
 
@@ -159,8 +160,14 @@ Record *TournamentTree::popWinner()
     // Insert new record from runTable if needed
     if (!runTable[winnerRecIdx]->isEmpty())
     {
+        int fetchedPageSize = runTable[winnerRecIdx]->getFirstPage()->getBytes();
         Record *r = runTable[winnerRecIdx]->popFirstRecord();
         insert(winnerRecIdx, r);
+        if (disk != nullptr)
+        {
+            disk->outputReadSortedRunState(outputTXT);
+            disk->outputAccessState(ACCESS_READ, fetchedPageSize, outputTXT);
+        }
     }
     return winner;
 }
@@ -169,8 +176,6 @@ int TournamentTree::compete(int node)
 {
     int left = 2 * node;  // tree index
     int right = left + 1; // tree index
-    int winner = node;    // tree index
-    int loser = node;     // tree index
     bool leftIsGhost = isGhostNode(left);
     bool rightIsGhost = isGhostNode(right);
 
@@ -179,29 +184,24 @@ int TournamentTree::compete(int node)
         if (leftIsGhost && rightIsGhost)
         {
             tree[node] = GHOST_KEY;
-            losers[node] = GHOST_KEY;
         }
         else if (leftIsGhost && !rightIsGhost)
         {
             tree[node] = tree[right];
-            losers[node] = GHOST_KEY;
         }
         else if (!leftIsGhost && rightIsGhost)
         {
             tree[node] = tree[left];
-            losers[node] = GHOST_KEY;
         }
         else
         {
             if (std::strcmp(getRecordKey(left), getRecordKey(right)) <= 0)
             {
                 tree[node] = tree[left];
-                losers[node] = tree[right];
             }
             else
             {
                 tree[node] = tree[right];
-                losers[node] = tree[left];
             }
         }
     }

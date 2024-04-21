@@ -4,7 +4,7 @@
 #include "Disk.h"
 #include "DRAM.h"
 #include "Run.h"
-#include "TreeOfLosers.h"
+#include "HeapSort.h"
 
 class CACHE
 {
@@ -13,7 +13,7 @@ private:
     // double MAX_CAPACITY = 1 * 1024 * 1024;  // Capacity is 1 MB
     double capacity = MAX_CAPACITY;
     int nPagesFitInCache;
-    TreeOfLosers tree;
+    HeapSort heap;
 
 public:
     // Constructor
@@ -21,7 +21,7 @@ public:
 
     int outputMiniRunState(const char *outputTXT);
     // Output miniRuns
-    std::vector<Run *> sort(Run *pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE);
+    std::vector<Run *> sort(std::vector<Page *>, int maxRecordsInPage, int PAGE_SIZE);
 
     // Getters
     double getCapacity() const;

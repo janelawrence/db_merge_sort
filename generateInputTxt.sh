@@ -1,2 +1,3 @@
 g++ -g -o Generator Generator.cpp -std=c++11
-./Generator -c 200 -s 20 -f mini_200_20_dup_input.txt -p 1
+./Generator -c 51200 -s 1024 -f input_50mb_51200_1024.txt -p 0
+# ./Generator -c 51200 -s 1024 -f input_50mb_51200_1024.txt -p 0

@@ -41,15 +41,67 @@ void Generator::generateRecords(const char *fileName)
     outputFile.close();
 }
 
+void Generator::generateWitDupRecords(const char *fileName)
+{
+    // Open the file in binary mode
+    std::ofstream outputFile(fileName, std::ios::binary);
+
+    // Check if the file opened successfully
+    if (!outputFile.is_open())
+    {
+        printf("Error: Could not open file %s\n", fileName);
+        return;
+    }
+
+    // Seed the random number generator
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+    // Generate numRecords number of records
+    for (int i = 0; i < numRecords;)
+    {
+        char record[recordSize];
+        for (int j = 0; j < recordSize; j++)
+        {
+            char randomByte = 'A' + (std::rand() % 26); // Uppercase A-Z
+            if (std::rand() % 2 == 0)
+                randomByte = std::tolower(randomByte); // Convert to lowercase
+
+            record[j] = randomByte; // Store the byte in the record
+        }
+        outputFile.write(record, recordSize); // Write the full record to the file
+        outputFile << '\n';
+
+        bool createDup = (std::rand() % 2) == 1;
+        if (createDup)
+        {
+            int numDuplicate = std::rand() % 5;
+            for (int k = 0; k < numDuplicate && (i + k + 1) < numRecords; k++)
+            {
+                outputFile.write(record, recordSize);
+                outputFile << '\n';
+            }
+            i += numDuplicate + 1; // Update i to reflect duplicates written
+        }
+        else
+        {
+            i++;
+        }
+    }
+
+    // Close the file
+    outputFile.close();
+}
+
 int main(int argc, char *argv[])
 {
     int c;
     int recordSize = 0;
     int numRecords = 0;
     const char *fileName = nullptr;
+    int duplicate = 0;
 
     // Parse command-line options
-    while ((c = getopt(argc, argv, "c:s:f:")) != -1)
+    while ((c = getopt(argc, argv, "c:s:f:p:")) != -1)
     {
         switch (c)
         {
@@ -61,6 +113,9 @@ int main(int argc, char *argv[])
             break;
         case 'f':
             fileName = optarg;
+            break;
+        case 'p':
+            duplicate = std::atoi(optarg);
             break;
         default:
             printf("Usage: %s -c <numRecords> -s <recordSize> -f <fileName>\n", argv[0]);
@@ -74,12 +129,21 @@ int main(int argc, char *argv[])
         printf("Usage: %s -c <numRecords> -s <recordSize> -f <fileName>\n", argv[0]);
         return 1;
     }
+    printf("dup: %d\n", duplicate);
 
     // Create an instance of Generator
     Generator generator(recordSize, numRecords);
 
-    // Generate records
-    generator.generateRecords(fileName);
+    if (duplicate == 0)
+    {
+        // Generate records
+        generator.generateRecords(fileName);
+    }
+    else
+    {
+        printf("creating records containing dup\n");
+        generator.generateWitDupRecords(fileName);
+    }
 
     printf("Records generated successfully!\n");
 
