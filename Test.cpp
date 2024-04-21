@@ -59,7 +59,7 @@ char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // test 1 Set up End <<<<<<<<<<
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
-char *OUTPUT_TABLE = "output_table_50mb_51200_1024";
+char *OUTPUT_TABLE = "output_table_50mb_1024";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -95,7 +95,8 @@ int mergeSort()
 
 	int nBuffersDRAM = DRAM_SIZE / PAGE_SIZE;
 	//  Should be enough to hold the tree of fan - in size
-	int nOutputBuffers = 16;
+	int nOutputBuffers = 16; // 16 * PAGE_SIZE= 128 KB
+	// int nOutputBuffers = 2;
 
 	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
@@ -164,25 +165,29 @@ int mergeSort()
 		// if ssd have enough space to store the next mem-sized run
 		if (ssd.getCapacity() >= bytesRead)
 		{
-			// memory-sized run are created by merging,
+			// memory-sized run are created by merging in memory,
 			// and saved to SSD
 			dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns);
 		}
 		else
 		{
 			// In alternative 1, all runs on SSD are of memory-sized
-			// Set the number of output buffers in SSD such that in total the output buffer size
-			// is roughly equal to memory-sized or multiple of memory size
 			// write runs on SSD to HDD, then clear SSD
+			hdd.outputSpillState(outputTXT);
+			// write all runs to HDD, and then clear space
+			ssd.outputReadSortedRunState(outputTXT);
+			ssd.outputAccessState(ACCESS_READ, ssd.getMaxCap() - ssd.getCapacity(), outputTXT);
 
 			hdd.outputSpillState(outputTXT);
-			// write the first run to HDD, and then clear space
-			ssd.outputReadSortedRunState(outputTXT);
-			Run *r = ssd.getRunCopy(0);
-			hdd.outputAccessState(ACCESS_WRITE, r->getBytes(), outputTXT);
-			hdd.addRun(r);
-			ssd.eraseRun(0);
+			hdd.outputAccessState(ACCESS_WRITE, ssd.getMaxCap() - ssd.getCapacity(), outputTXT);
+			for (int i = 0; i < ssd.getNumUnsortedRuns(); i++)
+			{
+				Run *r = ssd.getRunCopy(i);
+				hdd.addRun(r);
+				ssd.eraseRun(i);
+			}
 			ssd.cleanInvalidRuns();
+			ssd.clear();
 		}
 
 		dram.clear();

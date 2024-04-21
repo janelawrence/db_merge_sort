@@ -167,11 +167,11 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
     {
         // write all remaining records in output buffers to the run on SSD
         // Report Spilling happen to output
+        dest->outputSpillState(outputTXT);
+        // Simulate write to SSD
+        dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
         while (!outputBuffers.wrapper->isEmpty())
         {
-            dest->outputSpillState(outputTXT);
-            // Simulate write to SSD
-            dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
             curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
             outputBuffers.wrapper->removeFisrtPage();
         }
