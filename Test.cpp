@@ -11,7 +11,7 @@
 #include <iostream>
 #include <chrono>
 #include <filesystem>
-#include <dirent.h>
+// #include <dirent.h>
 #include <vector>
 #include <getopt.h>
 #include <fstream>
@@ -60,6 +60,7 @@ char *INPUT_TXT = "input_50mb_51200_1024.txt";
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
 char *OUTPUT_TABLE = "output_table_50mb_1024";
+// char *OUTPUT_TABLE = "output_table_125mb_1024_new";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -100,19 +101,21 @@ int mergeSort()
 
 	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
+	float outputBufferRatioSSD = 0.8;
 	int nBuffersSSD = SSD_SIZE / PAGE_SIZE;
 
-	int nOutputBuffersSSD = nBuffersSSD / 2; //????
+	int nOutputBuffersSSD = nBuffersSSD * outputBufferRatioSSD; //????
 
 	// Number of mem-sized run will be created in DRAM
 	int passes = static_cast<int>(std::ceil(static_cast<double>(uniqueRecordsInPages->getNumPages()) / nInputBuffersDRAM));
 
-	printStats(numRecords, recordSize, maxRecordsInPage, nPagesFitInCache, nBuffersDRAM,
-			   nOutputBuffers, nInputBuffersDRAM, nBuffersSSD, passes);
+	printStats(numRecords, recordSize, maxRecordsInPage,
+			   nPagesFitInCache, nBuffersDRAM, nOutputBuffers,
+			   nInputBuffersDRAM, nBuffersSSD, nOutputBuffersSSD, passes);
 
 	CACHE cache(CACHE_SIZE, nPagesFitInCache);
 	DRAM dram(DRAM_SIZE, nOutputBuffers);
-	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD, 0);
+	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD, nOutputBuffersSSD);
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD, 0);
 
 	int totalBytesUnique = uniqueRecordsInPages->getBytes();
@@ -159,11 +162,11 @@ int mergeSort()
 		// trace sorting mini runs state
 		cache.outputMiniRunState(outputTXT);
 
-		// create memory-sized sorted runs using Tournament Tree
+		// created memory-sized sorted runs using Tournament Tree
 		printf("At scanning pass %d, created %d cache-sized runs\n", pass, sortedMiniRuns.size());
 
-		// if ssd have enough space to store the next mem-sized run
-		if (ssd.getCapacity() >= bytesRead)
+		// if ssd have enough output buffer space to store the next mem-sized run
+		if (ssd.getOutputBufferCapacity() >= bytesRead)
 		{
 			// memory-sized run are created by merging in memory,
 			// and saved to SSD
@@ -175,47 +178,40 @@ int mergeSort()
 			// write runs on SSD to HDD, then clear SSD
 			hdd.outputSpillState(outputTXT);
 			// write all runs to HDD, and then clear space
-			ssd.outputReadSortedRunState(outputTXT);
-			ssd.outputAccessState(ACCESS_READ, ssd.getMaxCap() - ssd.getCapacity(), outputTXT);
-
 			hdd.outputSpillState(outputTXT);
-			hdd.outputAccessState(ACCESS_WRITE, ssd.getMaxCap() - ssd.getCapacity(), outputTXT);
-			for (int i = 0; i < ssd.getNumUnsortedRuns(); i++)
+			hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
+			for (int i = 0; i < ssd.getNumRunsInOutputBuffer(); i++)
 			{
-				Run *r = ssd.getRunCopy(i);
+				Run *r = ssd.outputBuffers.runs[i]->clone();
 				hdd.addRun(r);
-				ssd.eraseRun(i);
 			}
-			ssd.cleanInvalidRuns();
-			ssd.clear();
+			ssd.outputBuffers.clear();
 		}
 
 		dram.clear();
 	}
-	if (ssd.getNumUnsortedRuns() > 0)
+	if (ssd.getNumRunsInOutputBuffer() > 0)
 	{
 		hdd.outputSpillState(outputTXT);
-		hdd.outputAccessState(ACCESS_WRITE, ssd.getMaxCap() - ssd.getCapacity(), outputTXT);
-		while (ssd.getNumUnsortedRuns() > 0)
+		hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
+		for (int i = 0; i < ssd.getNumRunsInOutputBuffer(); i++)
 		{
-			Run *r = ssd.getRunCopy(0);
+			Run *r = ssd.outputBuffers.runs[i]->clone();
 			hdd.addRun(r);
-			ssd.eraseRun(0);
-			ssd.cleanInvalidRuns();
 		}
-		ssd.clear();
+		ssd.outputBuffers.clear();
 	}
 
 	if (hdd.getNumUnsortedRuns() == 1)
 	{
-		printf("No merging needs to happen in HDD");
+		printf("No merging needs to happen in HDD\n");
 		hdd.outputReadSortedRunState(outputTXT);
 		hdd.outputAccessState(ACCESS_WRITE, totalBytesUnique, outputTXT);
 		hdd.writeOutputTable(OUTPUT_TABLE);
 	}
 	else
 	{
-		printf("merging on HDD starts");
+		printf("merging on HDD starts\n");
 		// Start merging mem-sized runs on HDD
 		hdd.mergeFromSelfToSelf(outputTXT);
 		hdd.outputAccessState(ACCESS_WRITE, totalBytesUnique, outputTXT);
@@ -251,6 +247,10 @@ bool verityOrder()
 			i++;
 		}
 		file.close();
+	}
+	if (i == 0)
+	{
+		printf("Output table is empty\n");
 	}
 	return true;
 }

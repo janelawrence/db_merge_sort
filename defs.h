@@ -173,4 +173,4 @@ char const *OkBad(bool const b);
 int ceilDiv(int dividend, int divisor);
 void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 				int nPagesFitInCache, int nBuffersDRAM, int nBuffersReserved,
-				int nInputBuffersDRAM, int nBuffersSSD, int mergeLevels);
+				int nInputBuffersDRAM, int nBuffersSSD, int nOutputBuffersSSD, int passes);

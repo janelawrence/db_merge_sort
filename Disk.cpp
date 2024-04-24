@@ -17,9 +17,9 @@ Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int 
     diskType = dType;
     if (nOutputBuffer > 0)
     { // HDD doesn't need output buffers
-        outputBuffers.nBuffer = 2;
-        outputBuffers.wrapper = new Run();
-        capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE;
+        outputBuffers.nBuffer = nOutputBuffer;
+        outputBuffers.maxCap = nOutputBuffer * PAGE_SIZE;
+        capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE; // capacity of the input buffers
     }
 }
 
@@ -41,6 +41,14 @@ bool Disk::addRun(Run *run)
     numUnsortedRuns++;
     // printf("WATCH ME: %d\n", static_cast<int>(runBitmap[runBitmap.size() - 1]));
     return true;
+}
+
+/*
+Write cloned run to Disk
+*/
+bool Disk::addRunToOutputBuffer(Run *run)
+{
+    return outputBuffers.addRun(run);
 }
 
 void Disk::moveRunToTempList(int runIdx)
@@ -393,6 +401,15 @@ unsigned long long Disk::getCapacity() const
     return capacity;
 }
 
+unsigned long long Disk::getOutputBufferCapacity() const
+{
+    if (std::strcmp(diskType, HDD) == 0)
+    {
+        printf("%s has unlimited capacity\n", HDD);
+    }
+    return outputBuffers.getCapacity();
+}
+
 long Disk::getLatency() const
 {
     return latency;
@@ -431,6 +448,12 @@ bool Disk::runIsValid(int idx) const
 int Disk::getNumUnsortedRuns() const
 {
     return numUnsortedRuns;
+}
+
+int Disk::getNumRunsInOutputBuffer() const
+{
+
+    return outputBuffers.runs.size();
 }
 
 int Disk::getNumTempRuns() const

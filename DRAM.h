@@ -9,6 +9,26 @@
 
 #include <vector>
 
+struct DramOutputBuffers
+{
+    int nBuffer;
+    Run *wrapper;
+
+    bool isFull()
+    {
+        return wrapper->getNumPages() == nBuffer && wrapper->getFirstPage()->isFull() && wrapper->getLastPage()->isFull();
+    }
+
+    bool isEmpty()
+    {
+        return wrapper->isEmpty();
+    }
+    void clear()
+    {
+        wrapper->clear();
+    }
+};
+
 class DRAM
 {
 private:
@@ -21,7 +41,7 @@ private:
     std::vector<bool> inputBuffersBitmap;
 
 public:
-    OutputBuffers outputBuffers; // wrapping numOutputBuffers output buffers in a run
+    DramOutputBuffers outputBuffers; // wrapping numOutputBuffers output buffers in a run
 
     // Constructor
     DRAM(unsigned long long maxCap, int nOutputBuffers);
@@ -49,7 +69,7 @@ public:
     // Getters
     unsigned long long getCapacity() const;
     std::vector<Page *> getInputBuffers() const;
-    OutputBuffers getOuputBuffers() const;
+    DramOutputBuffers getOuputBuffers() const;
 };
 
 #endif // DRAM_H

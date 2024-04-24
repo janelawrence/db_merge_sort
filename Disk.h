@@ -13,20 +13,46 @@
 struct OutputBuffers
 {
     int nBuffer;
-    Run *wrapper;
+    unsigned long long maxCap;
+    unsigned long long bytesStored;
+    std::vector<Run *> runs;
 
     bool isFull()
     {
-        return wrapper->getNumPages() == nBuffer && wrapper->getFirstPage()->isFull() && wrapper->getLastPage()->isFull();
+        return bytesStored == maxCap;
+    }
+
+    bool addRun(Run *run)
+    {
+        if (run->getBytes() > getCapacity())
+        {
+            printf("Disk output buffer does Not enough space\n");
+            return false;
+        }
+        runs.push_back(run->clone());
+
+        // Decrease Disk capacity
+        bytesStored += run->getBytes();
     }
 
     bool isEmpty()
     {
-        return wrapper->isEmpty();
+        bytesStored == 0;
     }
     void clear()
     {
-        wrapper->clear();
+        std::vector<Run *> newRuns;
+        runs.swap(newRuns);
+        bytesStored == 0;
+    }
+
+    unsigned long long getBytes() const
+    {
+        return bytesStored;
+    }
+    unsigned long long getCapacity() const
+    {
+        return maxCap - bytesStored;
     }
 };
 
@@ -47,18 +73,21 @@ private:
     std::vector<bool> runBitmap;
 
     int numTempRuns;
-    std::vector<Run *> temp;     // stored intermiate merged runs
-    OutputBuffers outputBuffers; // wrapping x output buffers in a run
+    std::vector<Run *> temp; // stored intermiate merged runs
 
 public:
+    OutputBuffers outputBuffers; // wrapping x output buffers in a run
+
     // Constructor
     Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBuffer);
 
     // return false if Disk is out of space
-    // add to unsortedRuns
+    // add run to input buffers aka unsortedRuns
     bool addRun(Run *run);
 
     bool addRunToTempList(Run *run);
+
+    bool addRunToOutputBuffer(Run *run);
 
     void moveRunToTempList(int runIdx);
 
@@ -67,8 +96,6 @@ public:
     bool eraseRun(int runIdx);
 
     bool delFirstPageFromRunK(int k);
-
-    void mergeFromSelfToDest(Disk *dest, const char *outputTXT);
 
     void mergeFromSelfToSelf(const char *outputTXT);
 
@@ -94,7 +121,10 @@ public:
 
     // Getters
     unsigned long long getCapacity() const;
-    int getNumUnsortedRuns() const;
+    unsigned long long getOutputBufferCapacity() const;
+
+    int getNumUnsortedRuns() const; // runs stored in input buffer
+    int getNumRunsInOutputBuffer() const;
     int getNumTempRuns() const;
 
     unsigned long long getMaxCap() const;

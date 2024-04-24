@@ -113,7 +113,7 @@ void DRAM::clear()
     std::vector<Page *> emptyPages;
     std::vector<bool> emptyBitmap;
     Page *emptyPage;
-    OutputBuffers emptyOutputBuffers;
+    DramOutputBuffers emptyOutputBuffers;
     emptyOutputBuffers.nBuffer = numOutputBuffers;
     emptyOutputBuffers.wrapper = new Run();
 
@@ -153,7 +153,7 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
             // Simulate write to SSD
             dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
 
-            while (!outputBuffers.wrapper->isEmpty())
+            while (!outputBuffers.isEmpty())
             {
                 // Write to curr run in dest Disk
                 curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
@@ -177,8 +177,8 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
         }
         outputBuffers.clear();
     }
-    // Physically add to destination disk
-    dest->addRun(curr);
+    // Physically add to destination disk's output buffer
+    dest->addRunToOutputBuffer(curr);
 }
 
 unsigned long long
@@ -189,4 +189,4 @@ DRAM::getCapacity() const
 
 std::vector<Page *> DRAM::getInputBuffers() const { return inputBuffers; };
 
-OutputBuffers DRAM::getOuputBuffers() const { return outputBuffers; }
+DramOutputBuffers DRAM::getOuputBuffers() const { return outputBuffers; }

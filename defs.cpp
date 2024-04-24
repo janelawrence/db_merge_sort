@@ -97,7 +97,7 @@ int ceilDiv(int dividend, int divisor)
 
 void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 				int nPagesFitInCache, int nBuffersDRAM, int nBuffersReserved,
-				int nInputBuffersDRAM, int nBuffersSSD, int mergeLevels)
+				int nInputBuffersDRAM, int nBuffersSSD, int nOutputBuffersSSD, int passes)
 {
 	printf("--------------------------------------------System stats--------------------------------------\n");
 	printf("Number of records: %d, "
@@ -121,10 +121,11 @@ void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 		   nInputBuffersDRAM, nBuffersReserved,
 		   nInputBuffersDRAM * maxRecordsInPage);
 	printf("Number of reading passes : %d\n\n",
-		   mergeLevels);
+		   passes);
 	printf("SSD size: %llu Bytes\n"
 		   "- Each SSD-sized run can store %d pages\n"
-		   "- Each SSD-sized run can store %d records\n\n",
-		   SSD_SIZE, nBuffersSSD,
-		   nBuffersSSD * maxRecordsInPage);
+		   "---- %d are input buffers, %d are reserved buffers\n"
+		   "- In total output buffers can store %d records\n\n",
+		   SSD_SIZE, nBuffersSSD, nBuffersSSD - nOutputBuffersSSD,
+		   nOutputBuffersSSD, nBuffersSSD * maxRecordsInPage);
 }
