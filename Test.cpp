@@ -5,6 +5,7 @@
 #include "DRAM.h"
 #include "Disk.h"
 #include "Scan.h"
+#include "getopt.h"
 
 #include <limits>
 #include <cstdlib> // For atoi function
@@ -13,7 +14,7 @@
 #include <filesystem>
 // #include <dirent.h>
 #include <vector>
-#include <getopt.h>
+// #include <getopt.h>
 #include <fstream>
 #include <cmath>
 
@@ -131,6 +132,7 @@ int mergeSort()
 			// last run in current merge pass
 			// TODO: consider Graceful degradation
 			printf("TODO: consider Graceful degradation???\n");
+			handleLastMergePass(uniqueRecordsInPages, &dram, &ssd, &cache);
 		}
 
 		//  Read pages into DRAM
@@ -155,6 +157,9 @@ int mergeSort()
 		//  2. store few pages from DRAM into cache,
 		//  3. Then empty these pages, and read in the new slightly over-sized data
 		//  4. Then sorting them altogether
+		if (dram.isFull() && !uniqueRecordsInPages->isEmpty()){
+				performGracefulDegradation(&dram, &cache, &ssd);
+	    }
 
 		// Get unmerged cache-sized mini-runs
 		std::vector<Run *> sortedMiniRuns = cache.sort(dram.getInputBuffers(), maxRecordsInPage, PAGE_SIZE);
@@ -221,6 +226,54 @@ int mergeSort()
 
 	return 0;
 }
+void handleLastMergePass(Run* uniqueRecordsInPages, DRAM* dram, Disk* ssd, CACHE* cache) {
+    // Check if there's enough space in DRAM for the last pass
+    if (dram->getCapacity() < uniqueRecordsInPages->getBytes()) {
+        // Not enough space in DRAM; we need to spill to SSD.
+        while (uniqueRecordsInPages->getBytes() > dram->getCapacity()) {
+            Page* pageToSpill = uniqueRecordsInPages->getFirstPage();
+            uniqueRecordsInPages->removeFisrtPage(); // Assume this reduces the bytes count of uniqueRecordsInPages
+            Run* runToSpill = new Run();
+            runToSpill->appendPage(pageToSpill);
+            ssd->addRun(runToSpill); // Add the run to SSD
+        }
+    }
+    
+    // Load the last of the records into DRAM and perform the merge
+    // Assume DRAM has a method to take a Run and perform merge.
+    dram->mergeRun(uniqueRecordsInPages);
+    // If needed, also consider any data that might be in the cache.
+    if (!cache->isEmpty()) {
+        // Assume a method to merge data from cache to DRAM exists.
+        cache->mergeIntoDRAM(dram);
+    }
+}
+
+
+void performGracefulDegradation(DRAM* dram, CACHE* cache, Disk* ssd) {
+    // Check if DRAM is full and spill to SSD as needed
+    while (dram->isFull()) {
+        // Assuming DRAM class has a method to select a Run to spill
+        Run* runToSpill = dram->selectRunToSpill(); // Method needs to be implemented in DRAM
+        ssd->addRun(runToSpill); // Add the run to SSD
+        // Assuming DRAM class has a method to remove a Run
+        dram->removeRun(runToSpill); // Method needs to be implemented in DRAM
+    }
+
+    // Now DRAM has space, load the oversized data into DRAM for processing
+    // Assume a method in DRAM to load Runs from some source and sort them
+    dram->loadAndSortOversizedData(); // Method needs to be implemented in DRAM
+    
+    // Merge the data in DRAM
+    // Assume DRAM class has a merge method
+    dram->merge();
+    
+    // If cache was used, it needs to be merged too
+    // Assume a method to merge data from cache exists
+    cache->mergeIntoDRAM(dram);
+}
+
+
 
 // Verifying sort order [2]
 bool verityOrder()
