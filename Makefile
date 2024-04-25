@@ -1,4 +1,4 @@
-CPPOPT=-g -Og -D_DEBUG
+CPPOPT=-O0 -g -D_DEBUG
 # -O2 -Os -Ofast
 # -fprofile-generate -fprofile-use
 CPPFLAGS=$(CPPOPT) -Wall -ansi -pedantic -std=c++11
@@ -37,7 +37,7 @@ $(TARGET) : Makefile $(OBJS)
 	g++ $(CPPFLAGS) $(OBJS) -o $@
 
 run: $(TARGET)
-	./$(TARGET) -c 1005 -s 20 -o trace_200100B.txt
+	./$(TARGET) -c 12582912 -s 1024 -o trace_10GB.txt
 
 # trace : Test.exe Makefile
 # 	@date > trace

@@ -43,7 +43,7 @@ struct OutputBuffers
     {
         std::vector<Run *> newRuns;
         runs.swap(newRuns);
-        bytesStored == 0;
+        bytesStored = 0;
     }
 
     unsigned long long getBytes() const

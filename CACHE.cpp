@@ -12,7 +12,7 @@
 #include <vector>
 
 // Constructor
-CACHE::CACHE(int cacheSize, int nPages) : MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages) {}
+CACHE::CACHE(int cacheSize, int nPages) : MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages), capacity(cacheSize) {}
 
 std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE)
 {
@@ -102,8 +102,7 @@ std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesIn
 	return miniRuns;
 }
 
-int CACHE::outputMiniRunState(
-	const char *outputTXT)
+int CACHE::outputMiniRunState(const char *outputTXT)
 {
 	// Open the output file in overwrite mode
 	std::ofstream outputFile(outputTXT, std::ios::app);
@@ -111,7 +110,8 @@ int CACHE::outputMiniRunState(
 	// Check if the file opened successfully
 	if (!outputFile.is_open())
 	{
-		std::cerr << "Error: Could not open file" << outputTXT << " for writing." << std::endl;
+		// std::cerr << "Error: Could not open file" << outputTXT << " for writing." << std::endl;
+		printf("File is not open\n");
 		return 1; // Return error code
 	}
 
@@ -120,6 +120,7 @@ int CACHE::outputMiniRunState(
 
 	// close file
 	outputFile.close();
+	return 0;
 }
 
 double CACHE::getCapacity() const

@@ -8,6 +8,7 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <cstring>
 
 // Constructor
 Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBuffer)
@@ -15,11 +16,13 @@ Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int 
 {
     capacity = maxCap;
     diskType = dType;
+    numUnsortedRuns = 0;
+    numTempRuns = 0;
     if (nOutputBuffer > 0)
     { // HDD doesn't need output buffers
         outputBuffers.nBuffer = nOutputBuffer;
-        outputBuffers.maxCap = nOutputBuffer * PAGE_SIZE;
-        capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE; // capacity of the input buffers
+        outputBuffers.maxCap = (unsigned long long)nOutputBuffer * PAGE_SIZE;
+        capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffer * PAGE_SIZE; // capacity of the input buffers
     }
 }
 
@@ -216,6 +219,7 @@ int Disk::outputSpillState(const char *outputTXT)
 
     // close file
     outputFile.close();
+    return 0;
 }
 
 int Disk::outputReadSortedRunState(const char *outputTXT)
@@ -235,6 +239,7 @@ int Disk::outputReadSortedRunState(const char *outputTXT)
 
     // close file
     outputFile.close();
+    return 0;
 }
 
 int Disk::outputAccessState(const char *accessType,
@@ -266,6 +271,7 @@ int Disk::outputAccessState(const char *accessType,
 
     // close file
     outputFile.close();
+    return 0;
 }
 
 int Disk::outputMergeMsg(const char *outputTXT)
@@ -285,6 +291,7 @@ int Disk::outputMergeMsg(const char *outputTXT)
 
     // close file
     outputFile.close();
+    return 0;
 }
 
 // Method to simulate read operation
@@ -336,7 +343,7 @@ int Disk::writeOutputTable(const char *outputTXT)
         Page *curr = outputRun->getFirstPage();
         while (!curr->isEmpty())
         {
-            char *bytes = curr->getFirstRecord()->serialize();
+            const char *bytes = curr->getFirstRecord()->serialize();
             outputFile.write(bytes, strlen(bytes));
             outputFile << '\n';
             curr->removeFisrtRecord();
@@ -345,6 +352,7 @@ int Disk::writeOutputTable(const char *outputTXT)
     }
 
     outputFile.close();
+    return 0;
 }
 
 void Disk::print() const

@@ -14,9 +14,10 @@ DRAM::DRAM(unsigned long long maxCap, int nOutputBuffers)
 {
     printf("Initialize DRAM\n");
     outputBuffers.nBuffer = nOutputBuffers;
+    buffersUsed = 0;
     outputBuffers.wrapper = new Run();
     // Input buffer Capacity in Bytes
-    capacity = MAX_CAPACITY - nOutputBuffers * PAGE_SIZE;
+    capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffers * PAGE_SIZE;
 }
 
 Page *DRAM::getPageCopy(int idx)

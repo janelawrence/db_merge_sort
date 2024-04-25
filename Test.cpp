@@ -16,22 +16,24 @@
 #include <getopt.h>
 #include <fstream>
 #include <cmath>
+#include <cstring>
 
 // Set global variable
 
 // Actual params
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-// int PAGE_SIZE = 8192;									  // 8 KB
-// char *INPUT_TXT = "input_50mb_51200_1024.txt";
+unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+int PAGE_SIZE = 8192;									  // 8 KB
+char *INPUT_TXT = "input_12gb_12582912_1024.txt";
+// char *INPUT_TXT = "mini_200_20_dup_input.txt";
 
 // >>>>>> Mini test case 1
-unsigned long long CACHE_SIZE = 200;
-unsigned long long DRAM_SIZE = 10200;
-unsigned long long SSD_SIZE = 40800;
-int PAGE_SIZE = 100;
-char *INPUT_TXT = "mini_200_20_dup_input.txt";
+// unsigned long long CACHE_SIZE = 200;
+// unsigned long long DRAM_SIZE = 10200;
+// unsigned long long SSD_SIZE = 40800;
+// int PAGE_SIZE = 100;
+// char *INPUT_TXT = "mini_200_20_dup_input.txt";
 // Mini test 1 Set up End < < < < < < < < < <
 
 // >>>>>> mini test case 2
@@ -59,7 +61,7 @@ char *INPUT_TXT = "mini_200_20_dup_input.txt";
 // test 1 Set up End <<<<<<<<<<
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
-char *OUTPUT_TABLE = "output_mini_200_20_dup";
+char *OUTPUT_TABLE = "output_table_10GB";
 // char *OUTPUT_TABLE = "output_table_125mb_1024_new";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
@@ -145,8 +147,8 @@ int mergeSort()
 
 	int nBuffersDRAM = DRAM_SIZE / PAGE_SIZE;
 	//  Should be enough to hold the tree of fan - in size
-	// int nOutputBuffers = 16; // 16 * PAGE_SIZE= 128 KB
-	int nOutputBuffers = 2;
+	int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
+	// int nOutputBuffers = 2;
 
 	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
@@ -278,7 +280,7 @@ int mergeSort()
 		// Start merging mem-sized runs on HDD
 		hdd.mergeFromSelfToSelf(outputTXT);
 		hdd.outputAccessState(ACCESS_WRITE, totalBytesUnique, outputTXT);
-		// hdd.print();
+		hdd.print();
 		printf("bytes in hdd: %lu\n", hdd.getRun(0)->getBytes());
 		hdd.writeOutputTable(OUTPUT_TABLE);
 	}

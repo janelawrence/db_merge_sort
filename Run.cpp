@@ -5,6 +5,8 @@ Run::Run()
 {
     pageHead = new Page(-1, 0, 0);
     pageTail = pageHead;
+    bytes = 0;
+    numPage = 0;
 }
 
 /**
@@ -30,6 +32,10 @@ void Run::appendPage(Page *page)
     while (temp)
     {
         pageTail = temp;
+        if (temp == nullptr)
+        {
+            break;
+        }
         temp = temp->getNext();
         numPage++;
         bytes += pageTail->getBytes();

@@ -22,6 +22,7 @@ Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 	int countTotal = 0;
 	if (file.is_open())
 	{
+		TRACE(true);
 		std::string line;
 		while (std::getline(file, line))
 		{
@@ -35,12 +36,18 @@ Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 		}
 		file.close();
 	}
+	else
+	{
+		printf("FILE cannot be opend\n");
+	}
+	printf("\n\ntotal read in: %d\n", countTotal);
 
 	std::unordered_map<std::string, Record *>::iterator it = map.begin();
 	// 3 return the records in the hash table
 
 	std::for_each(map.begin(), map.end(), [&recordsInPages](const std::pair<const std::string, Record *> &p)
 				  { recordsInPages->addRecord(new Record(*p.second)); });
+
 	// Write numbers to trace file
 	outputDuplicatesFound(outputTXT, countTotal, countDuplicate);
 
@@ -50,12 +57,14 @@ Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 int ScanPlan::outputDuplicatesFound(const char *outputTXT, int countTotal, int countDuplicate)
 {
 	// Open the output file in overwrite mode
-	std::ofstream outputFile(outputTXT, std::ios::app);
+	std::ofstream outputFile(outputTXT, std::ios::out);
 
 	// Check if the file opened successfully
 	if (!outputFile.is_open())
 	{
-		std::cerr << "Error: Could not open file trace.txt for writing." << std::endl;
+		printf("File cannot be oppend");
+
+		// std::cerr << "Error: Could not open file trace.txt for writing." << std::endl;
 		return 1; // Return error code
 	}
 
@@ -64,6 +73,7 @@ int ScanPlan::outputDuplicatesFound(const char *outputTXT, int countTotal, int c
 
 	// close file
 	outputFile.close();
+	return 0;
 }
 
 Iterator *ScanPlan::init() const

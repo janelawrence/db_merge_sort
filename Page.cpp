@@ -1,7 +1,8 @@
 #include "Page.h"
 #include "Record.h"
 
-Page::Page(int i, int s, int pageSize) : idx(i), MAX_RECORDS(s), size(pageSize) {}
+Page::Page(int i, int s, int pageSize)
+    : idx(i), MAX_RECORDS(s), size(pageSize), bytes(0), next(nullptr), prev(nullptr) {}
 
 void Page::addRecord(Record *record)
 {

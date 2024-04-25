@@ -3,6 +3,7 @@
 #include "Record.h"
 #include "Run.h"
 #include "TournamentTree.h"
+#include <cstring>
 
 bool TournamentTree::isGhostNode(int node)
 {

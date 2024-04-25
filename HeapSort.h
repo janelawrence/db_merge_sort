@@ -6,6 +6,7 @@
 // #include <iostream>
 #include <queue>
 #include <list>
+#include <cstring>
 
 struct Node
 {
