@@ -177,13 +177,6 @@ int mergeSort()
 		   uniqueRecordsInPages->getNumPages(), totalBytesUnique);
 	for (int pass = 0; pass < passes && !uniqueRecordsInPages->isEmpty(); pass++) // I/M
 	{
-		// if (pass == passes - 1)
-		// {
-		// 	// last run in current merge pass
-		// 	// TODO: consider Graceful degradation
-		// 	printf("TODO: consider Graceful degradation???\n");
-		// 	handleLastMergePass(uniqueRecordsInPages, &dram, &ssd, &cache);
-		// }
 
 		//  Read pages into DRAM
 		int pagesToRead = std::min(nInputBuffersDRAM, uniqueRecordsInPages->getNumPages());

@@ -32,7 +32,9 @@ Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 				countDuplicate++;
 				continue;
 			}
-			map[line] = new Record(recordSize, line.c_str());
+			// Record *r = new Record(recordSize, line.c_str());
+			recordsInPages->addRecord(new Record(recordSize, line.c_str()));
+			map[line] = 0;
 		}
 		file.close();
 	}
@@ -41,12 +43,6 @@ Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 		printf("FILE cannot be opend\n");
 	}
 	printf("\n\ntotal read in: %d\n", countTotal);
-
-	std::unordered_map<std::string, Record *>::iterator it = map.begin();
-	// 3 return the records in the hash table
-
-	std::for_each(map.begin(), map.end(), [&recordsInPages](const std::pair<const std::string, Record *> &p)
-				  { recordsInPages->addRecord(new Record(*p.second)); });
 
 	// Write numbers to trace file
 	outputDuplicatesFound(outputTXT, countTotal, countDuplicate);

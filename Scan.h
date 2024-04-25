@@ -8,7 +8,7 @@
 class ScanPlan : public Plan
 {
 	friend class ScanIterator;
-	std::unordered_map<std::string, Record *> map;
+	std::unordered_map<std::string, int> map;
 
 public:
 	ScanPlan(RowCount const count);
