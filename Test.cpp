@@ -31,7 +31,7 @@ unsigned long long CACHE_SIZE = 200;
 unsigned long long DRAM_SIZE = 10200;
 unsigned long long SSD_SIZE = 40800;
 int PAGE_SIZE = 100;
-char *INPUT_TXT = "intput_test_gd_1005_20.txt";
+char *INPUT_TXT = "mini_200_20_dup_input.txt";
 // Mini test 1 Set up End < < < < < < < < < <
 
 // >>>>>> mini test case 2
@@ -59,7 +59,7 @@ char *INPUT_TXT = "intput_test_gd_1005_20.txt";
 // test 1 Set up End <<<<<<<<<<
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
-char *OUTPUT_TABLE = "output_table_20010B_gd";
+char *OUTPUT_TABLE = "output_mini_200_20_dup";
 // char *OUTPUT_TABLE = "output_table_125mb_1024_new";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
@@ -133,7 +133,7 @@ int mergeSort()
 	ScanPlan sp(recordSize);
 	// prepare all records stored in pages
 	// Filter out duplicate records and store in pages
-	Run *uniqueRecordsInPages = sp.scan(INPUT_TXT);
+	Run *uniqueRecordsInPages = sp.scan(INPUT_TXT, outputTXT);
 
 	// Calculate stats
 	size_t totalBytes = numRecords * recordSize;

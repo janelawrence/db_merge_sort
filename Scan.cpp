@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iterator>
 #include <algorithm>
+#include <iostream>
 
 ScanPlan::ScanPlan(RowCount const count) : _count(count)
 {
@@ -13,30 +14,56 @@ ScanPlan::~ScanPlan()
 	TRACE(true);
 } // ScanPlan::~ScanPlan
 
-Run *ScanPlan::scan(const char *INPUT_TXT)
+Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 {
 	std::ifstream file(INPUT_TXT);
 	Run *recordsInPages = new Run();
-
+	int countDuplicate = 0;
+	int countTotal = 0;
 	if (file.is_open())
 	{
 		std::string line;
 		while (std::getline(file, line))
 		{
+			countTotal++;
 			if (map.find(line) != map.end())
 			{
+				countDuplicate++;
 				continue;
 			}
 			map[line] = new Record(recordSize, line.c_str());
 		}
 		file.close();
 	}
+
 	std::unordered_map<std::string, Record *>::iterator it = map.begin();
 	// 3 return the records in the hash table
 
 	std::for_each(map.begin(), map.end(), [&recordsInPages](const std::pair<const std::string, Record *> &p)
 				  { recordsInPages->addRecord(new Record(*p.second)); });
+	// Write numbers to trace file
+	outputDuplicatesFound(outputTXT, countTotal, countDuplicate);
+
 	return recordsInPages;
+}
+
+int ScanPlan::outputDuplicatesFound(const char *outputTXT, int countTotal, int countDuplicate)
+{
+	// Open the output file in overwrite mode
+	std::ofstream outputFile(outputTXT, std::ios::app);
+
+	// Check if the file opened successfully
+	if (!outputFile.is_open())
+	{
+		std::cerr << "Error: Could not open file trace.txt for writing." << std::endl;
+		return 1; // Return error code
+	}
+
+	// Print output to both console and file
+	outputFile << "Number of Duplicates found: " << countDuplicate << " in " << countTotal << " input records\n";
+
+	// close file
+	outputFile.close();
 }
 
 Iterator *ScanPlan::init() const

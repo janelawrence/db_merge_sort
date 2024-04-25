@@ -63,9 +63,7 @@ void TournamentTree::initialize()
 void TournamentTree::update(int index, Record *record)
 {
     index += size;
-    // record->printRecord();
     records.push_back(record);
-    TRACE(true);
     int recordIdx = records.size() - 1;
     tree[index] = recordIdx;
     recIdx2TreeIdx.push_back(index);
