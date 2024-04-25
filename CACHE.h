@@ -21,8 +21,12 @@ public:
 
     int outputMiniRunState(const char *outputTXT);
     // Output miniRuns
-    std::vector<Run *> sort(std::vector<Page *>, int maxRecordsInPage, int PAGE_SIZE);
+    std::vector<Run *> sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE);
 
+    // Output miniRuns for Graceful degradation
+    std::vector<Run *> sortForGracefulDegradation(std::vector<Page *> pagesInDRAM,
+                                                  std::vector<Page *> pagesInCACHE,
+                                                  int maxRecordsInPage, int PAGE_SIZE);
     // Getters
     double getCapacity() const;
 };

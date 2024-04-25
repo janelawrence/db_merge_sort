@@ -19,6 +19,16 @@ DRAM::DRAM(unsigned long long maxCap, int nOutputBuffers)
     capacity = MAX_CAPACITY - nOutputBuffers * PAGE_SIZE;
 }
 
+Page *DRAM::getPageCopy(int idx)
+{
+    if (idx >= 0 && idx < inputBuffers.size())
+    {
+        return inputBuffers[idx]->clone();
+    }
+    printf("Invalid page index");
+    return nullptr;
+}
+
 bool DRAM::addPage(Page *page)
 {
     if (page->getBytes() > capacity)
@@ -33,6 +43,32 @@ bool DRAM::addPage(Page *page)
     inputBuffersBitmap.push_back(true);
     buffersUsed++;
     return true;
+}
+
+/*
+    return deep copy
+*/
+Page *DRAM::getFirstPage()
+{
+    if (inputBuffers.size() > 0)
+    {
+        Page *firstPage = inputBuffers[0]->clone();
+        firstPage->setNext(nullptr);
+        return firstPage;
+    }
+    return nullptr;
+}
+
+void DRAM::removeFirstPage()
+{
+    if (inputBuffers.size() > 0)
+    {
+        Page *firstPage = inputBuffers[0];
+        capacity += firstPage->getBytes();
+        buffersUsed -= 1;
+        inputBuffers.erase(inputBuffers.begin());
+        erasePage(0);
+    }
 }
 
 bool DRAM::insertPage(Page *page, int idx)
@@ -71,6 +107,26 @@ bool DRAM::erasePage(int bufferIdx)
     inputBuffersBitmap[bufferIdx] = false;
     buffersUsed--;
     return true;
+}
+
+void DRAM::cleanInvalidPagesinInputBuffer()
+{
+    std::vector<Page *> cleanedPages;
+    std::vector<bool> cleanedBitmap;
+    unsigned long long used = 0;
+    for (int i = 0; i < inputBuffers.size(); i++)
+    {
+        if (inputBuffersBitmap[i])
+        {
+            cleanedPages.push_back(inputBuffers[i]->clone());
+            cleanedBitmap.push_back(true);
+            used += inputBuffers[i]->getBytes();
+        }
+    }
+    buffersUsed = cleanedPages.size();
+    capacity = MAX_CAPACITY - used;
+    inputBuffers.swap(cleanedPages);
+    inputBuffersBitmap.swap(cleanedBitmap);
 }
 
 bool DRAM::delFirstRecordFromBufferK(int k)

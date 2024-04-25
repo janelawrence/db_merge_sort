@@ -46,13 +46,21 @@ public:
     // Constructor
     DRAM(unsigned long long maxCap, int nOutputBuffers);
 
+    Page *getPageCopy(int idx);
+
     // return false if memory is out of space
     //  Add to input buffer
     bool addPage(Page *page);
 
+    Page *getFirstPage();
+
+    void removeFirstPage();
+
     bool insertPage(Page *page, int idx);
 
     bool erasePage(int pageIdx);
+
+    void cleanInvalidPagesinInputBuffer();
 
     bool delFirstRecordFromBufferK(int k);
 
