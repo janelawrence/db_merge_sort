@@ -3,8 +3,29 @@
 #include <cstdlib>
 #include <ctime>
 #include <getopt.h>
+#include <chrono>
+#include <iostream>
 
 Generator::Generator(int rSize, int nRecords) : recordSize(rSize), numRecords(nRecords) {}
+
+void displayProgressBar(int currentStep, int totalSteps)
+{
+    const int barWidth = 50;
+
+    std::cout << "[";
+    int pos = barWidth * currentStep / totalSteps;
+    for (int i = 0; i < barWidth; ++i)
+    {
+        if (i < pos)
+            std::cout << "=";
+        else if (i == pos)
+            std::cout << ">";
+        else
+            std::cout << " ";
+    }
+    std::cout << "] " << int((currentStep * 100.0) / totalSteps) << " %\r";
+    std::cout.flush();
+}
 
 void Generator::generateRecords(const char *fileName)
 {
@@ -20,10 +41,12 @@ void Generator::generateRecords(const char *fileName)
 
     // Seed the random number generator
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
-
+    std::cout << "\n";
     // Generate numRecords number of records
     for (int i = 0; i < numRecords; ++i)
     {
+        displayProgressBar(i + 1, numRecords);
+
         for (int j = 0; j < recordSize; j++)
         {
             // Generate k random alphanumeric bytes
@@ -145,7 +168,7 @@ int main(int argc, char *argv[])
         generator.generateWitDupRecords(fileName);
     }
 
-    printf("Records generated successfully!\n");
+    printf("\nRecords generated successfully!\n\n");
 
     return 0;
 }
