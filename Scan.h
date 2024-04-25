@@ -14,7 +14,8 @@ public:
 	ScanPlan(RowCount const count);
 	~ScanPlan();
 	Iterator *init() const;
-	Run *scan(const char *INPUT_TXT);
+	Run *scan(const char *INPUT_TXT, const char *outputTXT);
+	int outputDuplicatesFound(const char *outputTXT, int countTotal, int countDuplicate);
 
 private:
 	RowCount const _count;
