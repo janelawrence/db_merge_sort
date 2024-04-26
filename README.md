@@ -24,7 +24,7 @@ disk.h/disk.cpp: Simulates a hard disk drive for storage and retrieval of data.
 
 TournamentTree.h/TournamentTree.cpp: Implements the tournament tree logic including node comparisons, record management, and tree operations.
 
-### Steps:
+### Steps
 
 Memory access latency: 6375 nanoseconds
 Memory bandwidth: 1.0016 GB/s
@@ -51,7 +51,7 @@ F = Fan-in = number of pages read to memory = (M/P - 2)
 ### Teammate contributions
 
 | Techniques                         | contributions                                                  |
-| ---------------------------------- | -------------------------------------------------------------- |
+| ---------------------------------- |----------------------------------------------------------------|
 | 1. Cache-size mini runs            | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 2. Minimum count of row            | (Jane)                                                         |
@@ -62,9 +62,9 @@ F = Fan-in = number of pages read to memory = (M/P - 2)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 5. Spilling from SSD to disk       | (Jane) Done                                                    |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 6. Graceful degradation            | TO BE DONE                                                     |
-| a. into merging                    | TO BE DONE                                                     |
-| b. beyond one merge step           | TO BE DONE                                                     |
+| 6. Graceful degradation            | (Ziqi) Done                                                    |
+| a. into merging                    | (Ziqi) Done                                                    |
+| b. beyond one merge step           | (Ziqi) Done                                                    |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 7. Optimized merge patterns        | Using pointers to records instead of index (explain)           |
 | ---------------------------------- | -------------------------------------------------------------- |
@@ -117,8 +117,13 @@ The process involves:
 - Managing internal buffers and ensuring they are flushed to SSD properly.
 
 5. Spilling from SSD to disk
+- Locate in Test.cpp 
+-  Buffer management: With data loaded into DRAM from an input source, sorted data accumulates in the SSD's output buffer. 
+- Data spilled: When the output buffer capacity exceeds(insufficient to store the next memory-size run), the data move to HDD
+-Data transfer: Sequentially moving each run from the SSD to the HDD, SSD's output buffer is cleared post-transfer to free up space for further sorting operations.
+- log management: System logs the state of data in HDD, including access and spill states, through designated output methods `(outputSpillState, outputAccessState)`.
+- Final merging and sorting occur on the HDD if multiple unsorted runs remain.
 
-- Test.cpp:
 
 6. Graceful degradation
    According to the paper, it uses a threshold 0.01.

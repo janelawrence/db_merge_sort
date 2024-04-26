@@ -1,0 +1,33 @@
+# Object files
+*.o
+
+
+
+# Visual Studio cache files
+.vs/
+*.vc.db
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ReSharper is a Visual Studio extension
+_ReSharper*/
+
+# User-specific files
+*.rsuser
+
+# Mono Auto Generated Files
+mono_crash.*
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+*.opendb
+*.closedb
