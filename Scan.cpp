@@ -3,6 +3,20 @@
 #include <iterator>
 #include <algorithm>
 #include <iostream>
+// #include <filesystem>
+#include <sys/stat.h>
+#include <cstring>
+
+// namespace fs = boost::filesystem;
+
+// char get_directory_separator()
+// {
+// #if defined _WIN32 || defined __CYGWIN__
+// 	return '\\';
+// #else
+// 	return '/';
+// #endif
+// }
 
 ScanPlan::ScanPlan(RowCount const count) : _count(count)
 {
@@ -13,6 +27,95 @@ ScanPlan::~ScanPlan()
 {
 	TRACE(true);
 } // ScanPlan::~ScanPlan
+
+// Return total number of pages used to stored input data
+int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
+{
+	std::ifstream file(INPUT_TXT);
+	// Run *recordsInPages = new Run();
+	// Page * page = new Page()
+	int countDuplicate = 0;
+	int countTotal = 0;
+	int pageIdx = 0;
+
+	char separator = get_directory_separator();
+
+	if (file.is_open())
+	{
+		TRACE(true);
+		std::string line;
+
+		// Create a page file inside LOCAL_INPUT_DIR
+		int bytesOccupied = 0;
+
+		std::string pageFileName = std::to_string(pageIdx);
+		std::string pageFilePath = std::string(LOCAL_INPUT_DIR) + separator + pageFileName;
+		std::ofstream pageFile(pageFilePath, std::ios::binary);
+
+		if (!pageFile)
+		{
+			// printf("Fail to create file for page %d\n", pageIdx);
+			std::cerr << "Error opening file for writing page" << pageIdx << " ." << std::endl;
+			return 0;
+		}
+
+		while (std::getline(file, line))
+		{
+			// Remove non-alphanumeric characters from the line
+			line.erase(std::remove_if(line.begin(), line.end(),
+									  [](unsigned char c)
+									  { return !std::isalnum(c); }),
+					   line.end());
+			countTotal++;
+			if (map.find(line) != map.end())
+			{
+				countDuplicate++;
+				continue;
+			}
+			// if current Page hasn't been filled
+			if (PAGE_SIZE - bytesOccupied >= recordSize)
+			{
+				// write line to page file
+				pageFile.write(line.c_str(), strlen(line.c_str()));
+				pageFile << "\n";
+				bytesOccupied += strlen(line.c_str());
+			}
+			else
+			{
+				// close current page file
+				pageFile.close();
+
+				// Create a new page file inside LOCAL_INPUT_DIR
+				pageIdx++;
+				pageFileName = std::to_string(pageIdx);
+				pageFilePath = std::string(LOCAL_INPUT_DIR) + separator + pageFileName;
+				pageFile.open(pageFilePath, std::ios::binary);
+				bytesOccupied = 0;
+				if (!pageFile)
+				{
+					std::cerr << "Error opening file for writing page" << pageIdx << " ." << std::endl;
+					return 0;
+				}
+			}
+			map[line] = 0;
+		}
+		pageFile.close();
+	}
+	else
+	{
+		printf("FILE cannot be opend\n");
+		return 0;
+	}
+	printf("\n\ntotal read in: %d\n", countTotal);
+
+	if (countTotal == 0)
+	{
+		return 0;
+	}
+	// Write numbers to trace file
+	outputDuplicatesFound(outputTXT, countTotal, countDuplicate);
+	return pageIdx + 1;
+}
 
 Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 {
@@ -49,6 +152,32 @@ Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 
 	return recordsInPages;
 }
+
+// Run *ScanPlan::scanRun(const char *INPUT_TXT, const char *outputTXT)
+// {
+// 	std::ifstream file(INPUT_TXT);
+// 	Run *recordsInRun = new Run();
+// 	int countTotal = 0;
+// 	if (file.is_open())
+// 	{
+// 		TRACE(true);
+// 		std::string line;
+// 		while (std::getline(file, line))
+// 		{
+// 			countTotal++;
+
+// 			// Record *r = new Record(recordSize, line.c_str());
+// 			recordsInRun->addRecord(new Record(recordSize, line.c_str()));
+// 		}
+// 		file.close();
+// 	}
+// 	else
+// 	{
+// 		printf("FILE cannot be opend\n");
+// 	}
+
+// 	return recordsInRun;
+// }
 
 int ScanPlan::outputDuplicatesFound(const char *outputTXT, int countTotal, int countDuplicate)
 {

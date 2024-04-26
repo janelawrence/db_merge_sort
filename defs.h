@@ -10,6 +10,10 @@ extern const char *ACCESS_READ;
 extern const char *HDD;
 extern const char *SSD;
 
+extern const char *LOCAL_INPUT_DIR;
+extern const char *LOCAL_DRAM_SIZED_RUNS_DIR;
+extern const char *LOCAL_SSD_SIZED_RUNS_DIR;
+
 extern unsigned long long CACHE_SIZE;
 
 extern unsigned long long DRAM_SIZE;
@@ -174,3 +178,4 @@ int ceilDiv(int dividend, int divisor);
 void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 				int nPagesFitInCache, int nBuffersDRAM, int nBuffersReserved,
 				int nInputBuffersDRAM, int nBuffersSSD, int nOutputBuffersSSD, int passes);
+char get_directory_separator();

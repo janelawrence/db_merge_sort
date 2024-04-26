@@ -60,7 +60,7 @@ std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesIn
 													 std::vector<Page *> pagesInCACHE,
 													 int maxRecordsInPage, int PAGE_SIZE)
 {
-	for (int i = 0; i < pagesInCACHE.size(); i++)
+	for (long unsigned int i = 0; i < pagesInCACHE.size(); i++)
 	{
 		pagesInDRAM.push_back(pagesInCACHE[i]);
 	}
@@ -146,7 +146,7 @@ double CACHE::getCapacity() const
 //     CACHE* cache = new CACHE();
 // 	std::vector<Run*> sortedRunsInCache = cache->readFromHDD(recordSize, hdd);
 
-//     for(int i = 0; i < sortedRunsInCache.size(); i++) {
+//     for(long unsigned int i = 0; i < sortedRunsInCache.size(); i++) {
 // 		Run* run = sortedRunsInCache[i];
 // 		printf("------------- %d th Run -----------\n", i);
 // 		run->printRun();

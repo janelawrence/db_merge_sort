@@ -129,3 +129,12 @@ void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 		   SSD_SIZE, nBuffersSSD, nBuffersSSD - nOutputBuffersSSD,
 		   nOutputBuffersSSD, nBuffersSSD * maxRecordsInPage);
 }
+
+char get_directory_separator()
+{
+#if defined _WIN32 || defined __CYGWIN__
+	return '\\';
+#else
+	return '/';
+#endif
+}

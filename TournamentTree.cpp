@@ -36,7 +36,7 @@ TournamentTree::~TournamentTree()
 
 void TournamentTree::assignGhost()
 {
-    for (int i = 0; i < tree.size(); i++)
+    for (long unsigned int i = 0; i < tree.size(); i++)
     {
         // tree[i].winner = std::numeric_limits<int>::max();
         tree[i] = GHOST_KEY;
@@ -46,7 +46,7 @@ void TournamentTree::assignGhost()
 void TournamentTree::initialize()
 {
     int totalBytesRead = 0;
-    for (int i = 0; i < runTable.size(); i++)
+    for (long unsigned int i = 0; i < runTable.size(); i++)
     {
         int fetchedPageSize = runTable[i]->getFirstPage()->getBytes();
         Record *r = runTable[i]->popFirstRecord();
@@ -236,7 +236,7 @@ bool TournamentTree::isEmpty() const
 
 void TournamentTree::printTree() const
 {
-    for (int i = 0; i < tree.size(); i++)
+    for (long unsigned int i = 0; i < tree.size(); i++)
     {
         int recIdx = tree[i];
         if (recIdx != GHOST_KEY && tree[recIdx] < records.size())

@@ -4,6 +4,9 @@
 #include <thread>
 #include <fstream>
 #include <vector>
+#include <cstring>
+#include <sys/stat.h>
+#include <cstring>
 
 #include "Run.h"
 #include "defs.h"
@@ -115,7 +118,7 @@ void DRAM::cleanInvalidPagesinInputBuffer()
     std::vector<Page *> cleanedPages;
     std::vector<bool> cleanedBitmap;
     unsigned long long used = 0;
-    for (int i = 0; i < inputBuffers.size(); i++)
+    for (long unsigned int i = 0; i < inputBuffers.size(); i++)
     {
         if (inputBuffersBitmap[i])
         {
@@ -143,25 +146,47 @@ bool DRAM::delFirstRecordFromBufferK(int k)
 }
 
 /* Function to read records from the input file
-    Return: a run * of pages, this run has size same as DRAM size
+    Return: a run * of pages, this run has size same as DRAM input buffer size
 */
-Run *DRAM::readRecords(const char *fileName, int recordSize, int numRecords, int totalBytes,
-                       int nBuffersDRAM, int maxRecordsInPage)
+unsigned long long DRAM::readRecords(const char *LOCAL_INPUT_DIR, int pageStart, int pageEnd,
+                                     int recordSize)
 {
-    std::ifstream file(fileName);
-    Run *allPages = new Run();
-    if (file.is_open())
+    unsigned long long totalBytes = 0;
+    for (int i = pageStart; i <= pageEnd; i++)
+    {
+        Page *page = readPage(LOCAL_INPUT_DIR, i, recordSize);
+        addPage(page);
+        totalBytes += (unsigned long long)page->getBytes();
+    }
+    return totalBytes;
+}
+
+/*
+    Read a page from LOCAL_INPUT_DIR
+*/
+Page *DRAM::readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize)
+{
+    char separator = get_directory_separator();
+    Page *page = new Page(pageIdx, PAGE_SIZE / recordSize, PAGE_SIZE);
+    std::string pagePath = LOCAL_INPUT_DIR + separator + std::to_string(pageIdx);
+    std::ifstream pageFile(pagePath);
+    if (pageFile.is_open())
     {
         std::string line;
-        while (std::getline(file, line))
+        while (std::getline(pageFile, line))
         {
-            // printf("%d\n%s\n\n", strlen(line.c_str()), line.c_str());
-            Record *r = new Record(recordSize, line.c_str());
-            allPages->addRecord(r);
+            page->addRecord(new Record(recordSize, line.c_str()));
         }
-        file.close();
+        pageFile.close();
     }
-    return allPages;
+    else
+    {
+        // printf("Fail to create file for page %d\n", pageIdx);
+        std::cerr << "Error opening file for writing page" << pageIdx << " ." << std::endl;
+        return nullptr;
+    }
+
+    return page;
 }
 
 void DRAM::clear()
@@ -187,16 +212,31 @@ bool DRAM::isFull() const
     return capacity == MAX_CAPACITY;
 }
 
-void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Run *> &rTable)
+void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Run *> &rTable, int outputRunidx)
 {
+    // All merged result goes to SSD or HDD
+    // But physically all stored in LOCAL_DRAM_SIZED_RUNS_DIR
+
     // Setup of total output buffers size makes sure that
     // output buffers can hold the maximum number of records,
     // where it's equal to the maximum number of cachesized runs;
     int fanin = rTable.size();
     TournamentTree *tree = new TournamentTree(fanin, rTable, nullptr);
     int i = 0;
-    Run *curr = new Run();
+    // Run *curr = new Run();
+    // CREATE A RUN FOLDER INSIDE LOCAL_DRAM_SIZED_RUNS_DIR
+
+    unsigned long long bytesInRun = 0;
     printf("buffersUsed: %d\n", buffersUsed);
+    int newRunId = dest->outputBuffers.getIdForNewRunFile();
+
+    char separator = get_directory_separator();
+    std::string newRunDir = "run" + std::to_string(newRunId);
+    std::string newRunPath = LOCAL_DRAM_SIZED_RUNS_DIR + separator + newRunDir;
+
+    dest->createRunFolder(LOCAL_DRAM_SIZED_RUNS_DIR, outputRunidx);
+
+    int pageIdx = 0;
 
     while (tree->hasNext())
     {
@@ -209,11 +249,13 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
             dest->outputSpillState(outputTXT);
             // Simulate write to SSD
             dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-
+            bytesInRun += outputBuffers.wrapper->getBytes();
             while (!outputBuffers.isEmpty())
             {
                 // Write to curr run in dest Disk
-                curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
+                Page *page = outputBuffers.wrapper->getFirstPage();
+                dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
+                pageIdx++;
                 outputBuffers.wrapper->removeFisrtPage();
             }
             outputBuffers.clear();
@@ -222,20 +264,30 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
     }
     if (!outputBuffers.isEmpty())
     {
-        // write all remaining records in output buffers to the run on SSD
+        // write all remaining records in output buffers to the run on dest Disk
         // Report Spilling happen to output
         dest->outputSpillState(outputTXT);
         // Simulate write to SSD
         dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
+        bytesInRun += outputBuffers.wrapper->getBytes();
+
         while (!outputBuffers.wrapper->isEmpty())
         {
-            curr->appendPage(outputBuffers.wrapper->getFirstPage()->clone());
+            Page *page = outputBuffers.wrapper->getFirstPage();
+            while (!page->isEmpty())
+            {
+                // Write to curr run in dest Disk
+                Page *page = outputBuffers.wrapper->getFirstPage();
+                dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
+                pageIdx++;
+                outputBuffers.wrapper->removeFisrtPage();
+            }
             outputBuffers.wrapper->removeFisrtPage();
         }
         outputBuffers.clear();
     }
-    // Physically add to destination disk's output buffer
-    dest->addRunToOutputBuffer(curr);
+    // Keep track of run file in disk's output buffer
+    dest->addRunToOutputBuffer(newRunPath.c_str(), bytesInRun);
 }
 
 unsigned long long

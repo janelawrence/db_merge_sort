@@ -9,13 +9,17 @@
 #include <thread>
 #include <vector>
 #include <cstring>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <ftw.h>
 
 // Constructor
-Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBuffer)
+Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBufferl)
     : MAX_CAPACITY(maxCap), latency(lat), bandwidth(bw), nOutputBuffer(nOutputBuffer)
 {
     capacity = maxCap;
     diskType = dType;
+    // localPath = path;
     numUnsortedRuns = 0;
     numTempRuns = 0;
     if (nOutputBuffer > 0)
@@ -27,7 +31,7 @@ Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int 
 }
 
 /*
-Write cloned run to Disk
+Write cloned run to Disk (virtually)
 */
 bool Disk::addRun(Run *run)
 {
@@ -47,11 +51,14 @@ bool Disk::addRun(Run *run)
 }
 
 /*
-Write cloned run to Disk
+Write cloned run to Disk (Physically add to localPath)
+By the time this function is called, the run
+has been written to a local run file,
+so it only needs to keep track of which file it's
 */
-bool Disk::addRunToOutputBuffer(Run *run)
+bool Disk::addRunToOutputBuffer(const char *runFile, int bytesToWrite)
 {
-    return outputBuffers.addRun(run);
+    return outputBuffers.addRun(runFile, bytesToWrite);
 }
 
 void Disk::moveRunToTempList(int runIdx)
@@ -96,7 +103,7 @@ void Disk::moveAllTempToUnsorted()
 
     numUnsortedRuns = unsortedRuns.size();
     runBitmap.clear();
-    for (int i = 0; i < unsortedRuns.size(); i++)
+    for (long unsigned int i = 0; i < unsortedRuns.size(); i++)
     {
         // Assume all runs in temps are valid
         runBitmap.push_back(true);
@@ -197,7 +204,7 @@ void Disk::clear()
     numUnsortedRuns = 0;
     if (nOutputBuffer > 0)
     {
-        outputBuffers.clear();
+        clearOuputBuffer();
         capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE;
     }
 }
@@ -355,6 +362,98 @@ int Disk::writeOutputTable(const char *outputTXT)
     return 0;
 }
 
+int Disk::createRunFolder(const char *LOCAL_DIR, int newRunId)
+{
+    char separator = get_directory_separator();
+    std::string newRunDir = "run" + std::to_string(newRunId);
+    std::string newRunPath = LOCAL_DIR + separator + newRunDir;
+
+    // Create the directory specified by fullPathForRun
+    if (mkdir(newRunPath.c_str(), 0755) == -1)
+    {
+        perror("Failed to create directory for run\n");
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ *
+ */
+int Disk::writePageToRunFolder(const char *runFolderPath, Page *page, int pageIdx)
+{
+    char separator = get_directory_separator();
+    std::string pageFileName = std::to_string(pageIdx);
+    std::string pageFilePath = runFolderPath + separator + pageFileName;
+    std::ofstream pageFile(pageFilePath, std::ios::binary);
+
+    if (!pageFile)
+    {
+        // printf("Fail to create file for page %d\n", pageIdx);
+        std::cerr << "Error opening file for writing page" << pageIdx << " ." << std::endl;
+        return 0;
+    }
+
+    while (!page->isEmpty())
+    {
+        const char *bytes = page->getFirstRecord()->serialize();
+        pageFile.write(bytes, strlen(bytes));
+        pageFile << '\n';
+        page->removeFisrtRecord();
+    }
+    pageFile.close();
+
+    return 0;
+}
+
+// Read run file from runFile stored in localPath
+// Run *Disk::scanRun(const char *runFile)
+// {
+//     std::ifstream file(runFile);
+//     Run *recordsInRun = new Run();
+//     int countTotal = 0;
+//     if (file.is_open())
+//     {
+//         TRACE(true);
+//         std::string line;
+//         while (std::getline(file, line))
+//         {
+//             countTotal++;
+//             recordsInRun->addRecord(new Record(recordSize, line.c_str()));
+//         }
+//         file.close();
+//     }
+//     else
+//     {
+//         printf("FILE cannot be opend\n");
+//     }
+
+//     return recordsInRun;
+// }
+
+int Disk::clearOuputBuffer()
+{
+    for (long unsigned int i = 0; i < outputBuffers.runFiles.size(); i++)
+    {
+        const char *filename = outputBuffers.runFiles[i];
+        if (remove(filename) != 0)
+        {
+            perror("File deletion failed");
+            return 1; // Non-zero return means the file was not deleted
+        }
+        else
+        {
+            printf("File deleted successfully\n");
+        }
+    }
+
+    std::vector<const char *> newRunFiles;
+    outputBuffers.runFiles.swap(newRunFiles);
+    outputBuffers.bytesStored = 0;
+
+    return 0;
+}
+
 void Disk::print() const
 {
     printf("\n------------------------------------%s Data------------------------------------\n", diskType);
@@ -366,8 +465,8 @@ void Disk::print() const
     {
         printf("MAX Capacity INF bytes\n");
     }
-    printf("In total has %d runs\n", unsortedRuns.size());
-    for (int i = 0; i < unsortedRuns.size(); i++)
+    printf("In total has %ld runs\n", unsortedRuns.size());
+    for (long unsigned int i = 0; i < unsortedRuns.size(); i++)
     {
         printf(">>>>>>>>>>>>>>>>>>> %d th Run, valid: %d >>>>>>>>>>>>>>>>>>\n", i, static_cast<int>(runBitmap[i]));
         unsortedRuns[i]->print();
@@ -380,14 +479,14 @@ void Disk::printTemp() const
     printf("\n------------------------------------%s Merged/Tempoary Saved Data------------------------------------\n", diskType);
     if (std::strcmp(diskType, SSD) > 0)
     {
-        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %i\n", MAX_CAPACITY, capacity);
     }
     else
     {
         printf("MAX Capacity INF bytes\n");
     }
-    printf("In total has %d merged runs\n", temp.size());
-    for (int i = 0; i < temp.size(); i++)
+    printf("In total has %ld merged runs\n", temp.size());
+    for (long unsigned int i = 0; i < temp.size(); i++)
     {
         printf(">>>>>>>>>>>>>>>>>>> %d th Merged Run >>>>>>>>>>>>>>>>>>\n", i);
         temp[i]->print();
@@ -461,7 +560,7 @@ int Disk::getNumUnsortedRuns() const
 int Disk::getNumRunsInOutputBuffer() const
 {
 
-    return outputBuffers.runs.size();
+    return outputBuffers.runFiles.size();
 }
 
 int Disk::getNumTempRuns() const
@@ -480,7 +579,7 @@ void Disk::cleanInvalidRuns()
     std::vector<Run *> cleanedRuns;
     std::vector<bool> cleanedBitmap;
     unsigned long long used = 0;
-    for (int i = 0; i < unsortedRuns.size(); i++)
+    for (long unsigned int i = 0; i < unsortedRuns.size(); i++)
     {
         if (runBitmap[i])
         {
@@ -596,7 +695,7 @@ void Disk::setCapacity(unsigned long long newCap)
 //     DRAM* dram = new DRAM();
 
 //     std::vector<Run*> dramOutput = dram->merge(runs, recordSize);
-//     for(int i = 0; i < dramOutput.size(); i++) {
+//     for(long unsigned int i = 0; i < dramOutput.size(); i++) {
 // 		Run* run = dramOutput[i];
 // 		printf("-------------DRAM Output %d th Run -----------\n", i);
 // 		run->print();
@@ -609,7 +708,7 @@ void Disk::setCapacity(unsigned long long newCap)
 
 //     std::vector<Run*> ssdOutput = ssd->merge(dramOutput, recordSize);
 
-//     for(int i = 0; i < ssdOutput.size(); i++) {
+//     for(long unsigned int i = 0; i < ssdOutput.size(); i++) {
 // 		Run* run = ssdOutput[i];
 // 		printf("------------- SSD Output %d th Run -----------\n", i);
 // 		run->print();

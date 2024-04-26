@@ -9,41 +9,44 @@
 #include <thread>
 #include <vector>
 #include <string>
+#include <cstdio>
 
 struct OutputBuffers
 {
     int nBuffer;
     unsigned long long maxCap;
     unsigned long long bytesStored;
-    std::vector<Run *> runs;
+    // std::vector<Run *> runs;
+    std::vector<const char *> runFiles;
+    // output buffers stores path to run files
 
     bool isFull()
     {
         return bytesStored == maxCap;
     }
 
-    bool addRun(Run *run)
+    bool addRun(const char *runFile, unsigned long long bytesToWrite)
     {
-        if (run->getBytes() > getCapacity())
+        if (bytesToWrite > getCapacity())
         {
             printf("Disk output buffer does Not enough space\n");
             return false;
         }
-        runs.push_back(run->clone());
+        runFiles.push_back(runFile);
+        //
 
         // Decrease Disk capacity
-        bytesStored += run->getBytes();
+        bytesStored += bytesToWrite;
     }
 
     bool isEmpty()
     {
-        bytesStored == 0;
+        return bytesStored == 0;
     }
-    void clear()
+
+    int getIdForNewRunFile()
     {
-        std::vector<Run *> newRuns;
-        runs.swap(newRuns);
-        bytesStored = 0;
+        return runFiles.size();
     }
 
     unsigned long long getBytes() const
@@ -77,9 +80,11 @@ private:
 
 public:
     OutputBuffers outputBuffers; // wrapping x output buffers in a run
-
+    // const char *localPath;
     // Constructor
-    Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBuffer);
+    Disk(unsigned long long maxCap,
+         long lat, long bw, const char *dType,
+         int nOutputBuffer);
 
     // return false if Disk is out of space
     // add run to input buffers aka unsortedRuns
@@ -87,7 +92,7 @@ public:
 
     bool addRunToTempList(Run *run);
 
-    bool addRunToOutputBuffer(Run *run);
+    bool addRunToOutputBuffer(const char *runFile, int bytesToWrite);
 
     void moveRunToTempList(int runIdx);
 
@@ -135,8 +140,14 @@ public:
     long getBandwidth() const;
     const char *getType() const;
 
+    int clearOuputBuffer();
+
     Run *getRun(int k) const;
     Run *getRunCopy(int k) const;
+
+    int createRunFolder(const char *LOCAL_DIR, int newRunId);
+    int writePageToRunFolder(const char *runFolderPath, Page *page, int idx);
+    Run *scanRun(const char *INPUT_TXT);
 
     void print() const;
 

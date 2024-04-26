@@ -14,6 +14,7 @@ public:
 	ScanPlan(RowCount const count);
 	~ScanPlan();
 	Iterator *init() const;
+	int pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR);
 	Run *scan(const char *INPUT_TXT, const char *outputTXT);
 	int outputDuplicatesFound(const char *outputTXT, int countTotal, int countDuplicate);
 
