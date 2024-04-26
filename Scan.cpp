@@ -9,15 +9,6 @@
 
 // namespace fs = boost::filesystem;
 
-// char get_directory_separator()
-// {
-// #if defined _WIN32 || defined __CYGWIN__
-// 	return '\\';
-// #else
-// 	return '/';
-// #endif
-// }
-
 ScanPlan::ScanPlan(RowCount const count) : _count(count)
 {
 	TRACE(true);
@@ -32,8 +23,6 @@ ScanPlan::~ScanPlan()
 int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 {
 	std::ifstream file(INPUT_TXT);
-	// Run *recordsInPages = new Run();
-	// Page * page = new Page()
 	int countDuplicate = 0;
 	int countTotal = 0;
 	int pageIdx = 0;

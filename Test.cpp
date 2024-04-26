@@ -28,43 +28,19 @@ unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int PAGE_SIZE = 8192;									  // 8 KB
-char *INPUT_TXT = "input_50mb_51200_1024.txt";
+char *INPUT_TXT = "input_12gb_12582912_1024.txt";
 
 // >>>>>> Mini test case 1
-// unsigned long long CACHE_SIZE = 200;
-// unsigned long long DRAM_SIZE = 10200;
-// unsigned long long SSD_SIZE = 40800;
-// int PAGE_SIZE = 100;
-// char *INPUT_TXT = "mini_200_20_dup_input.txt";
+// unsigned long long CACHE_SIZE = 4 * 8192;
+// unsigned long long DRAM_SIZE = 10 * 8192;
+// unsigned long long SSD_SIZE = 20 * 8192;
+// int PAGE_SIZE = 8192;
+// char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // Mini test 1 Set up End < < < < < < < < < <
-
-// >>>>>> mini test case 2
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-// int PAGE_SIZE = 10240;									  // 10KB								  // 10 KB
-// char *INPUT_TXT = "medium_200_1024_input.txt";
-// Mini test 2 Set up End <<<<<<<<<<
-
-// >>>>>> test case 0
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-// int PAGE_SIZE = 10240;									  // 10KB								  // 10 KB
-// char *INPUT_TXT = "test0_10240_10MB_1024_input.txt";
-// test 0 Set up End <<<<<<<<<<
-
-// >>>>>> test case 1
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-// int PAGE_SIZE = 10240;									  // 10KB								  // 10 KB
-// char *INPUT_TXT = "test1_51200_50MB_1024_input.txt";
-// test 1 Set up End <<<<<<<<<<
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
 // char *OUTPUT_TABLE = "output_table_10GB";
-char *OUTPUT_TABLE = "output_table_50mb_1024";
+char *OUTPUT_TABLE = "output_table_12GB_1024";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -88,54 +64,55 @@ const char *LOCAL_SSD_SIZED_RUNS_DIR = "ssd_sized_runs";
 
 const char *outputTXT = nullptr;
 
-// std::vector<Page *> graceFulDegradation(Run *uniqueRecordsInPages, DRAM *dram, Disk *ssd)
-// {
-// // Check if there's enough space in DRAM for the last pass
-// Run *runToSpill = new Run();
+// TODO: change param uniqueRecordsInPages to page index range
+std::vector<Page *> graceFulDegradation(Run *uniqueRecordsInPages, DRAM *dram, Disk *ssd)
+{
+	// Check if there's enough space in DRAM for the last pass
+	Run *runToSpill = new Run();
 
-// // Not enough space in DRAM; we need to spill to SSD.
-// int i = 0;
-// unsigned long long bytesToSpill = 0;
-// while (dram->getCapacity() < uniqueRecordsInPages->getBytes())
-// {
-// 	// Page *pageToSpill = dram->getFirstPage();
-// 	Page *pageToSpill = dram->getPageCopy(i);
-// 	bytesToSpill += pageToSpill->getBytes();
-// 	runToSpill->appendPage(pageToSpill);
-// 	dram->erasePage(i); // only flip bit map
-// 	i++;
-// }
-// // physically remove invalid/evicted pages from memory
-// dram->cleanInvalidPagesinInputBuffer();
-// // Spill the records from last second run into SSD
-// ssd->outputSpillState(outputTXT);
-// ssd->outputAccessState(ACCESS_WRITE, bytesToSpill, outputTXT);
-// ssd->addRun(runToSpill); // Add the run to SSD
+	// Not enough space in DRAM; we need to spill to SSD.
+	int i = 0;
+	unsigned long long bytesToSpill = 0;
+	while (dram->getCapacity() < uniqueRecordsInPages->getBytes())
+	{
+		// Page *pageToSpill = dram->getFirstPage();
+		Page *pageToSpill = dram->getPageCopy(i);
+		bytesToSpill += pageToSpill->getBytes();
+		runToSpill->appendPage(pageToSpill);
+		dram->erasePage(i); // only flip bit map
+		i++;
+	}
+	// physically remove invalid/evicted pages from memory
+	dram->cleanInvalidPagesinInputBuffer();
+	// Spill the records from last second run into SSD
+	ssd->outputSpillState(outputTXT);
+	ssd->outputAccessState(ACCESS_WRITE, bytesToSpill, outputTXT);
+	ssd->addRun(runToSpill); // Add the run to SSD
 
-// // Load/read the rest of input data into dram
-// // At this point, DRAM should have enough memory to hold the last few data
-// while (!uniqueRecordsInPages->isEmpty())
-// {
-// 	dram->addPage(uniqueRecordsInPages->getFirstPage()->clone());
-// 	uniqueRecordsInPages->removeFisrtPage();
-// }
-// // Get ready for creating cach-sized mini runs
-// // Read the spilled data into Cache
-// ssd->outputAccessState(ACCESS_READ, bytesToSpill, outputTXT);
-// std::vector<Page *> pagesReadInCache;
-// Run *spilledData = ssd->getRunCopy(0);
-// ssd->eraseRun(0);
-// ssd->cleanInvalidRuns();
+	// Load/read the rest of input data into dram
+	// At this point, DRAM should have enough memory to hold the last few data
+	while (!uniqueRecordsInPages->isEmpty())
+	{
+		dram->addPage(uniqueRecordsInPages->getFirstPage()->clone());
+		uniqueRecordsInPages->removeFisrtPage();
+	}
+	// Get ready for creating cach-sized mini runs
+	// Read the spilled data into Cache
+	ssd->outputAccessState(ACCESS_READ, bytesToSpill, outputTXT);
+	std::vector<Page *> pagesReadInCache;
+	Run *spilledData = ssd->getRunCopy(0);
+	ssd->eraseRun(0);
+	ssd->cleanInvalidRuns();
 
-// while (spilledData->getNumPages() > 0)
-// {
-// 	pagesReadInCache.push_back(spilledData->getFirstPage()->clone());
-// 	spilledData->removeFisrtPage();
-// }
-// // since the spill threshold is 0.1%, the number of pages spilled is guaranteed
-// // could fit in Cache
-// return pagesReadInCache;
-// }
+	while (spilledData->getNumPages() > 0)
+	{
+		pagesReadInCache.push_back(spilledData->getFirstPage()->clone());
+		spilledData->removeFisrtPage();
+	}
+	// since the spill threshold is 0.1%, the number of pages spilled is guaranteed
+	// could fit in Cache
+	return pagesReadInCache;
+}
 
 bool directoryExists(const char *path)
 {
@@ -248,9 +225,9 @@ int mergeSort()
 	int nPagesFitInCache = CACHE_SIZE / PAGE_SIZE;
 
 	int nBuffersDRAM = DRAM_SIZE / PAGE_SIZE;
-	//  Should be enough to hold the tree of fan - in size
+	//  Should be enough to hold the tree of fan-in size
 	int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
-	// // int nOutputBuffers = 2;
+	// int nOutputBuffers = 2;	 // used for testing when dram size is small
 
 	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
@@ -324,58 +301,51 @@ int mergeSort()
 			// write all runs to HDD, and then clear space
 			hdd.outputSpillState(outputTXT);
 			hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
-
-			dram.mergeFromSelfToDest(&hdd, outputTXT, sortedMiniRuns, readPass);
 			ssd.clearOuputBuffer();
+			dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns, readPass);
 		}
 		dram.clear();
 	}
 	// TODO: Consider clear LOCAL_INPUT_DIR physically
+	int totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
 
 	if (readPasses == 1)
 	{
+		if (totalNumberMemorySizedRuns == 1)
+		{
+			std::string runFolderPath = std::string(LOCAL_DRAM_SIZED_RUNS_DIR) + separator + "run0";
+			hdd.writeRunToOutputTable(runFolderPath.c_str(), OUTPUT_TABLE);
+			return 0;
+		}
+		else
+		{
+			printf("Have only read one pass, but have %d  memory-sized run\n", totalNumberMemorySizedRuns);
+		}
+	}
+
+	// If there are mem-sized runs left in SSD
+	//  Spill them to HDD before merging
+	// write runs on SSD to HDD, then clear SSD
+	if (!ssd.outputBuffers.isEmpty())
+	{
+		hdd.outputSpillState(outputTXT);
+		// Trace spilling all runs to HDD, and then clear space
 		hdd.outputSpillState(outputTXT);
 		hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
-		std::string runFolderPath = std::string(LOCAL_DRAM_SIZED_RUNS_DIR) + separator + "run0";
-		hdd.writeRunToOutputTable(runFolderPath.c_str(), OUTPUT_TABLE);
-		return 0;
+		ssd.clearOuputBuffer();
 	}
 
 	// TODO: Consider clear LOCAL_INPUT_DIR physically
-	if (ssd.getNumRunsInOutputBuffer() > 1)
-	{
-		hdd.outputSpillState(outputTXT);
-		hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
-	}
+
+	totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
 
 	// Start merging on HDD
-	// TODO: merge all runs in `LOCAL_DRAM_SIZED_RUNS_DIR` into SSD sized- runs
-	// 		and store to LOCAL_SSD_SIZED_RUNS_DIR
+	hdd.outputMergeMsg(outputTXT);
+	hdd.mergeMemorySizedRuns(outputTXT, OUTPUT_TABLE);
 
-	// TODO: Check number of runs in "LOCAL_SSD_SIZED_RUNS_DIR"
-	// TODO: if only one run left, done, write output table from "LOCAL_SSD_SIZED_RUNS_DIR/run0"
+	int totalNumberSSDSizedRuns = countRunsInDirectory(std::string(LOCAL_SSD_SIZED_RUNS_DIR));
 
-	// TODO: else:
-	// 			continue merging all runs in LOCAL_SSD_SIZED_RUNS_DIR
-	// 			output to output_table directly
-
-	// if (hdd.getNumUnsortedRuns() == 1)
-	// {
-	// 	printf("No merging needs to happen in HDD\n");
-	// 	hdd.outputReadSortedRunState(outputTXT);
-	// 	hdd.outputAccessState(ACCESS_WRITE, totalBytesUnique, outputTXT);
-	// 	hdd.writeOutputTable(OUTPUT_TABLE);
-	// }
-	// else
-	// {
-	// 	printf("merging on HDD starts\n");
-	// 	// Start merging mem-sized runs on HDD
-	// 	hdd.mergeFromSelfToSelf(outputTXT);
-	// 	hdd.outputAccessState(ACCESS_WRITE, totalBytesUnique, outputTXT);
-	// 	hdd.print();
-	// 	printf("bytes in hdd: %lu\n", hdd.getRun(0)->getBytes());
-	// 	hdd.writeOutputTable(OUTPUT_TABLE);
-	// }
+	hdd.mergeSSDSizedRuns(outputTXT, OUTPUT_TABLE);
 
 	return 0;
 }

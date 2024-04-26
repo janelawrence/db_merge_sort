@@ -97,6 +97,7 @@ CACHE::getCapacity() const: Returns the current capacity of the cache.
     if using the rest of 1 MB as the output buffers, it can store 128 output buffers, each output buffer has one page of 8 KB. Based on the input record size ranging from 20 Bytes to 2000 Bytes, these 128 Pages can store 524 to 52428 records.  
     Since the output buffer of DRAM will be used to stored the tournament tree used for merging, it needs to have
     the capacity to store one records from each of the cache-sized runs (at most 99 of them). Based on our calculation above, reserving 1 MB as the output buffer is more than enough to store maximum of 99 records, of each from a cache-sized runs. Therefore, at least need 128/4 = 32 output buffers (each output buffer has one page) in the output buffers such that it can store 131 to 13107 records.
+    
 - Based on the number output buffers = 32, we can calculate the total size of space in DRAM can be used to store
   input data at once = 100 MB - 32 \* 8K = 100 MB - 0.25 MB = 99.75 MB = 99.75 MB / (8 KB/ Page) = 12768 pages.
 - Therefore, each time, DRAM can store 12768 pages \* 8 KB/page / recordSize =

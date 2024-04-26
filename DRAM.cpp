@@ -225,10 +225,7 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
     // where it's equal to the maximum number of cachesized runs;
     int fanin = rTable.size();
 
-    std::unordered_map<int, int> dummy;
-    const char *emptyStr = "";
-
-    TournamentTree *tree = new TournamentTree(fanin, rTable, nullptr, &dummy, emptyStr);
+    TournamentTree *tree = new TournamentTree(fanin, rTable);
     int i = 0;
     // Run *curr = new Run();
     // CREATE A RUN FOLDER INSIDE LOCAL_DRAM_SIZED_RUNS_DIR

@@ -2,7 +2,6 @@
 #define DISK_H
 
 #include "Run.h"
-#include "Run.h"
 
 #include <iostream>
 #include <chrono>
@@ -70,13 +69,19 @@ private:
     int numUnsortedRuns;
     int nOutputBuffer;
     const char *diskType;
-    std::vector<Run *> unsortedRuns;
+    std::vector<Run *> unsortedRuns; // input buffers
     // runBitmap[i] = true if run is valid
     // runBitmap[i] = false if run is been evicted
-    std::vector<bool> runBitmap;
+    std::vector<bool> runBitmap; // input buffers
 
     int numTempRuns;
     std::vector<Run *> temp; // stored intermiate merged runs
+
+    // Smilate Reading data from Disk with given size in bytes
+    int readData(unsigned long long sizeInBytes);
+
+    // Smilate Writing runs to Disk
+    int writeData(unsigned long long sizeInBytes);
 
 public:
     OutputBuffers outputBuffers; // wrapping x output buffers in a run
@@ -102,7 +107,8 @@ public:
 
     bool delFirstPageFromRunK(int k);
 
-    void mergeFromSelfToSelf(const char *outputTXT);
+    void mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
+    void mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
 
     void clear();
 
@@ -112,12 +118,6 @@ public:
                           unsigned long long totalBytes,
                           const char *outputTXT);
     int outputMergeMsg(const char *outputTXT);
-
-    // Smilate Reading data from Disk with given size in bytes
-    int readData(unsigned long long sizeInBytes);
-
-    // Smilate Writing runs to Disk
-    int writeData(unsigned long long sizeInBytes);
 
     int writeOutputTable(const char *outputTXT);
 
@@ -153,6 +153,8 @@ public:
     int writeRunToOutputTable(const char *runFolderPath, const char *outputTXT);
 
     Page *readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx);
+
+    int getNumPagesInRunOnDisk(const char *LOCAL_DIR, int runIdx);
 
     // Getters
     void print() const;
