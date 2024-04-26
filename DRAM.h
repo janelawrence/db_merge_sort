@@ -39,6 +39,8 @@ private:
     int numOutputBuffers;
     std::vector<Page *> inputBuffers; // vecotr of intput buffers
     std::vector<bool> inputBuffersBitmap;
+    // Read one page from LOCAL_INPUT_DIR
+    Page *readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize);
 
 public:
     DramOutputBuffers outputBuffers; // wrapping numOutputBuffers output buffers in a run
@@ -67,8 +69,6 @@ public:
     unsigned long long readRecords(const char *LOCAL_INPUT_DIR,
                                    int pageStart, int pageEnd,
                                    int recordSize);
-
-    Page *readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize);
 
     void clear();
 

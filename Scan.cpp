@@ -17,6 +17,7 @@ ScanPlan::ScanPlan(RowCount const count) : _count(count)
 ScanPlan::~ScanPlan()
 {
 	TRACE(true);
+	map.clear();
 } // ScanPlan::~ScanPlan
 
 // Return total number of pages used to stored input data

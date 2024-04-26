@@ -28,7 +28,8 @@ unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int PAGE_SIZE = 8192;									  // 8 KB
-char *INPUT_TXT = "input_12gb_12582912_1024.txt";
+// char *INPUT_TXT = "input_12gb_12582912_1024.txt";
+char *INPUT_TXT = "input_125mb_128000_1024.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 4 * 8192;
@@ -40,7 +41,7 @@ char *INPUT_TXT = "input_12gb_12582912_1024.txt";
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
 // char *OUTPUT_TABLE = "output_table_10GB";
-char *OUTPUT_TABLE = "output_table_12GB_1024";
+char *OUTPUT_TABLE = "output_table_125MB_1024";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -193,7 +194,7 @@ int removeDir(const char *dirName)
  */
 int mergeSort()
 {
-	ScanPlan sp(recordSize);
+	ScanPlan *sp = new ScanPlan(recordSize);
 	// prepare all records stored in pages
 	if (createDir(LOCAL_INPUT_DIR) == 1)
 	{
@@ -202,7 +203,15 @@ int mergeSort()
 	}
 	// Filter out duplicate records and store in pages
 	// Run *uniqueRecordsInPages = sp.scan(INPUT_TXT, outputTXT);
-	int totalPages = sp.pagingInput(INPUT_TXT, LOCAL_INPUT_DIR);
+	int totalPages = sp->pagingInput(INPUT_TXT, LOCAL_INPUT_DIR);
+
+	delete sp;
+
+	if (totalPages == 0)
+	{
+		printf("Error: only 0 pages are scanned\n");
+		return 1;
+	}
 
 	printf("Total number of pages in input: %d\n", totalPages);
 
@@ -305,6 +314,11 @@ int mergeSort()
 			dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns, readPass);
 		}
 		dram.clear();
+		for (int i = 0; i < sortedMiniRuns.size(); i++)
+		{
+			delete sortedMiniRuns[i];
+		}
+		sortedMiniRuns.clear();
 	}
 	// TODO: Consider clear LOCAL_INPUT_DIR physically
 	int totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));

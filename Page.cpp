@@ -20,6 +20,7 @@ Page *Page::clone()
         clonedPage->addRecord(new Record(*r));
         clonedPage->setSource(pageSource);
         clonedPage->setIdx(idx);
+        delete r;
     }
     return clonedPage;
 }
@@ -49,6 +50,11 @@ Record *Page::getFirstRecord()
 
 void Page::clear()
 {
+    for (Record *rptr : records)
+    {
+        delete rptr;
+    }
+    records.clear();
     std::list<Record *> newRecords;
     records.swap(newRecords);
     bytes = 0;

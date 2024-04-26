@@ -53,6 +53,18 @@ TournamentTree::TournamentTree(int n, Disk *d,
 
 TournamentTree::~TournamentTree()
 {
+    for (int i = 0; i < records.size(); i++)
+    {
+        delete records[i];
+    }
+    // if (disk != nullptr)
+    // {
+    //     for (int j = 0; j < pageTable.size(); j++)
+    //     {
+    //         delete pageTable[j];
+    //     }
+    // }
+    delete[] runPathPhysical;
 }
 
 void TournamentTree::assignGhost()

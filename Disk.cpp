@@ -209,6 +209,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
             // write record to page file
             char *bytes = winner->serialize();
             pageFile.write(bytes, strlen(bytes));
+            delete[] bytes;
             pageFile << "\n";
             outputPageBytesOccupied += recordSize;
         }
@@ -484,6 +485,7 @@ int Disk::writePageToRunFolder(const char *runFolderPath, Page *page, int pageId
     {
         const char *bytes = page->getFirstRecord()->serialize();
         pageFile.write(bytes, strlen(bytes));
+        delete[] bytes;
         pageFile << '\n';
         page->removeFisrtRecord();
     }

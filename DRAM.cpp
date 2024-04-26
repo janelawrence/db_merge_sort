@@ -72,6 +72,8 @@ void DRAM::removeFirstPage()
         capacity += firstPage->getBytes();
         buffersUsed -= 1;
         inputBuffers.erase(inputBuffers.begin());
+        // firstPage->clear(); // release memory
+        // delete firstPage;
         erasePage(0);
     }
 }
@@ -158,6 +160,7 @@ unsigned long long DRAM::readRecords(const char *LOCAL_INPUT_DIR, int pageStart,
         Page *page = readPage(LOCAL_INPUT_DIR, i, recordSize);
         addPage(page);
         totalBytes += (unsigned long long)page->getBytes();
+        delete page;
     }
     return totalBytes;
 }
@@ -197,14 +200,18 @@ void DRAM::clear()
     capacity = MAX_CAPACITY;
     std::vector<Page *> emptyPages;
     std::vector<bool> emptyBitmap;
-    Page *emptyPage;
     DramOutputBuffers emptyOutputBuffers;
     emptyOutputBuffers.nBuffer = numOutputBuffers;
     emptyOutputBuffers.wrapper = new Run();
 
+    for (int i = 0; i < inputBuffers.size(); i++)
+    {
+        delete inputBuffers[i];
+    }
+    inputBuffers.clear();
+
     inputBuffers.swap(emptyPages);
     inputBuffersBitmap.swap(emptyBitmap);
-    // forecastBuffer = emptyPage;
     buffersUsed = 0;
     outputBuffers.clear();
     capacity = MAX_CAPACITY - numOutputBuffers * PAGE_SIZE;

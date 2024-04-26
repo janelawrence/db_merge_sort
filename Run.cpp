@@ -62,8 +62,10 @@ void Run::removeFisrtPage()
         return;
     }
     numPage--;
+    Page *temp = pageHead;
     bytes -= pageHead->getBytes();
     pageHead = pageHead->getNext();
+    delete temp;
 }
 
 /*Add a record to the last page, add a page if needed */
@@ -71,8 +73,10 @@ void Run::addRecord(Record *record)
 {
     if (pageHead->getIdx() == -1)
     {
+        Page *temp = pageHead;
         pageHead = new Page(0, PAGE_SIZE / recordSize, PAGE_SIZE);
         pageTail = pageHead;
+        delete temp;
         numPage++;
     }
     if (pageTail->isFull() || pageTail->getSize() - pageTail->getBytes() < record->getSize())
@@ -112,6 +116,12 @@ void Run::clear()
     // pages.swap(newpages);
     numPage = 0;
     bytes = 0;
+    while (pageHead != nullptr)
+    {
+        Page *temp = pageHead;
+        pageHead = pageHead->getNext(); // Assuming 'next' is a pointer to the next Page
+        delete temp;
+    }
     pageHead = new Page(-1, 0, 0);
     pageTail = pageHead;
 }
