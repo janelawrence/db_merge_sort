@@ -28,7 +28,7 @@ unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int PAGE_SIZE = 8192;									  // 8 KB
-char *INPUT_TXT = "input_table";
+char *INPUT_TXT = "input_50mb_51200_1024.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 200;
@@ -64,7 +64,7 @@ char *INPUT_TXT = "input_table";
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
 // char *OUTPUT_TABLE = "output_table_10GB";
-char *OUTPUT_TABLE = "output_table_125mb_1024_new";
+char *OUTPUT_TABLE = "output_table_50mb_1024";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -227,7 +227,7 @@ int mergeSort()
 	// Run *uniqueRecordsInPages = sp.scan(INPUT_TXT, outputTXT);
 	int totalPages = sp.pagingInput(INPUT_TXT, LOCAL_INPUT_DIR);
 
-	printf("Total number of pages in input: %d", totalPages);
+	printf("Total number of pages in input: %d\n", totalPages);
 
 	if (createDir(LOCAL_DRAM_SIZED_RUNS_DIR) == 1)
 	{
@@ -271,7 +271,7 @@ int mergeSort()
 	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD, nOutputBuffersSSD);
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD, 0);
 
-	printf("%d Total input pages %d \n", totalPages);
+	printf("Total input pages %d \n", totalPages);
 
 	int pagesLeftInInput = totalPages;
 	int pagesOffset = 0;
@@ -283,6 +283,7 @@ int mergeSort()
 														pagesOffset + pagesToRead,
 														recordSize);
 		pagesLeftInInput -= pagesToRead;
+		pagesOffset += pagesToRead;
 		std::vector<Run *> sortedMiniRuns;
 		// Check whether to do GD before sorting here
 		//  1. if only oversize a little be,
@@ -323,11 +324,7 @@ int mergeSort()
 			// write all runs to HDD, and then clear space
 			hdd.outputSpillState(outputTXT);
 			hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
-			// for (int i = 0; i < ssd.getNumRunsInOutputBuffer(); i++)
-			// {
-			// 	Run *r = ssd.outputBuffers.runs[i]->clone();
-			// 	hdd.addRun(r);
-			// }
+
 			dram.mergeFromSelfToDest(&hdd, outputTXT, sortedMiniRuns, readPass);
 			ssd.clearOuputBuffer();
 		}
@@ -335,17 +332,32 @@ int mergeSort()
 	}
 	// TODO: Consider clear LOCAL_INPUT_DIR physically
 
-	// if (ssd.getNumRunsInOutputBuffer() > 0)
-	// {
-	// 	hdd.outputSpillState(outputTXT);
-	// 	hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
-	// 	for (int i = 0; i < ssd.getNumRunsInOutputBuffer(); i++)
-	// 	{
-	// 		Run *r = ssd.outputBuffers.runs[i]->clone();
-	// 		hdd.addRun(r);
-	// 	}
-	// 	ssd.outputBuffers.clear();
-	// }
+	if (readPasses == 1)
+	{
+		hdd.outputSpillState(outputTXT);
+		hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
+		std::string runFolderPath = std::string(LOCAL_DRAM_SIZED_RUNS_DIR) + separator + "run0";
+		hdd.writeRunToOutputTable(runFolderPath.c_str(), OUTPUT_TABLE);
+		return 0;
+	}
+
+	// TODO: Consider clear LOCAL_INPUT_DIR physically
+	if (ssd.getNumRunsInOutputBuffer() > 1)
+	{
+		hdd.outputSpillState(outputTXT);
+		hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
+	}
+
+	// Start merging on HDD
+	// TODO: merge all runs in `LOCAL_DRAM_SIZED_RUNS_DIR` into SSD sized- runs
+	// 		and store to LOCAL_SSD_SIZED_RUNS_DIR
+
+	// TODO: Check number of runs in "LOCAL_SSD_SIZED_RUNS_DIR"
+	// TODO: if only one run left, done, write output table from "LOCAL_SSD_SIZED_RUNS_DIR/run0"
+
+	// TODO: else:
+	// 			continue merging all runs in LOCAL_SSD_SIZED_RUNS_DIR
+	// 			output to output_table directly
 
 	// if (hdd.getNumUnsortedRuns() == 1)
 	// {
@@ -369,36 +381,36 @@ int mergeSort()
 }
 
 // Verifying sort order [2]
-bool verityOrder()
+int verityOrder()
 {
 	std::ifstream file(OUTPUT_TABLE);
 	char lastKey[9];
 	char currentKey[9];
 
-	int i = 0;
+	int countTotal = 0;
 	if (file.is_open())
 	{
 		std::string line;
 		while (std::getline(file, line))
 		{
 			line.copy(currentKey, 8, 0);
-			if (i > 0)
+			if (countTotal > 0)
 			{
 				if (std::strcmp(lastKey, currentKey) >= 0)
 				{
-					return false;
+					return -1;
 				}
 			}
 			line.copy(lastKey, 8, 0);
-			i++;
+			countTotal++;
 		}
 		file.close();
 	}
-	if (i == 0)
+	if (countTotal == 0)
 	{
 		printf("Output table is empty\n");
 	}
-	return true;
+	return countTotal;
 }
 
 /**
@@ -436,8 +448,10 @@ int main(int argc, char *argv[])
 	}
 
 	mergeSort();
-	if (verityOrder())
+	int countOutputRecords = verityOrder();
+	if (countOutputRecords > 0)
 	{
+		printf("%d records in output table\n", countOutputRecords);
 		printf("Verified sorting order is correct\n");
 	}
 	else

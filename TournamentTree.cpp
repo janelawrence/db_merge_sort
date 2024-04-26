@@ -14,8 +14,12 @@ bool TournamentTree::isGhostNode(int node)
     return true;
 }
 
-TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable, Disk *d)
-    : runTable(rTable), disk(d)
+TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable, Disk *d,
+                               std::unordered_map<int, int> *rtablePhysical,
+                               const char *rPathPhysical)
+    : runTable(rTable), disk(d),
+      runtablePhysical(rtablePhysical),
+      runPathPhysical(rPathPhysical)
 {
     // Calculate the size of the tree based on the number of contestants
     size = 2;
@@ -46,15 +50,23 @@ void TournamentTree::assignGhost()
 void TournamentTree::initialize()
 {
     int totalBytesRead = 0;
-    for (long unsigned int i = 0; i < runTable.size(); i++)
-    {
-        int fetchedPageSize = runTable[i]->getFirstPage()->getBytes();
-        Record *r = runTable[i]->popFirstRecord();
-        update(i, r);
-        totalBytesRead += fetchedPageSize;
+    if (runTable.size() > 0)
+    { // Reading pages from DRAM output buffer
+        for (long unsigned int i = 0; i < runTable.size(); i++)
+        {
+            int fetchedPageSize = runTable[i]->getFirstPage()->getBytes();
+            Record *r = runTable[i]->popFirstRecord();
+            update(i, r);
+            totalBytesRead += fetchedPageSize;
+        }
     }
-    if (disk != nullptr)
-    {
+    else
+    { // Reading pages from Disk
+        for (const auto &kv : *runtablePhysical)
+        {
+            std::cout << "Key: " << kv.first << ", Value: " << kv.second << std::endl;
+        }
+        totalBytesRead += fetchedPageSize;
         disk->outputReadSortedRunState(outputTXT);
         disk->outputAccessState(ACCESS_READ, totalBytesRead, outputTXT);
     }

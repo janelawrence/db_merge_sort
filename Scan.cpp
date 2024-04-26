@@ -73,14 +73,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 				continue;
 			}
 			// if current Page hasn't been filled
-			if (PAGE_SIZE - bytesOccupied >= recordSize)
-			{
-				// write line to page file
-				pageFile.write(line.c_str(), strlen(line.c_str()));
-				pageFile << "\n";
-				bytesOccupied += strlen(line.c_str());
-			}
-			else
+			if (PAGE_SIZE - bytesOccupied < recordSize)
 			{
 				// close current page file
 				pageFile.close();
@@ -97,6 +90,10 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 					return 0;
 				}
 			}
+			// write line to page file
+			pageFile.write(line.c_str(), strlen(line.c_str()));
+			pageFile << "\n";
+			bytesOccupied += strlen(line.c_str());
 			map[line] = 0;
 		}
 		pageFile.close();
@@ -106,7 +103,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 		printf("FILE cannot be opend\n");
 		return 0;
 	}
-	printf("\n\ntotal read in: %d\n", countTotal);
+	printf("\n\ntotal records in input table (include dup): %d\n", countTotal);
 
 	if (countTotal == 0)
 	{

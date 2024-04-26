@@ -145,10 +145,16 @@ public:
     Run *getRun(int k) const;
     Run *getRunCopy(int k) const;
 
-    int createRunFolder(const char *LOCAL_DIR, int newRunId);
+    // Functions that write/read runs to local folder for storage
+    // -------------------------------------------------------------------
+    int createRunFolder(const char *LOCAL_DIR, int newRunIdx);
     int writePageToRunFolder(const char *runFolderPath, Page *page, int idx);
-    Run *scanRun(const char *INPUT_TXT);
 
+    int writeRunToOutputTable(const char *runFolderPath, const char *outputTXT);
+
+    Page *readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx);
+
+    // Getters
     void print() const;
 
     void printTemp() const;

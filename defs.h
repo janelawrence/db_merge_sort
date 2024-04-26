@@ -3,6 +3,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <cstdio>
+#include <string>
+#include <filesystem>>
+
+namespace fs = std::filesystem;
 
 extern const char *ACCESS_WRITE;
 extern const char *ACCESS_READ;
@@ -179,3 +183,5 @@ void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 				int nPagesFitInCache, int nBuffersDRAM, int nBuffersReserved,
 				int nInputBuffersDRAM, int nBuffersSSD, int nOutputBuffersSSD, int passes);
 char get_directory_separator();
+int countFilesInDirectory(const std::string &path);
+int countRunsInDirectory(const std::string &path);

@@ -138,3 +138,35 @@ char get_directory_separator()
 	return '/';
 #endif
 }
+
+int countFilesInDirectory(const std::string &path)
+{
+	int fileCount = 0;
+
+	// Iterate over the directory contents
+	for (const auto &entry : fs::directory_iterator(path))
+	{
+		if (fs::is_regular_file(entry.status()))
+		{ // Check if it's a regular file
+			fileCount++;
+		}
+	}
+
+	return fileCount;
+}
+
+int countRunsInDirectory(const std::string &path)
+{
+	int runFolderCount = 0;
+
+	// Iterate over the directory contents
+	for (const auto &entry : fs::directory_iterator(path))
+	{
+		if (fs::is_directory(entry.status()))
+		{ // Check if it's a regular file
+			runFolderCount++;
+		}
+	}
+
+	return runFolderCount;
+}

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include "Record.h"
 #include "Disk.h"
 
@@ -20,6 +21,8 @@ private:
 
     std::vector<Record *> records;
     std::vector<Run *> runTable;
+    std::unordered_map<int, int> *runtablePhysical;
+    const char *runPathPhysical;
     std::vector<int> recIdx2TreeIdx; // keeps track of which leaf node a rec start competing
     void insert(int index, Record *record);
     int size;
@@ -34,7 +37,9 @@ private:
 
 public:
     // Constructor
-    TournamentTree(int n, std::vector<Run *> &rTable, Disk *d);
+    TournamentTree(int n, std::vector<Run *> &rTable, Disk *d,
+                   std::unordered_map<int, int> *rtablePhysical,
+                   const char *rPathPhysical);
 
     ~TournamentTree();
 

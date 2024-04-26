@@ -1,4 +1,3 @@
-#include "DRAM.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -7,7 +6,9 @@
 #include <cstring>
 #include <sys/stat.h>
 #include <cstring>
+#include <unordered_map>
 
+#include "DRAM.h"
 #include "Run.h"
 #include "defs.h"
 
@@ -152,7 +153,7 @@ unsigned long long DRAM::readRecords(const char *LOCAL_INPUT_DIR, int pageStart,
                                      int recordSize)
 {
     unsigned long long totalBytes = 0;
-    for (int i = pageStart; i <= pageEnd; i++)
+    for (int i = pageStart; i < pageEnd; i++)
     {
         Page *page = readPage(LOCAL_INPUT_DIR, i, recordSize);
         addPage(page);
@@ -162,13 +163,14 @@ unsigned long long DRAM::readRecords(const char *LOCAL_INPUT_DIR, int pageStart,
 }
 
 /*
-    Read a page from LOCAL_INPUT_DIR
+    Read a page from LOCAL_INPUT_DIR.
+    Note that pages are stored directly under LOCAL_INPUT_DIR
 */
 Page *DRAM::readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize)
 {
     char separator = get_directory_separator();
     Page *page = new Page(pageIdx, PAGE_SIZE / recordSize, PAGE_SIZE);
-    std::string pagePath = LOCAL_INPUT_DIR + separator + std::to_string(pageIdx);
+    std::string pagePath = std::string(LOCAL_INPUT_DIR) + separator + std::to_string(pageIdx);
     std::ifstream pageFile(pagePath);
     if (pageFile.is_open())
     {
@@ -182,7 +184,8 @@ Page *DRAM::readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize)
     else
     {
         // printf("Fail to create file for page %d\n", pageIdx);
-        std::cerr << "Error opening file for writing page" << pageIdx << " ." << std::endl;
+        std::cerr << "Error opening file for run page " << pageIdx << " .\n"
+                  << std::endl;
         return nullptr;
     }
 
@@ -221,18 +224,21 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
     // output buffers can hold the maximum number of records,
     // where it's equal to the maximum number of cachesized runs;
     int fanin = rTable.size();
-    TournamentTree *tree = new TournamentTree(fanin, rTable, nullptr);
+
+    std::unordered_map<int, int> dummy;
+    const char *emptyStr = "";
+
+    TournamentTree *tree = new TournamentTree(fanin, rTable, nullptr, &dummy, emptyStr);
     int i = 0;
     // Run *curr = new Run();
     // CREATE A RUN FOLDER INSIDE LOCAL_DRAM_SIZED_RUNS_DIR
 
     unsigned long long bytesInRun = 0;
     printf("buffersUsed: %d\n", buffersUsed);
-    int newRunId = dest->outputBuffers.getIdForNewRunFile();
 
     char separator = get_directory_separator();
-    std::string newRunDir = "run" + std::to_string(newRunId);
-    std::string newRunPath = LOCAL_DRAM_SIZED_RUNS_DIR + separator + newRunDir;
+    std::string newRunDir = "run" + std::to_string(outputRunidx);
+    std::string newRunPath = std::string(LOCAL_DRAM_SIZED_RUNS_DIR) + separator + newRunDir;
 
     dest->createRunFolder(LOCAL_DRAM_SIZED_RUNS_DIR, outputRunidx);
 
@@ -274,14 +280,9 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
         while (!outputBuffers.wrapper->isEmpty())
         {
             Page *page = outputBuffers.wrapper->getFirstPage();
-            while (!page->isEmpty())
-            {
-                // Write to curr run in dest Disk
-                Page *page = outputBuffers.wrapper->getFirstPage();
-                dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
-                pageIdx++;
-                outputBuffers.wrapper->removeFisrtPage();
-            }
+            // Write to curr run in dest Disk
+            dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
+            pageIdx++;
             outputBuffers.wrapper->removeFisrtPage();
         }
         outputBuffers.clear();
