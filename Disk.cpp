@@ -144,7 +144,7 @@ bool Disk::delFirstPageFromRunK(int k)
     return false;
 }
 
-void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
+void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, int pageSize)
 {
     // Create SSD-Sized runs first
     int fanIn = SSD_SIZE / DRAM_SIZE;
@@ -193,7 +193,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
-            if (PAGE_SIZE - outputPageBytesOccupied < recordSize)
+            if (pageSize - outputPageBytesOccupied < recordSize)
             {
                 pageFile.close();
                 // Create a new page file inside LOCAL_INPUT_DIR
@@ -223,7 +223,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
     }
 }
 
-void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
+void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, int pageSize)
 {
     // Reset runIdxOffset since they are stored in LOCAL_SSD_SIZED_RUNS_DIR now
     int runIdxOffset = 0;
@@ -269,6 +269,7 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
             Record *winner = tree->popWinner();
 
             char *bytes = winner->serialize();
+            
             outputFile.write(bytes, strlen(bytes));
             outputFile << "\n";
             bytesToWrite += recordSize;

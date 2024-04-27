@@ -22,6 +22,8 @@
 #include <ftw.h>
 
 // Set global variable
+int SSD_PAGE_SIZE = 4096；
+int HDD_PAGE_SIZE = 8192；
 
 // Actual params
 unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
@@ -78,7 +80,11 @@ std::vector<Page *> graceFulDegradation(Run *uniqueRecordsInPages, DRAM *dram, D
 	{
 		// Page *pageToSpill = dram->getFirstPage();
 		Page *pageToSpill = dram->getPageCopy(i);
-		bytesToSpill += pageToSpill->getBytes();
+		if(runToSpill->currentPageSize() + pageToSpill->getBytes() > SSD_PAGE_SIZE) {
+			ssd->addRun(runToSpill); // add the full run to SSD
+			runToSpill = new Run(); // start a new run
+		}
+		// bytesToSpill += pageToSpill->getBytes();
 		runToSpill->appendPage(pageToSpill);
 		dram->erasePage(i); // only flip bit map
 		i++;
@@ -354,11 +360,11 @@ int mergeSort()
 
 	// Start merging on HDD
 	hdd.outputMergeMsg(outputTXT);
-	hdd.mergeMemorySizedRuns(outputTXT, OUTPUT_TABLE);
+	hdd.mergeMemorySizedRuns(outputTXT, OUTPUT_TABLE, HDD_PAGE_SIZE);
 
 	int totalNumberSSDSizedRuns = countRunsInDirectory(std::string(LOCAL_SSD_SIZED_RUNS_DIR));
 
-	hdd.mergeSSDSizedRuns(outputTXT, OUTPUT_TABLE);
+	hdd.mergeSSDSizedRuns(outputTXT, OUTPUT_TABLE, SSD_PAGE_SIZE);
 
 	return 0;
 }

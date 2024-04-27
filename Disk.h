@@ -104,8 +104,8 @@ public:
 
     bool delFirstPageFromRunK(int k);
 
-    void mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
-    void mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
+    void mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, int pageSize);
+    void mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, int pageSize);
 
     void clear();
 
