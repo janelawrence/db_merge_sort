@@ -28,8 +28,8 @@ unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int PAGE_SIZE = 8192;									  // 8 KB
-// char *INPUT_TXT = "input_12gb_12582912_1024.txt";
-char *INPUT_TXT = "input_125mb_128000_1024.txt";
+char *INPUT_TXT = "input_12gb_12582912_1024.txt";
+// char *INPUT_TXT = "input_125mb_128000_1024.txt";
 // char *INPUT_TXT = "mini_200_20_input.txt";
 
 // >>>>>> Mini test case 1
@@ -96,7 +96,7 @@ std::vector<Page *> graceFulDegradation(Run *uniqueRecordsInPages, DRAM *dram, D
 	while (!uniqueRecordsInPages->isEmpty())
 	{
 		dram->addPage(uniqueRecordsInPages->getFirstPage()->clone());
-		uniqueRecordsInPages->removeFisrtPage();
+		uniqueRecordsInPages->removeFirstPage(0);
 	}
 	// Get ready for creating cach-sized mini runs
 	// Read the spilled data into Cache
@@ -108,8 +108,8 @@ std::vector<Page *> graceFulDegradation(Run *uniqueRecordsInPages, DRAM *dram, D
 
 	while (spilledData->getNumPages() > 0)
 	{
-		pagesReadInCache.push_back(spilledData->getFirstPage()->clone());
-		spilledData->removeFisrtPage();
+		pagesReadInCache.push_back(spilledData->getFirstPage());
+		spilledData->removeFirstPage(0);
 	}
 	// since the spill threshold is 0.1%, the number of pages spilled is guaranteed
 	// could fit in Cache

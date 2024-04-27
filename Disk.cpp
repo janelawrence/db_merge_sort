@@ -132,13 +132,14 @@ bool Disk::eraseRun(int runIdx)
     return true;
 }
 
+// TODO: if not used, delete
 bool Disk::delFirstPageFromRunK(int k)
 {
     if (k >= 0 && k < unsortedRuns.size() && !unsortedRuns[k]->isEmpty())
     {
-        int pSize = unsortedRuns[k]->getBytes();
-        unsortedRuns[k]->removeFisrtPage();
-        capacity += pSize;
+        int runSize = unsortedRuns[k]->getBytes();
+        unsortedRuns[k]->removeFirstPage(0);
+        capacity += runSize;
         return true;
     }
     return false;
@@ -281,6 +282,7 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
             // outputFile.write(bytes, strlen(bytes));
             outputFile << "\n";
             bytesToWrite += recordSize;
+            delete winner;
         }
         outputFile.close();
         outputAccessState(ACCESS_WRITE, bytesToWrite, outputTXT);
@@ -448,17 +450,20 @@ int Disk::writeOutputTable(const char *outputTXT)
     while (!outputRun->isEmpty())
     {
         Page *curr = outputRun->getFirstPage();
+        int firstPageOriginalBytes = curr->getBytes();
         while (!curr->isEmpty())
         {
             // const char *bytes = curr->getFirstRecord()->serialize();
             // outputFile.write(bytes, strlen(bytes));
-            outputFile.write(curr->getFirstRecord()->key.data(), curr->getFirstRecord()->key.size());
-            outputFile.write(curr->getFirstRecord()->content.data(), curr->getFirstRecord()->content.size());
+            Record *toBeRemovedRec = curr->getFirstRecord();
+            outputFile.write(toBeRemovedRec->key.data(), toBeRemovedRec->key.size());
+            outputFile.write(toBeRemovedRec->content.data(), toBeRemovedRec->content.size());
 
             outputFile << '\n';
             curr->removeFisrtRecord();
+            delete toBeRemovedRec;
         }
-        outputRun->removeFisrtPage();
+        outputRun->removeFirstPage(firstPageOriginalBytes);
     }
 
     outputFile.close();

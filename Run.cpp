@@ -67,7 +67,7 @@ Run *Run::clone()
     return clonedRun;
 }
 
-void Run::removeFisrtPage()
+void Run::removeFirstPage(int firstPageOriginalBytes)
 {
     if (numPage == 0 || pageHead == nullptr)
     {
@@ -76,7 +76,14 @@ void Run::removeFisrtPage()
     }
     numPage--;
     Page *temp = pageHead;
-    bytes -= pageHead->getBytes();
+    if (firstPageOriginalBytes > 0 && pageHead->getBytes() == 0)
+    {
+        bytes -= firstPageOriginalBytes; // HANDLE CORNER CASE
+    }
+    else
+    {
+        bytes -= pageHead->getBytes();
+    }
     pageHead = pageHead->getNext();
     delete temp;
 }

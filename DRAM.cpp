@@ -287,9 +287,10 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
             {
                 // Write to curr run in dest Disk
                 Page *page = outputBuffers.wrapper->getFirstPage();
+                int firstPageOriginalBytes = page->getBytes();
                 dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
                 pageIdx++;
-                outputBuffers.wrapper->removeFisrtPage();
+                outputBuffers.wrapper->removeFirstPage(firstPageOriginalBytes);
             }
             outputBuffers.clear();
         }
@@ -308,10 +309,11 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
         while (!outputBuffers.wrapper->isEmpty())
         {
             Page *page = outputBuffers.wrapper->getFirstPage();
+            int firstPageOriginalBytes = page->getBytes();
             // Write to curr run in dest Disk
             dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
             pageIdx++;
-            outputBuffers.wrapper->removeFisrtPage();
+            outputBuffers.wrapper->removeFirstPage(firstPageOriginalBytes);
         }
         outputBuffers.clear();
     }
