@@ -62,7 +62,7 @@ Record::~Record()
 void Record::printRecord()
 {
     printf("Record: key %s, slot: %d, size: %d, content size: %d\n",
-           key, slot, size, content.size());
+           key.data(), slot, size, content.size());
 }
 // Getters
 int Record::getSize() const { return size; }
