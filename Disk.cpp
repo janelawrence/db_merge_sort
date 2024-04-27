@@ -501,12 +501,14 @@ int Disk::writePageToRunFolder(const char *runFolderPath, Page *page, int pageId
     {
         // const char *bytes = page->getFirstRecord()->serialize();
         // pageFile.write(bytes, strlen(bytes));
-        pageFile.write(page->getFirstRecord()->key.data(), page->getFirstRecord()->key.size());
-        pageFile.write(page->getFirstRecord()->content.data(), page->getFirstRecord()->content.size());
+        Record *toBeRemovedRec = page->getFirstRecord();
+        pageFile.write(toBeRemovedRec->key.data(), toBeRemovedRec->key.size());
+        pageFile.write(toBeRemovedRec->content.data(), toBeRemovedRec->content.size());
 
         // delete[] bytes;
         pageFile << '\n';
         page->removeFisrtRecord();
+        delete toBeRemovedRec;
     }
     pageFile.close();
 
