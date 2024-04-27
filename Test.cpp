@@ -28,7 +28,7 @@ unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int PAGE_SIZE = 8192;									  // 8 KB
-char *INPUT_TXT = "input_12gb_12582912_1024.txt";
+char *INPUT_TXT = "input_120gb_125829120_1024.txt";
 // char *INPUT_TXT = "input_125mb_128000_1024.txt";
 // char *INPUT_TXT = "mini_200_20_input.txt";
 

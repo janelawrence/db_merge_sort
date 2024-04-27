@@ -7,5 +7,5 @@ valgrind --leak-check=full \
          --track-origins=yes \
          --verbose \
          --log-file=valgrind-out.txt \
-         ./ExternalSort.exe -c 128000 -s 1024 -o trace_input_table.txt
+         ./ExternalSort.exe -c 125829120 -s 1024 -o trace_input_table.txt
 # ./ExternalSort.exe -c 20 -s 1024 -o output_trace.txt
