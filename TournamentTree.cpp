@@ -57,6 +57,7 @@ TournamentTree::~TournamentTree()
     {
         delete records[i];
     }
+    records.clear();
     // if (disk != nullptr)
     // {
     //     for (int j = 0; j < pageTable.size(); j++)
@@ -64,7 +65,6 @@ TournamentTree::~TournamentTree()
     //         delete pageTable[j];
     //     }
     // }
-    delete[] runPathPhysical;
 }
 
 void TournamentTree::assignGhost()

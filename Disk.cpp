@@ -44,7 +44,7 @@ bool Disk::addRun(Run *run)
         printf("Disk does Not enough space\n");
         return false;
     }
-    unsortedRuns.push_back(run->clone());
+    unsortedRuns.push_back(run);
 
     // Decrease Disk capacity
     capacity -= run->getBytes();
@@ -83,7 +83,7 @@ bool Disk::addRunToTempList(Run *run)
         printf("Disk does Not enough space to store tempoarary run\n");
         return false;
     }
-    temp.push_back(run->clone());
+    temp.push_back(run);
     // Decrease Disk capacity
     capacity -= run->getBytes();
     // tempRunBitmap.push_back(true);
@@ -220,6 +220,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
         outputAccessState(ACCESS_WRITE, outputPageBytesOccupied, outputTXT);
         runIdxOffset += fanIn;
         outputRunidx++;
+        delete tree;
     }
 }
 
@@ -277,6 +278,7 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
         outputAccessState(ACCESS_WRITE, bytesToWrite, outputTXT);
         runIdxOffset += fanIn;
         outputRunidx++;
+        delete tree;
     }
 }
 

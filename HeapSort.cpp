@@ -134,7 +134,9 @@ Page *HeapSort::toNewPages(int pageIdx, int maxRecordsInPage, int pageSize)
         newPage->addRecord(minRecord);
         copyHeap.pop();
     }
-    return sentinalPage->getNext();
+    Page *nextPage = sentinalPage->getNext();
+    delete sentinalPage;
+    return nextPage;
 }
 
 // Main function for testing

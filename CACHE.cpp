@@ -53,7 +53,7 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 		{
 			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
 			miniRuns.push_back(miniRun);
-			Run *miniRun = new Run();
+			// Run *miniRun = new Run();
 			// heap.clear();
 		}
 	}

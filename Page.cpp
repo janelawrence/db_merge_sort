@@ -33,6 +33,8 @@ void Page::removeFisrtRecord()
         return;
     }
     bytes -= records.front()->getSize();
+    // Record *first = records.front();
+    // delete first;
     records.pop_front();
 }
 

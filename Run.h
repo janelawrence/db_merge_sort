@@ -13,7 +13,7 @@ private:
 
 public:
     Run();
-
+    ~Run();
     void appendPage(Page *);
     void removeFisrtPage();
     void addRecord(Record *);

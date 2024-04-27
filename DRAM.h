@@ -47,8 +47,9 @@ public:
 
     // Constructor
     DRAM(unsigned long long maxCap, int nOutputBuffers);
+    ~DRAM();
 
-    Page *getPageCopy(int idx);
+    Page *getPage(int idx);
 
     // return false if memory is out of space
     //  Add to input buffer

@@ -9,6 +9,17 @@ Run::Run()
     numPage = 0;
 }
 
+Run::~Run()
+{
+    Page *temp = pageHead;
+    while (temp != nullptr)
+    {
+        Page *temptemp = temp;
+        temp = temp->getNext();
+        delete temptemp;
+    }
+}
+
 /**
  * Append page in the end,
  * page can have next page, so need to adjust pageTail
@@ -19,6 +30,8 @@ void Run::appendPage(Page *page)
 {
     if (pageHead->getIdx() == -1)
     {
+        Page *ptr = pageHead;
+        delete ptr;
         pageHead = page;
         // page->print();
         // pageHead->print();
