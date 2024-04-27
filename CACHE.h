@@ -18,6 +18,7 @@ private:
 public:
     // Constructor
     CACHE(int cacheSize, int nPages);
+    ~CACHE();
 
     int outputMiniRunState(const char *outputTXT);
     // Output miniRuns

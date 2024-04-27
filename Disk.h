@@ -2,48 +2,47 @@
 #define DISK_H
 
 #include "Run.h"
-#include "Run.h"
 
 #include <iostream>
 #include <chrono>
 #include <thread>
 #include <vector>
 #include <string>
+#include <cstdio>
 
 struct OutputBuffers
 {
     int nBuffer;
     unsigned long long maxCap;
     unsigned long long bytesStored;
-    std::vector<Run *> runs;
+    int numberRuns;
+    // std::vector<Run *> runs;
+    // std::vector<const char *> runFiles;
+    // output buffers stores path to run files
 
     bool isFull()
     {
         return bytesStored == maxCap;
     }
 
-    bool addRun(Run *run)
+    bool addRun(unsigned long long bytesToWrite)
     {
-        if (run->getBytes() > getCapacity())
+        if (bytesToWrite > getCapacity())
         {
             printf("Disk output buffer does Not enough space\n");
             return false;
         }
-        runs.push_back(run->clone());
+        // runFiles.push_back(runFile);
+        numberRuns++;
+        //
 
         // Decrease Disk capacity
-        bytesStored += run->getBytes();
+        bytesStored += bytesToWrite;
     }
 
     bool isEmpty()
     {
-        bytesStored == 0;
-    }
-    void clear()
-    {
-        std::vector<Run *> newRuns;
-        runs.swap(newRuns);
-        bytesStored = 0;
+        return bytesStored == 0;
     }
 
     unsigned long long getBytes() const
@@ -67,19 +66,27 @@ private:
     int numUnsortedRuns;
     int nOutputBuffer;
     const char *diskType;
-    std::vector<Run *> unsortedRuns;
+    std::vector<Run *> unsortedRuns; // input buffers
     // runBitmap[i] = true if run is valid
     // runBitmap[i] = false if run is been evicted
-    std::vector<bool> runBitmap;
+    std::vector<bool> runBitmap; // input buffers
 
     int numTempRuns;
     std::vector<Run *> temp; // stored intermiate merged runs
 
+    // Smilate Reading data from Disk with given size in bytes
+    int readData(unsigned long long sizeInBytes);
+
+    // Smilate Writing runs to Disk
+    int writeData(unsigned long long sizeInBytes);
+
 public:
     OutputBuffers outputBuffers; // wrapping x output buffers in a run
-
+    // const char *localPath;
     // Constructor
-    Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBuffer);
+    Disk(unsigned long long maxCap,
+         long lat, long bw, const char *dType,
+         int nOutputBuffer);
 
     // return false if Disk is out of space
     // add run to input buffers aka unsortedRuns
@@ -87,7 +94,7 @@ public:
 
     bool addRunToTempList(Run *run);
 
-    bool addRunToOutputBuffer(Run *run);
+    bool addRunToOutputBuffer(int bytesToWrite);
 
     void moveRunToTempList(int runIdx);
 
@@ -97,7 +104,8 @@ public:
 
     bool delFirstPageFromRunK(int k);
 
-    void mergeFromSelfToSelf(const char *outputTXT);
+    void mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
+    void mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
 
     void clear();
 
@@ -107,12 +115,6 @@ public:
                           unsigned long long totalBytes,
                           const char *outputTXT);
     int outputMergeMsg(const char *outputTXT);
-
-    // Smilate Reading data from Disk with given size in bytes
-    int readData(unsigned long long sizeInBytes);
-
-    // Smilate Writing runs to Disk
-    int writeData(unsigned long long sizeInBytes);
 
     int writeOutputTable(const char *outputTXT);
 
@@ -135,9 +137,23 @@ public:
     long getBandwidth() const;
     const char *getType() const;
 
+    int clearOuputBuffer();
+
     Run *getRun(int k) const;
     Run *getRunCopy(int k) const;
 
+    // Functions that write/read runs to local folder for storage
+    // -------------------------------------------------------------------
+    int createRunFolder(const char *LOCAL_DIR, int newRunIdx);
+    int writePageToRunFolder(const char *runFolderPath, Page *page, int idx);
+
+    int writeRunToOutputTable(const char *runFolderPath, const char *outputTXT);
+
+    Page *readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx);
+
+    int getNumPagesInRunOnDisk(const char *LOCAL_DIR, int runIdx);
+
+    // Getters
     void print() const;
 
     void printTemp() const;

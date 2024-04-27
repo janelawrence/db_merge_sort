@@ -7,15 +7,17 @@
 int KEY_SIZE = 8;
 
 // Constructor
-Record::Record(int s, const char *bytes) : size(s)
+Record::Record(int s, std::string bytes) : size(s)
 {
     key = new char[KEY_SIZE + 1];
-    std::strncpy(key, bytes, KEY_SIZE);
+    std::copy(bytes.begin(), bytes.begin() + KEY_SIZE, key);
+    // std::strncpy(key, bytes, KEY_SIZE);
     key[KEY_SIZE] = '\0';
 
     content = new char[size - KEY_SIZE + 1];
     // Copy the rest of the bytes to content
-    std::strncpy(content, bytes + KEY_SIZE, size - KEY_SIZE);
+    std::copy(bytes.begin() + KEY_SIZE, bytes.end(), content);
+    // std::strncpy(content, bytes + KEY_SIZE, size - KEY_SIZE);
     content[size - KEY_SIZE] = '\0'; // Ensure null termination
 }
 

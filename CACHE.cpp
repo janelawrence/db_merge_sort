@@ -14,6 +14,11 @@
 // Constructor
 CACHE::CACHE(int cacheSize, int nPages) : MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages), capacity(cacheSize) {}
 
+CACHE::~CACHE()
+{
+	heap.clear();
+}
+
 std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE)
 {
 
@@ -49,9 +54,10 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
 			miniRuns.push_back(miniRun);
 			Run *miniRun = new Run();
-			heap.clear();
+			// heap.clear();
 		}
 	}
+	heap.clear();
 	return miniRuns;
 }
 
@@ -60,7 +66,7 @@ std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesIn
 													 std::vector<Page *> pagesInCACHE,
 													 int maxRecordsInPage, int PAGE_SIZE)
 {
-	for (int i = 0; i < pagesInCACHE.size(); i++)
+	for (long unsigned int i = 0; i < pagesInCACHE.size(); i++)
 	{
 		pagesInDRAM.push_back(pagesInCACHE[i]);
 	}
@@ -146,7 +152,7 @@ double CACHE::getCapacity() const
 //     CACHE* cache = new CACHE();
 // 	std::vector<Run*> sortedRunsInCache = cache->readFromHDD(recordSize, hdd);
 
-//     for(int i = 0; i < sortedRunsInCache.size(); i++) {
+//     for(long unsigned int i = 0; i < sortedRunsInCache.size(); i++) {
 // 		Run* run = sortedRunsInCache[i];
 // 		printf("------------- %d th Run -----------\n", i);
 // 		run->printRun();

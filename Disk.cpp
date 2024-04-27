@@ -1,14 +1,19 @@
-#include "Disk.h"
-#include "DRAM.h"
-#include "defs.h"
-#include "TournamentTree.h"
-
 #include <iostream>
 #include <fstream>
 #include <chrono>
 #include <thread>
+#include <fstream>
 #include <vector>
 #include <cstring>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <ftw.h>
+#include <unordered_map>
+
+#include "Disk.h"
+#include "DRAM.h"
+#include "defs.h"
+#include "TournamentTree.h"
 
 // Constructor
 Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int nOutputBuffer)
@@ -16,18 +21,21 @@ Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int 
 {
     capacity = maxCap;
     diskType = dType;
+    // localPath = path;
     numUnsortedRuns = 0;
     numTempRuns = 0;
     if (nOutputBuffer > 0)
     { // HDD doesn't need output buffers
         outputBuffers.nBuffer = nOutputBuffer;
         outputBuffers.maxCap = (unsigned long long)nOutputBuffer * PAGE_SIZE;
+        outputBuffers.bytesStored = 0;
+        outputBuffers.numberRuns = 0;
         capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffer * PAGE_SIZE; // capacity of the input buffers
     }
 }
 
 /*
-Write cloned run to Disk
+Write cloned run to Disk (virtually)
 */
 bool Disk::addRun(Run *run)
 {
@@ -47,11 +55,14 @@ bool Disk::addRun(Run *run)
 }
 
 /*
-Write cloned run to Disk
+Write cloned run to Disk (Physically add to localPath)
+By the time this function is called, the run
+has been written to a local run file,
+so it only needs to keep track of which file it's
 */
-bool Disk::addRunToOutputBuffer(Run *run)
+bool Disk::addRunToOutputBuffer(int bytesToWrite)
 {
-    return outputBuffers.addRun(run);
+    return outputBuffers.addRun(bytesToWrite);
 }
 
 void Disk::moveRunToTempList(int runIdx)
@@ -96,7 +107,7 @@ void Disk::moveAllTempToUnsorted()
 
     numUnsortedRuns = unsortedRuns.size();
     runBitmap.clear();
-    for (int i = 0; i < unsortedRuns.size(); i++)
+    for (long unsigned int i = 0; i < unsortedRuns.size(); i++)
     {
         // Assume all runs in temps are valid
         runBitmap.push_back(true);
@@ -133,53 +144,139 @@ bool Disk::delFirstPageFromRunK(int k)
     return false;
 }
 
-void Disk::mergeFromSelfToSelf(const char *outputTXT)
+void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
 {
     // Create SSD-Sized runs first
     int fanIn = SSD_SIZE / DRAM_SIZE;
-    fanIn = std::min(numUnsortedRuns, fanIn);
-    while (numUnsortedRuns > 0)
-    {
-        std::vector<Run *> currMemSizedRuns;
-        for (int i = 0; i < fanIn; i++)
-        {
-            currMemSizedRuns.push_back(unsortedRuns[i]->clone());
-            // set bit to invalid
-            eraseRun(i);
-        }
-        // clean segmented free space
-        cleanInvalidRuns();
+    int runIdxOffset = 0;
 
-        TournamentTree *tree = new TournamentTree(fanIn, currMemSizedRuns, this);
-        Run *curr = new Run();
+    int totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
+    fanIn = std::min(totalNumberMemorySizedRuns, fanIn);
+    if (totalNumberMemorySizedRuns == 0)
+    {
+        printf("No memory-sized runs to be merged on HDD\n");
+        return;
+    }
+    if (totalNumberMemorySizedRuns == 1)
+    {
+        printf("Only one memory-sized runs created, no need to be merge\n");
+        return;
+    }
+    std::vector<Run *> dummyTable;
+    int outputRunidx = 0;
+    while (runIdxOffset < totalNumberMemorySizedRuns)
+    {
+        // Prepare metadata table for runs
+        std::vector<int> runTable;
+        for (int i = runIdxOffset; i < runIdxOffset + fanIn && i < totalNumberMemorySizedRuns; i++)
+        {
+            runTable.push_back(i);
+        }
+        TournamentTree *tree = new TournamentTree(fanIn, this, runTable, LOCAL_DRAM_SIZED_RUNS_DIR);
+
+        // Create new Run folder in LOCAL_SSD_SIZED_RUNS_DIR
+        char separator = get_directory_separator();
+        std::string newRunDir = "run" + std::to_string(outputRunidx);
+        std::string newRunPath = std::string(LOCAL_SSD_SIZED_RUNS_DIR) + separator + newRunDir;
+
+        createRunFolder(LOCAL_SSD_SIZED_RUNS_DIR, outputRunidx);
+
+        // Initialize pageIdx
+        int outputPageIdx = 0;
+        int outputPageBytesOccupied = 0;
+        std::string pageFileName = std::to_string(outputPageIdx);
+        std::string pageFilePath = std::string(newRunPath) + separator + pageFileName;
+        std::ofstream pageFile(pageFilePath, std::ios::binary);
+
         int bytesToWrite = 0;
-        // write sorted output to output buffer
+        // // write sorted output to output buffer
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
-            curr->addRecord(winner);
-            bytesToWrite += winner->getSize();
+            if (PAGE_SIZE - outputPageBytesOccupied < recordSize)
+            {
+                pageFile.close();
+                // Create a new page file inside LOCAL_INPUT_DIR
+                outputPageIdx++;
+                pageFileName = std::to_string(outputPageIdx);
+                pageFilePath = std::string(newRunPath) + separator + pageFileName;
+                pageFile.open(pageFilePath, std::ios::binary);
+                outputPageBytesOccupied = 0;
+                if (!pageFile)
+                {
+                    std::cerr << "Error opening file for writing page " << pageFilePath << " ." << std::endl;
+                    return;
+                }
+            }
+            // write record to page file
+            char *bytes = winner->serialize();
+            pageFile.write(bytes, strlen(bytes));
+            delete[] bytes;
+            delete winner;
+            pageFile << "\n";
+            outputPageBytesOccupied += recordSize;
         }
-        // Add SSD-Sized run to a temp vector
-        addRunToTempList(curr);
-        outputAccessState(ACCESS_WRITE, curr->getBytes(), outputTXT);
+        pageFile.close();
+        outputAccessState(ACCESS_WRITE, outputPageBytesOccupied, outputTXT);
+        runIdxOffset += fanIn;
+        outputRunidx++;
+    }
+}
+
+void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
+{
+    // Reset runIdxOffset since they are stored in LOCAL_SSD_SIZED_RUNS_DIR now
+    int runIdxOffset = 0;
+    int outputRunidx = 0;
+    int totalNumberSSDSizedRuns = countRunsInDirectory(std::string(LOCAL_SSD_SIZED_RUNS_DIR));
+    int fanIn = totalNumberSSDSizedRuns;
+
+    if (totalNumberSSDSizedRuns == 1)
+    {
+        char separator = get_directory_separator();
+        std::string runDir = "run" + std::to_string(0);
+        std::string runPath = std::string(LOCAL_SSD_SIZED_RUNS_DIR) + separator + runDir;
+        writeRunToOutputTable(runPath.c_str(), OUTPUT_TABLE);
+        return;
     }
 
-    moveAllTempToUnsorted();
-    // Merge all SSD-Sized runs at once
-    if (numUnsortedRuns > 1)
+    // Merge all SSD-Sized runs if more than 1
+    // Write to output table directly
+    if (totalNumberSSDSizedRuns > 1)
     {
-        TournamentTree *tree = new TournamentTree(fanIn, unsortedRuns, this);
-        Run *curr = new Run();
+        // Prepare for tournament tree
+        std::vector<int> runTable;
+        for (int i = runIdxOffset; i < runIdxOffset + fanIn && i < totalNumberSSDSizedRuns; i++)
+        {
+            runTable.push_back(i);
+        }
+        TournamentTree *tree = new TournamentTree(fanIn, this, runTable, LOCAL_SSD_SIZED_RUNS_DIR);
+
+        // Create the input table file
+        std::ofstream outputFile(OUTPUT_TABLE, std::ios::binary);
+
+        // Check if the file opened successfully
+        if (!outputFile.is_open())
+        {
+            std::cerr << "\nError: Could not open file trace0.txt for writing." << std::endl;
+            return;
+        }
+
         int bytesToWrite = 0;
-        // write sorted output to output buffer
+        // write merge result to output table
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
-            curr->addRecord(winner);
-            bytesToWrite += winner->getSize();
+
+            char *bytes = winner->serialize();
+            outputFile.write(bytes, strlen(bytes));
+            outputFile << "\n";
+            bytesToWrite += recordSize;
         }
-        addRun(curr);
+        outputFile.close();
+        outputAccessState(ACCESS_WRITE, bytesToWrite, outputTXT);
+        runIdxOffset += fanIn;
+        outputRunidx++;
     }
 }
 
@@ -197,7 +294,7 @@ void Disk::clear()
     numUnsortedRuns = 0;
     if (nOutputBuffer > 0)
     {
-        outputBuffers.clear();
+        clearOuputBuffer();
         capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE;
     }
 }
@@ -355,6 +452,143 @@ int Disk::writeOutputTable(const char *outputTXT)
     return 0;
 }
 
+int Disk::createRunFolder(const char *LOCAL_DIR, int newRunIdx)
+{
+    char separator = get_directory_separator();
+    std::string newRunDir = "run" + std::to_string(newRunIdx);
+    std::string newRunPath = std::string(LOCAL_DIR) + separator + newRunDir;
+
+    // Create the directory specified by fullPathForRun
+    if (mkdir(newRunPath.c_str(), 0755) == -1)
+    {
+        perror("Failed to create directory for run\n");
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ *
+ */
+int Disk::writePageToRunFolder(const char *runFolderPath, Page *page, int pageIdx)
+{
+    char separator = get_directory_separator();
+    std::string pageFileName = std::to_string(pageIdx);
+    std::string pageFilePath = std::string(runFolderPath) + separator + pageFileName;
+    std::ofstream pageFile(pageFilePath, std::ios::binary);
+
+    if (!pageFile)
+    {
+        // printf("Fail to create file for page %d\n", pageIdx);
+        std::cerr << "Error opening file for writing page" << pageIdx << " ." << std::endl;
+        return 0;
+    }
+
+    while (!page->isEmpty())
+    {
+        const char *bytes = page->getFirstRecord()->serialize();
+        pageFile.write(bytes, strlen(bytes));
+        delete[] bytes;
+        pageFile << '\n';
+        page->removeFisrtRecord();
+    }
+    pageFile.close();
+
+    return 0;
+}
+int Disk::writeRunToOutputTable(const char *runFolderPath, const char *OUTPUT_TABLE)
+{
+    int numPages = countFilesInDirectory(std::string(runFolderPath));
+    // For each page in this runFolderPath
+    char separator = get_directory_separator();
+    // Open the output file in overwrite mode
+    std::ofstream outputFile(OUTPUT_TABLE, std::ios::binary);
+    int outputNumRecords = 0;
+
+    // Check if the file opened successfully
+    if (!outputFile.is_open())
+    {
+        std::cerr << "\nError: Could not open file trace0.txt for writing." << std::endl;
+        return 1; // Return error code
+    }
+
+    for (int pageIdx = 0; pageIdx < numPages; pageIdx++)
+    {
+        // Page *page = new Page(pageIdx, PAGE_SIZE / recordSize, PAGE_SIZE);
+        std::string pagePath = std::string(runFolderPath) + separator + std::to_string(pageIdx);
+        std::ifstream pageFile(pagePath);
+        if (pageFile.is_open())
+        {
+            std::string line;
+            while (std::getline(pageFile, line))
+            {
+                outputFile.write(line.c_str(), strlen(line.c_str()));
+                outputFile << '\n';
+                outputNumRecords++;
+            }
+            pageFile.close();
+        }
+        else
+        {
+            // printf("Fail to create file for page %d\n", pageIdx);
+            std::cerr << "Error opening file for run page " << pageIdx << " .\n"
+                      << std::endl;
+            return 1;
+        }
+    }
+    outputFile.close();
+    outputAccessState(ACCESS_WRITE, outputNumRecords * recordSize, outputTXT);
+    return 0;
+}
+
+Page *Disk::readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx)
+{
+    char separator = get_directory_separator();
+    std::string runDir = "run" + std::to_string(runIdx);
+    std::string runPath = std::string(LOCAL_DIR) + separator + runDir;
+    std::string pageFileName = std::to_string(pageIdx);
+    std::string pageFilePath = runPath + separator + pageFileName;
+    std::ifstream pageFile(pageFilePath);
+
+    Page *page = new Page(pageIdx, PAGE_SIZE / recordSize, PAGE_SIZE);
+
+    if (pageFile.is_open())
+    {
+        std::string line;
+        while (std::getline(pageFile, line))
+        {
+            Record *r = new Record(recordSize, line);
+            r->setSlot(runIdx);
+            page->addRecord(r);
+        }
+        pageFile.close();
+        return page;
+    }
+    else
+    {
+
+        std::cerr << "Error opening file for read page from path " << pageFilePath << std::endl;
+        return nullptr;
+    }
+}
+
+int Disk::getNumPagesInRunOnDisk(const char *LOCAL_DIR, int runIdx)
+{
+    char separator = get_directory_separator();
+    std::string runDir = "run" + std::to_string(runIdx);
+    std::string runPath = std::string(LOCAL_DIR) + separator + runDir;
+    return countFilesInDirectory(runPath);
+}
+
+int Disk::clearOuputBuffer()
+{
+
+    outputBuffers.numberRuns = 0;
+    outputBuffers.bytesStored = 0;
+
+    return 0;
+}
+
 void Disk::print() const
 {
     printf("\n------------------------------------%s Data------------------------------------\n", diskType);
@@ -366,8 +600,8 @@ void Disk::print() const
     {
         printf("MAX Capacity INF bytes\n");
     }
-    printf("In total has %d runs\n", unsortedRuns.size());
-    for (int i = 0; i < unsortedRuns.size(); i++)
+    printf("In total has %ld runs\n", unsortedRuns.size());
+    for (long unsigned int i = 0; i < unsortedRuns.size(); i++)
     {
         printf(">>>>>>>>>>>>>>>>>>> %d th Run, valid: %d >>>>>>>>>>>>>>>>>>\n", i, static_cast<int>(runBitmap[i]));
         unsortedRuns[i]->print();
@@ -380,14 +614,14 @@ void Disk::printTemp() const
     printf("\n------------------------------------%s Merged/Tempoary Saved Data------------------------------------\n", diskType);
     if (std::strcmp(diskType, SSD) > 0)
     {
-        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %i\n", MAX_CAPACITY, capacity);
     }
     else
     {
         printf("MAX Capacity INF bytes\n");
     }
-    printf("In total has %d merged runs\n", temp.size());
-    for (int i = 0; i < temp.size(); i++)
+    printf("In total has %ld merged runs\n", temp.size());
+    for (long unsigned int i = 0; i < temp.size(); i++)
     {
         printf(">>>>>>>>>>>>>>>>>>> %d th Merged Run >>>>>>>>>>>>>>>>>>\n", i);
         temp[i]->print();
@@ -461,7 +695,7 @@ int Disk::getNumUnsortedRuns() const
 int Disk::getNumRunsInOutputBuffer() const
 {
 
-    return outputBuffers.runs.size();
+    return outputBuffers.numberRuns;
 }
 
 int Disk::getNumTempRuns() const
@@ -480,11 +714,12 @@ void Disk::cleanInvalidRuns()
     std::vector<Run *> cleanedRuns;
     std::vector<bool> cleanedBitmap;
     unsigned long long used = 0;
-    for (int i = 0; i < unsortedRuns.size(); i++)
+    for (long unsigned int i = 0; i < unsortedRuns.size(); i++)
     {
         if (runBitmap[i])
         {
             cleanedRuns.push_back(unsortedRuns[i]->clone());
+            // cleanedRuns.push_back(unsortedRuns[i]);
             cleanedBitmap.push_back(true);
             used += unsortedRuns[i]->getBytes();
         }
@@ -596,7 +831,7 @@ void Disk::setCapacity(unsigned long long newCap)
 //     DRAM* dram = new DRAM();
 
 //     std::vector<Run*> dramOutput = dram->merge(runs, recordSize);
-//     for(int i = 0; i < dramOutput.size(); i++) {
+//     for(long unsigned int i = 0; i < dramOutput.size(); i++) {
 // 		Run* run = dramOutput[i];
 // 		printf("-------------DRAM Output %d th Run -----------\n", i);
 // 		run->print();
@@ -609,7 +844,7 @@ void Disk::setCapacity(unsigned long long newCap)
 
 //     std::vector<Run*> ssdOutput = ssd->merge(dramOutput, recordSize);
 
-//     for(int i = 0; i < ssdOutput.size(); i++) {
+//     for(long unsigned int i = 0; i < ssdOutput.size(); i++) {
 // 		Run* run = ssdOutput[i];
 // 		printf("------------- SSD Output %d th Run -----------\n", i);
 // 		run->print();

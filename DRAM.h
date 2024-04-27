@@ -39,6 +39,8 @@ private:
     int numOutputBuffers;
     std::vector<Page *> inputBuffers; // vecotr of intput buffers
     std::vector<bool> inputBuffersBitmap;
+    // Read one page from LOCAL_INPUT_DIR
+    Page *readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize);
 
 public:
     DramOutputBuffers outputBuffers; // wrapping numOutputBuffers output buffers in a run
@@ -64,15 +66,18 @@ public:
 
     bool delFirstRecordFromBufferK(int k);
 
-    Run *readRecords(const char *fileName, int recordSize, int numRecords, int totalBytes,
-                     int nBuffersDRAM, int maxRecordsInPage);
+    unsigned long long readRecords(const char *LOCAL_INPUT_DIR,
+                                   int pageStart, int pageEnd,
+                                   int recordSize);
 
     void clear();
 
     bool isFull() const;
 
     // merge data on dram and output runs to Dest
-    void mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Run *> &rTable);
+    void mergeFromSelfToDest(Disk *dest,
+                             const char *outputTXT, std::vector<Run *> &rTable,
+                             int outputRunidx);
 
     // Getters
     unsigned long long getCapacity() const;

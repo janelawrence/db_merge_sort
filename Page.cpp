@@ -16,10 +16,11 @@ Page *Page::clone()
     Page *clonedPage = new Page(idx, MAX_RECORDS, size);
     for (std::list<Record *>::iterator it = records.begin(); it != records.end(); ++it)
     {
-        Record *r = (*it);
-        clonedPage->addRecord(new Record(*r));
+        // Record *r = (*it);
+        clonedPage->addRecord(*it);
         clonedPage->setSource(pageSource);
         clonedPage->setIdx(idx);
+        // delete r;
     }
     return clonedPage;
 }
@@ -38,17 +39,21 @@ void Page::removeFisrtRecord()
 /**Return a deep copy of the first Record in Page*/
 Record *Page::getFirstRecord()
 {
-    Record *firstRecord;
     if (records.empty() || bytes == 0)
     {
         printf("List is empty, can't get fist from the list\n");
         return nullptr;
     }
-    return new Record(*records.front());
+    return records.front();
 }
 
 void Page::clear()
 {
+    for (std::list<Record *>::const_iterator it = records.begin(); it != records.end(); ++it)
+    {
+        delete *it;
+    }
+    records.clear();
     std::list<Record *> newRecords;
     records.swap(newRecords);
     bytes = 0;
@@ -56,6 +61,23 @@ void Page::clear()
     prev = nullptr;
     next = nullptr;
     idx = 0;
+}
+
+Page::~Page()
+{
+    for (std::list<Record *>::const_iterator it = records.begin(); it != records.end(); ++it)
+    {
+        delete *it;
+    }
+    records.clear();
+    if (prev)
+    {
+        prev->setNext(nullptr);
+    }
+    if (next)
+    {
+        next->setPrev(nullptr);
+    }
 }
 
 void Page::print(bool listRecord) const

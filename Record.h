@@ -16,7 +16,7 @@ private:
 
 public:
     // Constructor
-    Record(int s, const char *bytes);
+    Record(int s, std::string bytes);
 
     // Copy constructor
     Record(const Record &other);
