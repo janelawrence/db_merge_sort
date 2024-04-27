@@ -24,6 +24,7 @@ private:
 
 public:
     Page(int i, int s, int pageSize);
+    ~Page();
 
     void addRecord(Record *);
     void removeFisrtRecord();

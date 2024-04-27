@@ -119,7 +119,8 @@ void TournamentTree::initializeForRunsStoredDisk()
 
             runSizeTable.push_back(totalPagesInRun);
 
-            Record *r = new Record(*(fetchedPage->getFirstRecord()));
+            // potential memory leak
+            Record *r = fetchedPage->getFirstRecord();
             fetchedPage->removeFisrtRecord();
             pageTable.push_back(fetchedPage);
 
@@ -199,7 +200,9 @@ bool TournamentTree::hasNext()
 */
 Record *TournamentTree::popWinner()
 {
-    Record *winner = new Record(*getWinner());
+    // Record *winner = new Record(*getWinner());
+    Record *winner = getWinner();
+
     int winnerRecIdx = tree[1];
     if (winnerRecIdx == GHOST_KEY)
     {
@@ -220,7 +223,7 @@ Record *TournamentTree::popWinner()
         compete(index);
     }
 
-    delete records[winnerRecIdx];
+    // delete records[winnerRecIdx];
     records[winnerRecIdx] = nullptr;
     // Insert new record from runTable if needed
     // 2 cases: (1) when runs are stored in memory
@@ -233,17 +236,7 @@ Record *TournamentTree::popWinner()
     {
         fetchPageFromRunOnDisk(winnerRecIdx);
     }
-    // if (!runTable[winnerRecIdx]->isEmpty())
-    // {
-    //     int fetchedPageSize = runTable[winnerRecIdx]->getFirstPage()->getBytes();
-    //     Record *r = runTable[winnerRecIdx]->popFirstRecord();
-    //     insert(winnerRecIdx, r);
-    //     if (disk != nullptr)
-    //     {
-    //         disk->outputReadSortedRunState(outputTXT);
-    //         disk->outputAccessState(ACCESS_READ, fetchedPageSize, outputTXT);
-    //     }
-    // }
+
     return winner;
 }
 
@@ -260,7 +253,7 @@ void TournamentTree::fetchPageFromRunOnDisk(int winnerRecIdx)
 {
     if (!pageTable[winnerRecIdx]->isEmpty())
     {
-        Record *r = new Record(*(pageTable[winnerRecIdx]->getFirstRecord()));
+        Record *r = pageTable[winnerRecIdx]->getFirstRecord();
         pageTable[winnerRecIdx]->removeFisrtRecord();
         insert(winnerRecIdx, r);
     }
@@ -278,7 +271,7 @@ void TournamentTree::fetchPageFromRunOnDisk(int winnerRecIdx)
             {
                 delete pageTable[winnerRecIdx];
                 fetchedPageSize = newPage->getSize();
-                Record *r = new Record(*(newPage->getFirstRecord()));
+                Record *r = newPage->getFirstRecord();
                 newPage->removeFisrtRecord();
                 pageTable[winnerRecIdx] = newPage;
                 insert(winnerRecIdx, r);

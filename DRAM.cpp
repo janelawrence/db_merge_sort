@@ -41,7 +41,7 @@ bool DRAM::addPage(Page *page)
         printf("DRAM does Not enough space when adding\n");
         return false;
     }
-    inputBuffers.push_back(page->clone());
+    inputBuffers.push_back(page);
 
     // Decrease SSD capacity
     capacity -= page->getBytes();
@@ -72,8 +72,7 @@ void DRAM::removeFirstPage()
         capacity += firstPage->getBytes();
         buffersUsed -= 1;
         inputBuffers.erase(inputBuffers.begin());
-        // firstPage->clear(); // release memory
-        // delete firstPage;
+        delete firstPage; // release memory
         erasePage(0);
     }
 }
@@ -160,7 +159,6 @@ unsigned long long DRAM::readRecords(const char *LOCAL_INPUT_DIR, int pageStart,
         Page *page = readPage(LOCAL_INPUT_DIR, i, recordSize);
         addPage(page);
         totalBytes += (unsigned long long)page->getBytes();
-        delete page;
     }
     return totalBytes;
 }
@@ -180,7 +178,7 @@ Page *DRAM::readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize)
         std::string line;
         while (std::getline(pageFile, line))
         {
-            page->addRecord(new Record(recordSize, line.c_str()));
+            page->addRecord(new Record(recordSize, line));
         }
         pageFile.close();
     }
@@ -269,6 +267,7 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
                 outputBuffers.wrapper->removeFisrtPage();
             }
             outputBuffers.clear();
+            // bytesInRun = 0; // added to solve disk false overflow
         }
         outputBuffers.wrapper->addRecord(winner);
     }
@@ -292,7 +291,7 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
         outputBuffers.clear();
     }
     // Keep track of run file in disk's output buffer
-    dest->addRunToOutputBuffer(newRunPath.c_str(), bytesInRun);
+    dest->addRunToOutputBuffer(bytesInRun);
 }
 
 unsigned long long

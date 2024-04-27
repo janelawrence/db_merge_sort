@@ -40,7 +40,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 
 		std::string pageFileName = std::to_string(pageIdx);
 		std::string pageFilePath = std::string(LOCAL_INPUT_DIR) + separator + pageFileName;
-		std::ofstream pageFile(pageFilePath, std::ios::binary);
+		std::ofstream pageFile(pageFilePath.c_str(), std::ios::binary);
 
 		if (!pageFile)
 		{
@@ -123,7 +123,7 @@ Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 				continue;
 			}
 			// Record *r = new Record(recordSize, line.c_str());
-			recordsInPages->addRecord(new Record(recordSize, line.c_str()));
+			recordsInPages->addRecord(new Record(recordSize, line));
 			map[line] = 0;
 		}
 		file.close();

@@ -28,6 +28,8 @@ Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int 
     { // HDD doesn't need output buffers
         outputBuffers.nBuffer = nOutputBuffer;
         outputBuffers.maxCap = (unsigned long long)nOutputBuffer * PAGE_SIZE;
+        outputBuffers.bytesStored = 0;
+        outputBuffers.numberRuns = 0;
         capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffer * PAGE_SIZE; // capacity of the input buffers
     }
 }
@@ -58,9 +60,9 @@ By the time this function is called, the run
 has been written to a local run file,
 so it only needs to keep track of which file it's
 */
-bool Disk::addRunToOutputBuffer(const char *runFile, int bytesToWrite)
+bool Disk::addRunToOutputBuffer(int bytesToWrite)
 {
-    return outputBuffers.addRun(runFile, bytesToWrite);
+    return outputBuffers.addRun(bytesToWrite);
 }
 
 void Disk::moveRunToTempList(int runIdx)
@@ -210,6 +212,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
             char *bytes = winner->serialize();
             pageFile.write(bytes, strlen(bytes));
             delete[] bytes;
+            delete winner;
             pageFile << "\n";
             outputPageBytesOccupied += recordSize;
         }
@@ -554,7 +557,7 @@ Page *Disk::readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx)
         std::string line;
         while (std::getline(pageFile, line))
         {
-            Record *r = new Record(recordSize, line.c_str());
+            Record *r = new Record(recordSize, line);
             r->setSlot(runIdx);
             page->addRecord(r);
         }
@@ -579,22 +582,8 @@ int Disk::getNumPagesInRunOnDisk(const char *LOCAL_DIR, int runIdx)
 
 int Disk::clearOuputBuffer()
 {
-    for (long unsigned int i = 0; i < outputBuffers.runFiles.size(); i++)
-    {
-        const char *filename = outputBuffers.runFiles[i];
-        if (remove(filename) != 0)
-        {
-            perror("File deletion failed");
-            return 1; // Non-zero return means the file was not deleted
-        }
-        else
-        {
-            printf("File deleted successfully\n");
-        }
-    }
 
-    std::vector<const char *> newRunFiles;
-    outputBuffers.runFiles.swap(newRunFiles);
+    outputBuffers.numberRuns = 0;
     outputBuffers.bytesStored = 0;
 
     return 0;
@@ -706,7 +695,7 @@ int Disk::getNumUnsortedRuns() const
 int Disk::getNumRunsInOutputBuffer() const
 {
 
-    return outputBuffers.runFiles.size();
+    return outputBuffers.numberRuns;
 }
 
 int Disk::getNumTempRuns() const
@@ -730,6 +719,7 @@ void Disk::cleanInvalidRuns()
         if (runBitmap[i])
         {
             cleanedRuns.push_back(unsortedRuns[i]->clone());
+            // cleanedRuns.push_back(unsortedRuns[i]);
             cleanedBitmap.push_back(true);
             used += unsortedRuns[i]->getBytes();
         }

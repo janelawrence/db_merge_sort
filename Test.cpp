@@ -28,8 +28,8 @@ unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int PAGE_SIZE = 8192;									  // 8 KB
-// char *INPUT_TXT = "input_12gb_12582912_1024.txt";
-char *INPUT_TXT = "input_125mb_128000_1024.txt";
+char *INPUT_TXT = "input_12gb_12582912_1024.txt";
+// char *INPUT_TXT = "input_125mb_128000_1024.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 4 * 8192;
@@ -41,7 +41,7 @@ char *INPUT_TXT = "input_125mb_128000_1024.txt";
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
 // char *OUTPUT_TABLE = "output_table_10GB";
-char *OUTPUT_TABLE = "output_table_125MB_1024";
+char *OUTPUT_TABLE = "output_table_12GB_1024";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -306,7 +306,6 @@ int mergeSort()
 		{
 			// In alternative 1, all runs on SSD are of memory-sized
 			// write runs on SSD to HDD, then clear SSD
-			hdd.outputSpillState(outputTXT);
 			// write all runs to HDD, and then clear space
 			hdd.outputSpillState(outputTXT);
 			hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
@@ -380,8 +379,10 @@ int verityOrder()
 			line.copy(currentKey, 8, 0);
 			if (countTotal > 0)
 			{
-				if (std::strcmp(lastKey, currentKey) >= 0)
+				if (std::strcmp(lastKey, currentKey) > 0)
 				{
+					printf("%d and %d \n", countTotal - 1, countTotal);
+					printf("%s and %s\n", lastKey, currentKey);
 					return -1;
 				}
 			}
@@ -431,12 +432,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	mergeSort();
+	// mergeSort();
 	int countOutputRecords = verityOrder();
 	if (countOutputRecords > 0)
 	{
-		printf("%d records in output table\n", countOutputRecords);
-		printf("Verified sorting order is correct\n");
+		printf("\n%d records in output table\n", countOutputRecords);
+		printf("\nVerified sorting order is correct\n");
 	}
 	else
 	{

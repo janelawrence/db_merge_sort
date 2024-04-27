@@ -15,8 +15,9 @@ struct OutputBuffers
     int nBuffer;
     unsigned long long maxCap;
     unsigned long long bytesStored;
+    int numberRuns;
     // std::vector<Run *> runs;
-    std::vector<const char *> runFiles;
+    // std::vector<const char *> runFiles;
     // output buffers stores path to run files
 
     bool isFull()
@@ -24,14 +25,15 @@ struct OutputBuffers
         return bytesStored == maxCap;
     }
 
-    bool addRun(const char *runFile, unsigned long long bytesToWrite)
+    bool addRun(unsigned long long bytesToWrite)
     {
         if (bytesToWrite > getCapacity())
         {
             printf("Disk output buffer does Not enough space\n");
             return false;
         }
-        runFiles.push_back(runFile);
+        // runFiles.push_back(runFile);
+        numberRuns++;
         //
 
         // Decrease Disk capacity
@@ -41,11 +43,6 @@ struct OutputBuffers
     bool isEmpty()
     {
         return bytesStored == 0;
-    }
-
-    int getIdForNewRunFile()
-    {
-        return runFiles.size();
     }
 
     unsigned long long getBytes() const
@@ -97,7 +94,7 @@ public:
 
     bool addRunToTempList(Run *run);
 
-    bool addRunToOutputBuffer(const char *runFile, int bytesToWrite);
+    bool addRunToOutputBuffer(int bytesToWrite);
 
     void moveRunToTempList(int runIdx);
 

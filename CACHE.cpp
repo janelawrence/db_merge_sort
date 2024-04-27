@@ -14,6 +14,11 @@
 // Constructor
 CACHE::CACHE(int cacheSize, int nPages) : MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages), capacity(cacheSize) {}
 
+CACHE::~CACHE()
+{
+	heap.clear();
+}
+
 std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE)
 {
 
@@ -49,9 +54,10 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
 			miniRuns.push_back(miniRun);
 			Run *miniRun = new Run();
-			heap.clear();
+			// heap.clear();
 		}
 	}
+	heap.clear();
 	return miniRuns;
 }
 
