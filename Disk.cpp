@@ -209,9 +209,14 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
                 }
             }
             // write record to page file
-            char *bytes = winner->serialize();
-            pageFile.write(bytes, strlen(bytes));
-            delete[] bytes;
+            // char *bytes = winner->serialize();
+            // pageFile.write(bytes, strlen(bytes));
+            // write key
+            pageFile.write(winner->key.data(), winner->key.size());
+            pageFile.write(winner->content.data(), winner->content.size());
+
+            // write content
+            // delete[] bytes;
             delete winner;
             pageFile << "\n";
             outputPageBytesOccupied += recordSize;
@@ -269,8 +274,11 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
         {
             Record *winner = tree->popWinner();
 
-            char *bytes = winner->serialize();
-            outputFile.write(bytes, strlen(bytes));
+            // char *bytes = winner->serialize();
+            outputFile.write(winner->key.data(), winner->key.size());
+            outputFile.write(winner->content.data(), winner->content.size());
+
+            // outputFile.write(bytes, strlen(bytes));
             outputFile << "\n";
             bytesToWrite += recordSize;
         }
@@ -442,8 +450,11 @@ int Disk::writeOutputTable(const char *outputTXT)
         Page *curr = outputRun->getFirstPage();
         while (!curr->isEmpty())
         {
-            const char *bytes = curr->getFirstRecord()->serialize();
-            outputFile.write(bytes, strlen(bytes));
+            // const char *bytes = curr->getFirstRecord()->serialize();
+            // outputFile.write(bytes, strlen(bytes));
+            outputFile.write(curr->getFirstRecord()->key.data(), curr->getFirstRecord()->key.size());
+            outputFile.write(curr->getFirstRecord()->content.data(), curr->getFirstRecord()->content.size());
+
             outputFile << '\n';
             curr->removeFisrtRecord();
         }
@@ -488,9 +499,12 @@ int Disk::writePageToRunFolder(const char *runFolderPath, Page *page, int pageId
 
     while (!page->isEmpty())
     {
-        const char *bytes = page->getFirstRecord()->serialize();
-        pageFile.write(bytes, strlen(bytes));
-        delete[] bytes;
+        // const char *bytes = page->getFirstRecord()->serialize();
+        // pageFile.write(bytes, strlen(bytes));
+        pageFile.write(page->getFirstRecord()->key.data(), page->getFirstRecord()->key.size());
+        pageFile.write(page->getFirstRecord()->content.data(), page->getFirstRecord()->content.size());
+
+        // delete[] bytes;
         pageFile << '\n';
         page->removeFisrtRecord();
     }

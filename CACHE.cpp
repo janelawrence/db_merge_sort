@@ -23,7 +23,6 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 {
 
 	std::vector<Run *> miniRuns;
-	Run *miniRun = new Run();
 	int count = 0;
 	int pageIdx = 0;
 	while (pageIdx < pagesInDRAM.size())
@@ -31,10 +30,15 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 		Page *curr = pagesInDRAM[pageIdx];
 		if (count == nPagesFitInCache)
 		{
+			Run *miniRun = new Run();
 			// one cache-sized run has been filled
-			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			// miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			while (!heap.isEmpty())
+			{
+				miniRun->addRecord(heap.getMin());
+				heap.deleteMin();
+			}
 			miniRuns.push_back(miniRun);
-			miniRun = new Run();
 
 			count = 0;
 			heap.clear();
@@ -51,7 +55,14 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 		pageIdx++;
 		if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
 		{
-			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			Run *miniRun = new Run();
+			// miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			while (!heap.isEmpty())
+			{
+				miniRun->addRecord(heap.getMin());
+				heap.deleteMin();
+			}
+
 			miniRuns.push_back(miniRun);
 			// Run *miniRun = new Run();
 			// heap.clear();
@@ -62,51 +73,52 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 }
 
 // Output miniRuns for Graceful degradation
-std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesInDRAM,
-													 std::vector<Page *> pagesInCACHE,
-													 int maxRecordsInPage, int PAGE_SIZE)
-{
-	for (long unsigned int i = 0; i < pagesInCACHE.size(); i++)
-	{
-		pagesInDRAM.push_back(pagesInCACHE[i]);
-	}
-	std::vector<Run *> miniRuns;
-	Run *miniRun = new Run();
-	int count = 0;
-	int pageIdx = 0;
-	while (pageIdx < pagesInDRAM.size())
-	{
-		Page *curr = pagesInDRAM[pageIdx];
-		if (count == nPagesFitInCache)
-		{
-			// one cache-sized run has been filled
-			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
-			miniRuns.push_back(miniRun);
-			miniRun = new Run();
+// std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesInDRAM,
+// 													 std::vector<Page *> pagesInCACHE,
+// 													 int maxRecordsInPage, int PAGE_SIZE)
+// {
+// 	for (long unsigned int i = 0; i < pagesInCACHE.size(); i++)
+// 	{
+// 		pagesInDRAM.push_back(pagesInCACHE[i]);
+// 	}
+// 	std::vector<Run *> miniRuns;
+// 	Run *miniRun = new Run();
+// 	int count = 0;
+// 	int pageIdx = 0;
+// 	while (pageIdx < pagesInDRAM.size())
+// 	{
+// 		Page *curr = pagesInDRAM[pageIdx];
+// 		if (count == nPagesFitInCache)
+// 		{
+// 			// one cache-sized run has been filled
+// toNewPages has been deleted, change
+// 			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+// 			miniRuns.push_back(miniRun);
+// 			miniRun = new Run();
 
-			count = 0;
-			heap.clear();
-		}
+// 			count = 0;
+// 			heap.clear();
+// 		}
 
-		while (curr->getNumRecords() > 0)
-		{
-			Record *record = curr->getFirstRecord();
-			record->setSlot(-1);
-			heap.insert(record);
-			curr->removeFisrtRecord();
-		}
-		count++;
-		pageIdx++;
-		if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
-		{
-			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
-			miniRuns.push_back(miniRun);
-			Run *miniRun = new Run();
-			heap.clear();
-		}
-	}
-	return miniRuns;
-}
+// 		while (curr->getNumRecords() > 0)
+// 		{
+// 			Record *record = curr->getFirstRecord();
+// 			record->setSlot(-1);
+// 			heap.insert(record);
+// 			curr->removeFisrtRecord();
+// 		}
+// 		count++;
+// 		pageIdx++;
+// 		if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
+// 		{
+// 			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+// 			miniRuns.push_back(miniRun);
+// 			Run *miniRun = new Run();
+// 			heap.clear();
+// 		}
+// 	}
+// 	return miniRuns;
+// }
 
 int CACHE::outputMiniRunState(const char *outputTXT)
 {

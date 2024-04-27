@@ -296,27 +296,26 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
         outputBuffers.wrapper->addRecord(winner);
         // delete winner;
     }
-    // if (!outputBuffers.isEmpty())
-    // {
-    //     // write all remaining records in output buffers to the run on dest Disk
-    //     // Report Spilling happen to output
-    //     dest->outputSpillState(outputTXT);
-    //     // Simulate write to SSD
-    //     dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-    //     bytesInRun += outputBuffers.wrapper->getBytes();
+    if (!outputBuffers.isEmpty())
+    {
+        // write all remaining records in output buffers to the run on dest Disk
+        // Report Spilling happen to output
+        dest->outputSpillState(outputTXT);
+        // Simulate write to SSD
+        dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
+        bytesInRun += outputBuffers.wrapper->getBytes();
 
-    //     while (!outputBuffers.wrapper->isEmpty())
-    //     {
-    //         Page *page = outputBuffers.wrapper->getFirstPage();
-    //         // Write to curr run in dest Disk
-    //         dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
-    //         pageIdx++;
-    //         outputBuffers.wrapper->removeFisrtPage();
-    //     }
-    //     outputBuffers.clear();
-    // }
-    // Keep track of run file in disk's output buffer
-    // dest->addRunToOutputBuffer(bytesInRun);
+        while (!outputBuffers.wrapper->isEmpty())
+        {
+            Page *page = outputBuffers.wrapper->getFirstPage();
+            // Write to curr run in dest Disk
+            dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
+            pageIdx++;
+            outputBuffers.wrapper->removeFisrtPage();
+        }
+        outputBuffers.clear();
+    }
+    // Keep track of run file in disk's output buffer dest->addRunToOutputBuffer(bytesInRun);
     delete tree;
     for (int i = 0; i < rTable.size(); i++)
     {

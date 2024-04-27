@@ -30,6 +30,7 @@ unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int PAGE_SIZE = 8192;									  // 8 KB
 // char *INPUT_TXT = "input_12gb_12582912_1024.txt";
 char *INPUT_TXT = "input_125mb_128000_1024.txt";
+// char *INPUT_TXT = "mini_200_20_input.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 4 * 8192;
@@ -41,7 +42,7 @@ char *INPUT_TXT = "input_125mb_128000_1024.txt";
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
 // char *OUTPUT_TABLE = "output_table_10GB";
-char *OUTPUT_TABLE = "output_table_125MB_1024";
+char *OUTPUT_TABLE = "output_table_test";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -302,16 +303,16 @@ int mergeSort()
 			// use readPass as the new mem-sized run index
 			dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns, readPass);
 		}
-		// else
-		// {
-		// 	// In alternative 1, all runs on SSD are of memory-sized
-		// 	// write runs on SSD to HDD, then clear SSD
-		// 	// write all runs to HDD, and then clear space
-		// 	hdd.outputSpillState(outputTXT);
-		// 	hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
-		// 	ssd.clearOuputBuffer();
-		// 	dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns, readPass);
-		// }
+		else
+		{
+			// In alternative 1, all runs on SSD are of memory-sized
+			// write runs on SSD to HDD, then clear SSD
+			// write all runs to HDD, and then clear space
+			hdd.outputSpillState(outputTXT);
+			hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
+			ssd.clearOuputBuffer();
+			dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns, readPass);
+		}
 		dram.clear();
 		for (int i = 0; i < sortedMiniRuns.size(); i++)
 		{
@@ -320,47 +321,47 @@ int mergeSort()
 		sortedMiniRuns.clear();
 	}
 	// // // TODO: Consider clear LOCAL_INPUT_DIR physically
-	// int totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
+	int totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
 
-	// if (readPasses == 1)
-	// {
-	// 	if (totalNumberMemorySizedRuns == 1)
-	// 	{
-	// 		std::string runFolderPath = std::string(LOCAL_DRAM_SIZED_RUNS_DIR) + separator + "run0";
-	// 		hdd.writeRunToOutputTable(runFolderPath.c_str(), OUTPUT_TABLE);
-	// 		return 0;
-	// 	}
-	// 	else
-	// 	{
-	// 		printf("Have only read one pass, but have %d  memory-sized run\n", totalNumberMemorySizedRuns);
-	// 	}
-	// }
+	if (readPasses == 1)
+	{
+		if (totalNumberMemorySizedRuns == 1)
+		{
+			std::string runFolderPath = std::string(LOCAL_DRAM_SIZED_RUNS_DIR) + separator + "run0";
+			hdd.writeRunToOutputTable(runFolderPath.c_str(), OUTPUT_TABLE);
+			return 0;
+		}
+		else
+		{
+			printf("Have only read one pass, but have %d  memory-sized run\n", totalNumberMemorySizedRuns);
+		}
+	}
 
 	// // If there are mem-sized runs left in SSD
 	// //  Spill them to HDD before merging
 	// // write runs on SSD to HDD, then clear SSD
-	// if (!ssd.outputBuffers.isEmpty())
-	// {
-	// 	hdd.outputSpillState(outputTXT);
-	// 	// Trace spilling all runs to HDD, and then clear space
-	// 	hdd.outputSpillState(outputTXT);
-	// 	hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
-	// 	ssd.clearOuputBuffer();
-	// }
+	if (!ssd.outputBuffers.isEmpty())
+	{
+		hdd.outputSpillState(outputTXT);
+		// Trace spilling all runs to HDD, and then clear space
+		hdd.outputSpillState(outputTXT);
+		hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
+		ssd.clearOuputBuffer();
+	}
 
-	// // TODO: Consider clear LOCAL_INPUT_DIR physically
+	// TODO: Consider clear LOCAL_INPUT_DIR physically
 
-	// totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
+	totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
 
-	// // Start merging on HDD
-	// hdd.outputMergeMsg(outputTXT);
-	// hdd.mergeMemorySizedRuns(outputTXT, OUTPUT_TABLE);
+	// Start merging on HDD
+	hdd.outputMergeMsg(outputTXT);
+	hdd.mergeMemorySizedRuns(outputTXT, OUTPUT_TABLE);
 
-	// int totalNumberSSDSizedRuns = countRunsInDirectory(std::string(LOCAL_SSD_SIZED_RUNS_DIR));
+	int totalNumberSSDSizedRuns = countRunsInDirectory(std::string(LOCAL_SSD_SIZED_RUNS_DIR));
 
-	// hdd.mergeSSDSizedRuns(outputTXT, OUTPUT_TABLE);
+	hdd.mergeSSDSizedRuns(outputTXT, OUTPUT_TABLE);
 
-	// return 0;
+	return 0;
 }
 
 // Verifying sort order [2]

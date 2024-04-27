@@ -187,7 +187,7 @@ void TournamentTree::insert(int index, Record *record)
 
 const char *TournamentTree::getRecordKey(int node)
 {
-    return records[tree[node]]->getKey();
+    return records[tree[node]]->key.data();
 }
 
 bool TournamentTree::hasNext()
@@ -327,7 +327,8 @@ int TournamentTree::compareRecordsInNodes(int node1, int node2)
 {
     Record *r1 = records[tree[node1]];
     Record *r2 = records[tree[node2]];
-    return std::strcmp(r1->getKey(), r2->getKey()) > 0 ? node2 : node1;
+    // return std::strcmp(r1->getKey(), r2->getKey()) > 0 ? node2 : node1;
+    return std::strcmp(r1->key.data(), r2->key.data()) > 0 ? node2 : node1;
 }
 
 // Function to get the winner of the tournament
@@ -360,7 +361,8 @@ void TournamentTree::printTree() const
                 printf("%d, ", GHOST_KEY);
                 continue;
             }
-            printf("%s, ", records[recIdx]->getKey());
+            // printf("%s, ", records[recIdx]->getKey());
+            printf("%s, ", records[recIdx]->key.data());
         }
         else
         {
