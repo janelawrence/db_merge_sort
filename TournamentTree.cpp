@@ -3,6 +3,7 @@
 #include "Record.h"
 #include "Run.h"
 #include "TournamentTree.h"
+#include <cstring>
 
 bool TournamentTree::isGhostNode(int node)
 {
@@ -13,9 +14,10 @@ bool TournamentTree::isGhostNode(int node)
     return true;
 }
 
-TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable, Disk *d)
-    : runTable(rTable), disk(d)
+TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable)
+    : runTable(rTable)
 {
+    disk = nullptr;
     // Calculate the size of the tree based on the number of contestants
     size = 2;
     while (size < n)
@@ -29,15 +31,46 @@ TournamentTree::TournamentTree(int n, std::vector<Run *> &rTable, Disk *d)
     initialize();
 }
 
+TournamentTree::TournamentTree(int n, Disk *d,
+                               std::vector<int> rIdxTable,
+                               const char *rPathPhysical)
+    : disk(d),
+      runIdxTable(rIdxTable),
+      runPathPhysical(rPathPhysical)
+{
+    // Calculate the size of the tree based on the number of contestants
+    size = 2;
+    while (size < n)
+    {
+        size *= 2;
+    }
+    // Resize the tree to accommodate all matches
+    tree.resize(2 * size);
+
+    assignGhost();
+    initializeForRunsStoredDisk();
+}
+
 TournamentTree::~TournamentTree()
 {
+    for (int i = 0; i < records.size(); i++)
+    {
+        delete records[i];
+    }
+    records.clear();
+    // if (disk != nullptr)
+    // {
+    //     for (int j = 0; j < pageTable.size(); j++)
+    //     {
+    //         delete pageTable[j];
+    //     }
+    // }
 }
 
 void TournamentTree::assignGhost()
 {
-    for (int i = 0; i < tree.size(); i++)
+    for (long unsigned int i = 0; i < tree.size(); i++)
     {
-        // tree[i].winner = std::numeric_limits<int>::max();
         tree[i] = GHOST_KEY;
     }
 }
@@ -45,17 +78,78 @@ void TournamentTree::assignGhost()
 void TournamentTree::initialize()
 {
     int totalBytesRead = 0;
-    for (int i = 0; i < runTable.size(); i++)
-    {
-        int fetchedPageSize = runTable[i]->getFirstPage()->getBytes();
-        Record *r = runTable[i]->popFirstRecord();
-        update(i, r);
-        totalBytesRead += fetchedPageSize;
+    if (runTable.size() > 0)
+    { // Reading pages from DRAM output buffer
+        for (long unsigned int i = 0; i < runTable.size(); i++)
+        {
+            int fetchedPageSize = runTable[i]->getFirstPage()->getBytes();
+            Record *r = runTable[i]->popFirstRecord();
+            update(i, r);
+            totalBytesRead += fetchedPageSize;
+        }
     }
-    if (disk != nullptr)
+    else
     {
+        printf("Input run table is empty, nothing to initialize\n");
+    }
+}
+
+void TournamentTree::initializeForRunsStoredDisk()
+{
+    int totalBytesRead = 0;
+    if (disk != nullptr && runIdxTable.size() > 0)
+    { // Reading pages from Disk
+        int i = 0;
+        for (int runIdxOnDisk : runIdxTable)
+        {
+            // for run Idx on Disk, read first page using disk->readPageJFromRunK funciton
+            //      after reading the page
+            int totalPagesInRun = disk->getNumPagesInRunOnDisk(runPathPhysical, runIdxOnDisk);
+            if (totalPagesInRun == 0)
+            {
+                continue;
+            }
+            // Fetch first page with pageIdx 0
+            int diskSizedPagesToRead = 1;
+            if (strcmp(runPathPhysical, LOCAL_DRAM_SIZED_RUNS_DIR) == 0)
+            {
+                diskSizedPagesToRead = HDD_PAGE_SIZE / SSD_PAGE_SIZE;
+            }
+            int pageEndIdx = std::min(0 + diskSizedPagesToRead, totalPagesInRun);
+
+            Page *fetchedPage = disk->readPageJFromRunK(runPathPhysical,
+                                                        runIdxOnDisk,
+                                                        0, // start reading from page 0
+                                                        pageEndIdx,
+                                                        0);
+
+            if (fetchedPage->isEmpty())
+            {
+                printf("Page fetched from disk is empty.\n");
+                continue;
+            }
+
+            runSizeTable.push_back(totalPagesInRun);
+
+            // potential memory leak
+            Record *r = fetchedPage->getFirstRecord();
+            fetchedPage->removeFisrtRecord();
+            pageTable.push_back(fetchedPage);
+
+            nextPageIdxTable.push_back(pageEndIdx);
+
+            update(i, r); // <record inde in tree vector, record>
+            int fetchedPageSize = fetchedPage->getBytes();
+            totalBytesRead += fetchedPageSize;
+
+            i++;
+        }
         disk->outputReadSortedRunState(outputTXT);
         disk->outputAccessState(ACCESS_READ, totalBytesRead, outputTXT);
+    }
+    else
+    {
+        printf("Disk in nullptr, invalid disk input\n");
     }
 }
 
@@ -63,9 +157,7 @@ void TournamentTree::initialize()
 void TournamentTree::update(int index, Record *record)
 {
     index += size;
-    // record->printRecord();
     records.push_back(record);
-    TRACE(true);
     int recordIdx = records.size() - 1;
     tree[index] = recordIdx;
     recIdx2TreeIdx.push_back(index);
@@ -107,23 +199,7 @@ void TournamentTree::insert(int index, Record *record)
 
 const char *TournamentTree::getRecordKey(int node)
 {
-    return records[tree[node]]->getKey();
-}
-
-// Can be used to empty the tree by inserting ghost record
-void TournamentTree::replaceWinner(Record *record)
-{
-    int winnerRecIndx = tree[1];
-    if (winnerRecIndx == GHOST_KEY)
-    {
-        printf("Tree is empty, inserting to first place\n");
-        update(0, record);
-    }
-    else
-    {
-        // The rec to be replaced is located at records[winnerRecIndx]
-        insert(winnerRecIndx, record);
-    }
+    return records[tree[node]]->key.data();
 }
 
 bool TournamentTree::hasNext()
@@ -136,7 +212,9 @@ bool TournamentTree::hasNext()
 */
 Record *TournamentTree::popWinner()
 {
-    Record *winner = new Record(*getWinner());
+    // Record *winner = new Record(*getWinner());
+    Record *winner = getWinner();
+
     int winnerRecIdx = tree[1];
     if (winnerRecIdx == GHOST_KEY)
     {
@@ -157,21 +235,79 @@ Record *TournamentTree::popWinner()
         compete(index);
     }
 
-    delete records[winnerRecIdx];
+    // delete records[winnerRecIdx];
     records[winnerRecIdx] = nullptr;
     // Insert new record from runTable if needed
+    // 2 cases: (1) when runs are stored in memory
+    //          (2) when runs are stored from disk
+    if (disk == nullptr)
+    {
+        fetchPageFromRunTable(winnerRecIdx);
+    }
+    else
+    {
+        fetchPageFromRunOnDisk(winnerRecIdx);
+    }
+
+    return winner;
+}
+
+void TournamentTree::fetchPageFromRunTable(int winnerRecIdx)
+{
     if (!runTable[winnerRecIdx]->isEmpty())
     {
         int fetchedPageSize = runTable[winnerRecIdx]->getFirstPage()->getBytes();
         Record *r = runTable[winnerRecIdx]->popFirstRecord();
         insert(winnerRecIdx, r);
-        if (disk != nullptr)
+    }
+}
+void TournamentTree::fetchPageFromRunOnDisk(int winnerRecIdx)
+{
+    if (!pageTable[winnerRecIdx]->isEmpty())
+    {
+        Record *r = pageTable[winnerRecIdx]->getFirstRecord();
+        pageTable[winnerRecIdx]->removeFisrtRecord();
+        insert(winnerRecIdx, r);
+    }
+    else
+    {
+        //  Fetch new page from the same Run on Disk
+        int runIdxOnDisk = runIdxTable[winnerRecIdx];
+        int pageIdx = nextPageIdxTable[winnerRecIdx];
+        int fetchedPageSize = 0;
+        int totalPagesInRun = runSizeTable[winnerRecIdx];
+        if (pageIdx < runSizeTable[winnerRecIdx])
+        {
+            int diskSizedPagesToRead = 1;
+            if (strcmp(runPathPhysical, LOCAL_DRAM_SIZED_RUNS_DIR) == 0)
+            {
+                diskSizedPagesToRead = HDD_PAGE_SIZE / SSD_PAGE_SIZE;
+            }
+            // Fetch a HDD Sized page from disk
+            int pageEndIdx = std::min(pageIdx + diskSizedPagesToRead, totalPagesInRun);
+            Page *newPage = disk->readPageJFromRunK(runPathPhysical, 
+                                                    runIdxOnDisk, 
+                                                    pageIdx,
+                                                    pageEndIdx,
+                                                    runIdxOnDisk);
+            if (!newPage->isEmpty())
+            {
+                delete pageTable[winnerRecIdx];
+                fetchedPageSize = newPage->getSize();
+                Record *r = newPage->getFirstRecord();
+                newPage->removeFisrtRecord();
+                pageTable[winnerRecIdx] = newPage;
+                insert(winnerRecIdx, r);
+                nextPageIdxTable[winnerRecIdx] = pageEndIdx;
+            }
+        }
+        // Trace spilling
+        if (fetchedPageSize > 0)
         {
             disk->outputReadSortedRunState(outputTXT);
             disk->outputAccessState(ACCESS_READ, fetchedPageSize, outputTXT);
         }
     }
-    return winner;
 }
 
 int TournamentTree::compete(int node)
@@ -214,7 +350,8 @@ int TournamentTree::compareRecordsInNodes(int node1, int node2)
 {
     Record *r1 = records[tree[node1]];
     Record *r2 = records[tree[node2]];
-    return std::strcmp(r1->getKey(), r2->getKey()) > 0 ? node2 : node1;
+    // return std::strcmp(r1->getKey(), r2->getKey()) > 0 ? node2 : node1;
+    return std::strcmp(r1->key.data(), r2->key.data()) > 0 ? node2 : node1;
 }
 
 // Function to get the winner of the tournament
@@ -237,7 +374,7 @@ bool TournamentTree::isEmpty() const
 
 void TournamentTree::printTree() const
 {
-    for (int i = 0; i < tree.size(); i++)
+    for (long unsigned int i = 0; i < tree.size(); i++)
     {
         int recIdx = tree[i];
         if (recIdx != GHOST_KEY && tree[recIdx] < records.size())
@@ -247,7 +384,8 @@ void TournamentTree::printTree() const
                 printf("%d, ", GHOST_KEY);
                 continue;
             }
-            printf("%s, ", records[recIdx]->getKey());
+            // printf("%s, ", records[recIdx]->getKey());
+            printf("%s, ", records[recIdx]->key.data());
         }
         else
         {

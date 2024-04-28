@@ -105,7 +105,7 @@ void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 		   numRecords, recordSize);
 	printf("Page size: %d Bytes\n"
 		   "- Each page can store %d records\n\n",
-		   PAGE_SIZE, maxRecordsInPage);
+		   DRAM_PAGE_SIZE, maxRecordsInPage);
 	printf("Cache size: %llu Bytes\n"
 		   "- Each cache-sized run can store at most %d pages\n"
 		   "- Each cache-sized run can store at most %d records\n"
@@ -128,4 +128,45 @@ void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 		   "- In total output buffers can store %d records\n\n",
 		   SSD_SIZE, nBuffersSSD, nBuffersSSD - nOutputBuffersSSD,
 		   nOutputBuffersSSD, nBuffersSSD * maxRecordsInPage);
+}
+
+char get_directory_separator()
+{
+#if defined _WIN32 || defined __CYGWIN__
+	return '\\';
+#else
+	return '/';
+#endif
+}
+
+int countFilesInDirectory(const std::string &path)
+{
+	int fileCount = 0;
+
+	// Iterate over the directory contents
+	for (const auto &entry : fs::directory_iterator(path))
+	{
+		if (fs::is_regular_file(entry.status()))
+		{ // Check if it's a regular file
+			fileCount++;
+		}
+	}
+
+	return fileCount;
+}
+
+int countRunsInDirectory(const std::string &path)
+{
+	int runFolderCount = 0;
+
+	// Iterate over the directory contents
+	for (const auto &entry : fs::directory_iterator(path))
+	{
+		if (fs::is_directory(entry.status()))
+		{ // Check if it's a regular file
+			runFolderCount++;
+		}
+	}
+
+	return runFolderCount;
 }

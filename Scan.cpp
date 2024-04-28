@@ -2,6 +2,12 @@
 #include <fstream>
 #include <iterator>
 #include <algorithm>
+#include <iostream>
+// #include <filesystem>
+#include <sys/stat.h>
+#include <cstring>
+
+// namespace fs = boost::filesystem;
 
 ScanPlan::ScanPlan(RowCount const count) : _count(count)
 {
@@ -11,32 +17,108 @@ ScanPlan::ScanPlan(RowCount const count) : _count(count)
 ScanPlan::~ScanPlan()
 {
 	TRACE(true);
+	map.clear();
 } // ScanPlan::~ScanPlan
 
-Run *ScanPlan::scan(const char *INPUT_TXT)
+// Return total number of pages used to stored input data
+int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 {
 	std::ifstream file(INPUT_TXT);
-	Run *recordsInPages = new Run();
+	int countDuplicate = 0;
+	int countTotal = 0;
+	int pageIdx = 0;
+
+	char separator = get_directory_separator();
 
 	if (file.is_open())
 	{
+		TRACE(true);
 		std::string line;
+
+		// Create a page file inside LOCAL_INPUT_DIR
+		int bytesOccupied = 0;
+
+		std::string pageFileName = std::to_string(pageIdx);
+		std::string pageFilePath = std::string(LOCAL_INPUT_DIR) + separator + pageFileName;
+		std::ofstream pageFile(pageFilePath.c_str(), std::ios::binary);
+
+		if (!pageFile)
+		{
+			// printf("Fail to create file for page %d\n", pageIdx);
+			std::cerr << "Error opening file for writing page" << pageIdx << " ." << std::endl;
+			return 0;
+		}
+
 		while (std::getline(file, line))
 		{
-			if (map.find(line) != map.end())
-			{
-				continue;
-			}
-			map[line] = new Record(recordSize, line.c_str());
-		}
-		file.close();
-	}
-	std::unordered_map<std::string, Record *>::iterator it = map.begin();
-	// 3 return the records in the hash table
+			// Remove non-alphanumeric characters from the line
+			line.erase(std::remove_if(line.begin(), line.end(),
+									  [](unsigned char c)
+									  { return !std::isalnum(c); }),
+					   line.end());
+			countTotal++;
 
-	std::for_each(map.begin(), map.end(), [&recordsInPages](const std::pair<const std::string, Record *> &p)
-				  { recordsInPages->addRecord(new Record(*p.second)); });
-	return recordsInPages;
+			// if current Page hasn't been filled
+			if (DRAM_PAGE_SIZE - bytesOccupied < recordSize)
+			{
+				// close current page file
+				pageFile.close();
+
+				// Create a new page file inside LOCAL_INPUT_DIR
+				pageIdx++;
+				pageFileName = std::to_string(pageIdx);
+				pageFilePath = std::string(LOCAL_INPUT_DIR) + separator + pageFileName;
+				pageFile.open(pageFilePath, std::ios::binary);
+				bytesOccupied = 0;
+				if (!pageFile)
+				{
+					std::cerr << "Error opening file for writing page" << pageIdx << " ." << std::endl;
+					return 0;
+				}
+			}
+			// write line to page file
+			pageFile.write(line.c_str(), strlen(line.c_str()));
+			pageFile << "\n";
+			bytesOccupied += strlen(line.c_str());
+		}
+		pageFile.close();
+	}
+	else
+	{
+		printf("FILE cannot be opend\n");
+		return 0;
+	}
+	printf("\n\ntotal records in input table (include dup): %d\n", countTotal);
+
+	if (countTotal == 0)
+	{
+		return 0;
+	}
+	return pageIdx + 1;
+}
+
+
+
+int ScanPlan::outputDuplicatesFound(const char *outputTXT, int countTotal, int countDuplicate)
+{
+	// Open the output file in overwrite mode
+	std::ofstream outputFile(outputTXT, std::ios::app);
+
+	// Check if the file opened successfully
+	if (!outputFile.is_open())
+	{
+		printf("File cannot be oppend");
+
+		// std::cerr << "Error: Could not open file trace.txt for writing." << std::endl;
+		return 1; // Return error code
+	}
+
+	// Print output to both console and file
+	outputFile << "Number of Duplicates found: " << countDuplicate << " in " << countTotal << " input records\n";
+
+	// close file
+	outputFile.close();
+	return 0;
 }
 
 Iterator *ScanPlan::init() const

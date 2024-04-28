@@ -2,107 +2,47 @@
 #include "defs.h"
 // #include <string>
 #include <random>
-
+#include <cstring>
 
 int KEY_SIZE = 8;
 
 // Constructor
-Record::Record(int s, const char* bytes) : size(s) {
-    key = new char[KEY_SIZE + 1];
-    std::strncpy(key, bytes, KEY_SIZE);
-    key[KEY_SIZE] = '\0';
-
-    content = new char[size - KEY_SIZE + 1];
-    // Copy the rest of the bytes to content
-    std::strncpy(content, bytes + KEY_SIZE, size - KEY_SIZE);
-    content[size - KEY_SIZE] = '\0'; // Ensure null termination
-
-}
+Record::Record(int s,
+            const std::string &bytes) : 
+            size(s),
+            key(bytes.substr(0, KEY_SIZE)),
+            content(bytes.substr(KEY_SIZE)){}
 
 // Copy constructor definition
-Record::Record(const Record& other) : size(other.size), slot(other.slot) {
-    key = new char[strlen(other.key) + 1];
-    content = new char[strlen(other.content) + 1];
-    strcpy(key, other.key);
-    strcpy(content, other.content);
-}
-
+Record::Record(const Record &other) : 
+            size(other.size), 
+            slot(other.slot), 
+            key(other.key), 
+            content(other.content){}
 
 // Destructor
-Record::~Record() {
-    delete[] key; // Deallocate memory for key
-    delete[] content;
+Record::~Record()
+{
+
 }
 
 
-char * Record::serialize() const {
-    int contentSize = strlen(content);
-    char * serializedData = new char[size];
-    memcpy(serializedData, key, strlen(key));
-    // Copy 'content' into the serialized data after 'key'
-    memcpy(serializedData + KEY_SIZE, content, contentSize);
-
-    return serializedData;
+void Record::printRecord()
+{
+    printf("Record: key %s, slot: %d, size: %d, content size: %d\n",
+           key.data(), slot, size, content.size());
 }
-
-Record* Record::deserialize(const char* serializedData, int dataSize) {
-    Record* record = new Record(dataSize, serializedData);
-    record->setSlot(-1);
-    return record;
-}
-
-void Record::printRecord(){
-    printf("Record: key %s, slot: %d, size: %d, content size: %d\n", 
-            key, slot, size, strlen(content));
-};
-
 // Getters
 int Record::getSize() const { return size; }
 
 int Record::getSlot() const { return slot; }
 
-const char* Record::getKey() const { return key; }
+const char *Record::getKey() const { return key.data(); }
 
-const char* Record::getContent() const {return content; }
+const char *Record::getContent() const { return content.data(); }
 
 // Setters
 
 void Record::setSize(int s) { size = s; }
 
 void Record::setSlot(int s) { slot = s; }
-
-void Record::setKey(const char* k) {
-    delete[] key; // Deallocate memory for the current key
-    key = new char[strlen(k) + 1]; // Allocate memory for the new key
-    strcpy(key, k); // Copy the new key into key
-}
-
-void Record::setContent(const char* data) {
-    delete[] content; // Deallocate memory for the current data
-    content = new char[strlen(data) + 1]; // Allocate memory for the new content
-    strcpy(content, data); // Copy the new content into content
-}
-
-
-
-
-// int main() {
-
-//     Record * r1 = new Record(20, "");
-//     Record * r2 = new Record(20, "");
-//     Record * r3 = new Record(20, "");
-//     Record * r4 = new Record(20, "");
-//     Record * r5 = new Record(20, "");
-
-//     r1->setSlot(1);
-//     r2->setSlot(2);
-//     r3->setSlot(3);
-//     r4->setSlot(4);
-//     r5->setSlot(5);
-
-//     r1->printRecord();
-//     r2->printRecord();
-//     r3->printRecord();
-//     r4->printRecord();
-//     r5->printRecord();
-// }

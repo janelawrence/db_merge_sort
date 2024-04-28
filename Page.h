@@ -1,6 +1,7 @@
 #ifndef PAGE_H
 #define PAGE_H
 #include "Record.h"
+// #include <memory>
 #include <list>
 #include <string>
 
@@ -11,10 +12,6 @@ class Page
 {
 private:
     std::list<Record *> records;
-    Page *prev;
-    Page *next;
-    // Record* recordHead;
-    // Record* record;
     int MAX_RECORDS;
     int size;
     int bytes;
@@ -23,7 +20,11 @@ private:
     std::string pageSource;
 
 public:
+    Page *prev;
+    Page *next;
+
     Page(int i, int s, int pageSize);
+    ~Page();
 
     void addRecord(Record *);
     void removeFisrtRecord();
