@@ -102,10 +102,8 @@ public:
 
     bool eraseRun(int runIdx);
 
-    bool delFirstPageFromRunK(int k);
-
-    void mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, int pageSize);
-    void mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, int pageSize);
+    void mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
+    void mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
 
     void clear();
 
@@ -149,7 +147,11 @@ public:
 
     int writeRunToOutputTable(const char *runFolderPath, const char *outputTXT);
 
-    Page *readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx);
+    Page *readPageJFromRunK(const char *LOCAL_DIR, 
+                            int runIdx, 
+                            int pageStart,
+                            int pageEnd,
+                            int pageCurrIdx);
 
     int getNumPagesInRunOnDisk(const char *LOCAL_DIR, int runIdx);
 

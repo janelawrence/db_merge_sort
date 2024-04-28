@@ -12,102 +12,12 @@
 #include <vector>
 
 // Constructor
-CACHE::CACHE(int cacheSize, int nPages) : MAX_CAPACITY(cacheSize), nPagesFitInCache(nPages), capacity(cacheSize) {}
+CACHE::CACHE(int cacheSize, int nPages) : MAX_CAPACITY(cacheSize), capacity(cacheSize), nPagesFitInCache(nPages) {}
 
 CACHE::~CACHE()
 {
 	heap.clear();
 }
-
-std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE)
-{
-
-	std::vector<Run *> miniRuns;
-	Run *miniRun = new Run();
-	int count = 0;
-	int pageIdx = 0;
-	while (pageIdx < pagesInDRAM.size())
-	{
-		Page *curr = pagesInDRAM[pageIdx];
-		if (count == nPagesFitInCache)
-		{
-			// one cache-sized run has been filled
-			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
-			miniRuns.push_back(miniRun);
-			miniRun = new Run();
-
-			count = 0;
-			heap.clear();
-		}
-
-		while (curr->getNumRecords() > 0)
-		{
-			Record *record = curr->getFirstRecord();
-			record->setSlot(-1);
-			heap.insert(record);
-			curr->removeFisrtRecord();
-		}
-		count++;
-		pageIdx++;
-		if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
-		{
-			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
-			miniRuns.push_back(miniRun);
-			Run *miniRun = new Run();
-			// heap.clear();
-		}
-	}
-	heap.clear();
-	return miniRuns;
-}
-
-// Output miniRuns for Graceful degradation
-std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesInDRAM,
-													 std::vector<Page *> pagesInCACHE,
-													 int maxRecordsInPage, int PAGE_SIZE)
-{
-	for (long unsigned int i = 0; i < pagesInCACHE.size(); i++)
-	{
-		pagesInDRAM.push_back(pagesInCACHE[i]);
-	}
-	std::vector<Run *> miniRuns;
-	Run *miniRun = new Run();
-	int count = 0;
-	int pageIdx = 0;
-	while (pageIdx < pagesInDRAM.size())
-	{
-		Page *curr = pagesInDRAM[pageIdx];
-		if (count == nPagesFitInCache)
-		{
-			// one cache-sized run has been filled
-			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
-			miniRuns.push_back(miniRun);
-			miniRun = new Run();
-
-			count = 0;
-			heap.clear();
-		}
-
-		while (curr->getNumRecords() > 0)
-		{
-			Record *record = curr->getFirstRecord();
-			record->setSlot(-1);
-			heap.insert(record);
-			curr->removeFisrtRecord();
-		}
-		count++;
-		pageIdx++;
-		if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
-		{
-			miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
-			miniRuns.push_back(miniRun);
-			Run *miniRun = new Run();
-			heap.clear();
-		}
-	}
-	return miniRuns;
-}
-
 int CACHE::outputMiniRunState(const char *outputTXT)
 {
 	// Open the output file in overwrite mode
@@ -128,34 +38,112 @@ int CACHE::outputMiniRunState(const char *outputTXT)
 	outputFile.close();
 	return 0;
 }
+std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage)
+{
+
+	std::vector<Run *> miniRuns;
+	int count = 0;
+	int pageIdx = 0;
+	while (pageIdx < pagesInDRAM.size())
+	{
+		Page *curr = pagesInDRAM[pageIdx];
+		if (count == nPagesFitInCache)
+		{
+			Run *miniRun = new Run(DRAM_PAGE_SIZE);
+			// one cache-sized run has been filled
+			while (!heap.isEmpty())
+			{
+				miniRun->addRecord(heap.getMin());
+				heap.deleteMin();
+			}
+			miniRuns.push_back(miniRun);
+
+			count = 0;
+			heap.clear();
+		}
+
+		while (curr->getNumRecords() > 0)
+		{
+			Record *record = curr->getFirstRecord();
+			record->setSlot(-1);
+			heap.insert(record);
+			curr->removeFisrtRecord();
+		}
+		count++;
+		pageIdx++;
+		if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
+		{
+			Run *miniRun = new Run(DRAM_PAGE_SIZE);
+			while (!heap.isEmpty())
+			{
+				miniRun->addRecord(heap.getMin());
+				heap.deleteMin();
+			}
+
+			miniRuns.push_back(miniRun);
+		}
+	}
+	heap.clear();
+	return miniRuns;
+}
 
 double CACHE::getCapacity() const
 {
 	return capacity;
 }
 
-// g++ defs.cpp Run.cpp Record.cpp HeapSort.cpp HDD.cpp CACHE.cpp -o cache
-// int main (int argc, char * argv []){
-//     // Create a hdd to store unsorted records
-// 	Disk * const hdd = new HDD ("", 5, 100);
+// Output miniRuns for Graceful degradation
+std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesInDRAM,
+													std::vector<Page *> pagesInCACHE,
+													int maxRecordsInPage)
+{
+    for (long unsigned int i = 0; i < pagesInCACHE.size(); i++)
+    {
+        pagesInDRAM.push_back(pagesInCACHE[i]);
+    }
+	pagesInCACHE.clear();
+	
+    std::vector<Run *> miniRuns;
+    int count = 0;
+    int pageIdx = 0;
+    while (pageIdx < pagesInDRAM.size())
+    {
+            Page *curr = pagesInDRAM[pageIdx];
+            if (count == nPagesFitInCache)
+            {
+				// one cachesized run has been filled
+				Run *miniRun = new Run(DRAM_PAGE_SIZE);
+				while (!heap.isEmpty())
+				{
+					miniRun->addRecord(heap.getMin());
+					heap.deleteMin();
+				}
+				miniRuns.push_back(miniRun);
 
-//     int numRecords = 8;
-//     int recordSize = 20;
+				count = 0;
+				heap.clear();
+            }
 
-//     Record * record;
-// 	// Generate numRecords number of records in HDD
-// 	for(int i = 0; i < numRecords; i++) {
-// 		record = new Record (recordSize, "");
-// 		hdd->writeData(record->getKey(), record);
-// 	}
+            while (curr->getNumRecords() > 0)
+            {
+				Record *record = curr->getFirstRecord();
+				record->setSlot(-1);
+				heap.insert(record);
+				curr->removeFisrtRecord();
+            }
+            count++;
+            pageIdx++;
+            if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
+            {
+				Run *miniRun = new Run(DRAM_PAGE_SIZE);
+				while (!heap.isEmpty())
+				{
+					miniRun->addRecord(heap.getMin());
+					heap.deleteMin();
+				}
 
-//     CACHE* cache = new CACHE();
-// 	std::vector<Run*> sortedRunsInCache = cache->readFromHDD(recordSize, hdd);
-
-//     for(long unsigned int i = 0; i < sortedRunsInCache.size(); i++) {
-// 		Run* run = sortedRunsInCache[i];
-// 		printf("------------- %d th Run -----------\n", i);
-// 		run->printRun();
-// 		printf("\n");
-// 	}
-// }
+				miniRuns.push_back(miniRun);
+			}
+    }
+    return miniRuns;
+}

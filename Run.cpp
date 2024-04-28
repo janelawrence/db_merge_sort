@@ -1,12 +1,24 @@
 #include "Run.h"
 #include "defs.h"
 
-Run::Run()
+Run::Run(int pSizeInRun): 
+    PAGE_SIZE_IN_RUN(pSizeInRun)
 {
     pageHead = new Page(-1, 0, 0);
     pageTail = pageHead;
     bytes = 0;
     numPage = 0;
+}
+
+Run::~Run()
+{
+    Page *temp = pageHead;
+    while (temp != nullptr)
+    {
+        Page *temptemp = temp;
+        temp = temp->getNext();
+        delete temptemp;
+    }
 }
 
 /**
@@ -19,6 +31,8 @@ void Run::appendPage(Page *page)
 {
     if (pageHead->getIdx() == -1)
     {
+        Page *ptr = pageHead;
+        delete ptr;
         pageHead = page;
         // page->print();
         // pageHead->print();
@@ -44,7 +58,7 @@ void Run::appendPage(Page *page)
 
 Run *Run::clone()
 {
-    Run *clonedRun = new Run();
+    Run *clonedRun = new Run(DRAM_PAGE_SIZE);
     Page *current = pageHead;
     while (current)
     {
@@ -54,7 +68,7 @@ Run *Run::clone()
     return clonedRun;
 }
 
-void Run::removeFisrtPage()
+void Run::removeFirstPage(int firstPageOriginalBytes, bool cleanMemory)
 {
     if (numPage == 0 || pageHead == nullptr)
     {
@@ -63,25 +77,35 @@ void Run::removeFisrtPage()
     }
     numPage--;
     Page *temp = pageHead;
-    bytes -= pageHead->getBytes();
+    if (firstPageOriginalBytes > 0 && pageHead->getBytes() == 0)
+    {
+        bytes -= firstPageOriginalBytes; // HANDLE CORNER CASE
+    }
+    else
+    {
+        bytes -= pageHead->getBytes();
+    }
     pageHead = pageHead->getNext();
-    delete temp;
+    if(cleanMemory) {
+        delete temp;
+    }
 }
 
 /*Add a record to the last page, add a page if needed */
+// Only used when Page size in run is DRAM size
 void Run::addRecord(Record *record)
 {
     if (pageHead->getIdx() == -1)
     {
         Page *temp = pageHead;
-        pageHead = new Page(0, PAGE_SIZE / recordSize, PAGE_SIZE);
+        pageHead = new Page(0, DRAM_PAGE_SIZE / recordSize, DRAM_PAGE_SIZE);
         pageTail = pageHead;
         delete temp;
         numPage++;
     }
     if (pageTail->isFull() || pageTail->getSize() - pageTail->getBytes() < record->getSize())
     {
-        Page *newPage = new Page(pageTail->getIdx() + 1, PAGE_SIZE / recordSize, PAGE_SIZE);
+        Page *newPage = new Page(pageTail->getIdx() + 1, DRAM_PAGE_SIZE / recordSize, DRAM_PAGE_SIZE);
         newPage->addRecord(record);
         appendPage(newPage);
     }
@@ -103,7 +127,9 @@ Record *Run::popFirstRecord()
         if (pageHead->isEmpty())
         {
             numPage--;
-            pageHead = pageHead->getNext();
+            Page *tmp = pageHead->getNext();
+            delete pageHead;
+            pageHead = tmp;
         }
         return record;
     }

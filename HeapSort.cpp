@@ -36,7 +36,7 @@ void HeapSort::deleteMin()
     {
         Record *minRecord = minHeap.top();
         minHeap.pop();
-        delete minRecord;
+        // delete minRecord;
     }
     else
     {
@@ -88,53 +88,6 @@ void HeapSort::clear()
     // Create an empty priority queue and swap its contents with minHeap
     std::priority_queue<Record *, std::vector<Record *>, Compare> emptyQueue;
     minHeap.swap(emptyQueue);
-}
-
-std::list<Record *> HeapSort::toList()
-{
-    std::list<Record *> lst;
-    std::priority_queue<Record *, std::vector<Record *>, Compare> copyHeap = minHeap;
-    while (!copyHeap.empty())
-    {
-        Record *minRecord = copyHeap.top();
-        lst.push_back(minRecord);
-        copyHeap.pop();
-    }
-    return lst;
-}
-
-std::vector<Record *> HeapSort::toVector()
-{
-    std::vector<Record *> vec;
-    std::priority_queue<Record *, std::vector<Record *>, Compare> copyHeap = minHeap;
-    while (!copyHeap.empty())
-    {
-        Record *minRecord = copyHeap.top();
-        vec.push_back(minRecord);
-        copyHeap.pop();
-    }
-    return vec;
-}
-
-Page *HeapSort::toNewPages(int pageIdx, int maxRecordsInPage, int pageSize)
-{
-    Page *sentinalPage = new Page(-1, 0, pageSize);
-    Page *newPage = new Page(pageIdx, maxRecordsInPage, pageSize);
-    sentinalPage->setNext(newPage);
-    std::priority_queue<Record *, std::vector<Record *>, Compare> copyHeap = minHeap;
-    while (!copyHeap.empty())
-    {
-        if (newPage->isFull())
-        {
-            Page *temp = new Page(++pageIdx, maxRecordsInPage, pageSize);
-            newPage->setNext(temp);
-            newPage = newPage->getNext();
-        }
-        Record *minRecord = copyHeap.top();
-        newPage->addRecord(minRecord);
-        copyHeap.pop();
-    }
-    return sentinalPage->getNext();
 }
 
 // Main function for testing

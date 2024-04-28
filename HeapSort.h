@@ -8,34 +8,18 @@
 #include <list>
 #include <cstring>
 
-struct Node
-{
-    Record *winner;
-    Record *left;
-    Record *right;
-};
-
-struct CompareNode
-{
-    bool operator()(Node n1, Node n2)
-    {
-        return std::strcmp(n1.winner->getKey(), n2.winner->getKey()) > 0; // Min-heap
-    }
-};
-
 // Comparator function for priority queue
 struct Compare
 {
     bool operator()(Record *n1, Record *n2)
     {
-        return std::strcmp(n1->getKey(), n2->getKey()) > 0; // Min-heap
+        return std::strcmp(n1->key.data(), n2->key.data()) > 0; // Min-heap
     }
 };
 
 class HeapSort
 {
 private:
-    int size;
     std::priority_queue<Record *, std::vector<Record *>, Compare> minHeap;
 
 public:
@@ -57,10 +41,6 @@ public:
 
     void print();
     void clear();
-
-    std::list<Record *> toList();
-    std::vector<Record *> toVector();
-    Page *toNewPages(int pageIdx, int maxRecordsInPage, int pageSize);
 };
 
 #endif // HEAPSORT_H

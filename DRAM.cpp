@@ -19,16 +19,38 @@ DRAM::DRAM(unsigned long long maxCap, int nOutputBuffers)
     printf("Initialize DRAM\n");
     outputBuffers.nBuffer = nOutputBuffers;
     buffersUsed = 0;
-    outputBuffers.wrapper = new Run();
+    outputBuffers.wrapper = new Run(DRAM_PAGE_SIZE);
     // Input buffer Capacity in Bytes
-    capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffers * PAGE_SIZE;
+    capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffers * DRAM_PAGE_SIZE;
 }
 
-Page *DRAM::getPageCopy(int idx)
+DRAM::~DRAM()
+{
+    capacity = MAX_CAPACITY;
+    std::vector<Page *> emptyPages;
+    std::vector<bool> emptyBitmap;
+    DramOutputBuffers emptyOutputBuffers;
+    emptyOutputBuffers.nBuffer = numOutputBuffers;
+
+    for (int i = 0; i < inputBuffers.size(); i++)
+    {
+        delete inputBuffers[i];
+    }
+    inputBuffers.clear();
+
+    inputBuffers.swap(emptyPages);
+    inputBuffersBitmap.swap(emptyBitmap);
+    buffersUsed = 0;
+    outputBuffers.clear();
+    delete outputBuffers.wrapper;
+    capacity = MAX_CAPACITY - numOutputBuffers * DRAM_PAGE_SIZE;
+}
+
+Page *DRAM::getPage(int idx)
 {
     if (idx >= 0 && idx < inputBuffers.size())
     {
-        return inputBuffers[idx]->clone();
+        return inputBuffers[idx];
     }
     printf("Invalid page index");
     return nullptr;
@@ -57,7 +79,7 @@ Page *DRAM::getFirstPage()
 {
     if (inputBuffers.size() > 0)
     {
-        Page *firstPage = inputBuffers[0]->clone();
+        Page *firstPage = inputBuffers[0];
         firstPage->setNext(nullptr);
         return firstPage;
     }
@@ -89,7 +111,7 @@ bool DRAM::insertPage(Page *page, int idx)
         printf("invalid idx");
         return false;
     }
-    inputBuffers[idx] = page->clone();
+    inputBuffers[idx] = page;
 
     // Decrease SSD capacity
     capacity -= page->getBytes();
@@ -124,7 +146,7 @@ void DRAM::cleanInvalidPagesinInputBuffer()
     {
         if (inputBuffersBitmap[i])
         {
-            cleanedPages.push_back(inputBuffers[i]->clone());
+            cleanedPages.push_back(inputBuffers[i]);
             cleanedBitmap.push_back(true);
             used += inputBuffers[i]->getBytes();
         }
@@ -170,7 +192,7 @@ unsigned long long DRAM::readRecords(const char *LOCAL_INPUT_DIR, int pageStart,
 Page *DRAM::readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize)
 {
     char separator = get_directory_separator();
-    Page *page = new Page(pageIdx, PAGE_SIZE / recordSize, PAGE_SIZE);
+    Page *page = new Page(pageIdx, DRAM_PAGE_SIZE / recordSize, DRAM_PAGE_SIZE);
     std::string pagePath = std::string(LOCAL_INPUT_DIR) + separator + std::to_string(pageIdx);
     std::ifstream pageFile(pagePath);
     if (pageFile.is_open())
@@ -187,6 +209,7 @@ Page *DRAM::readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize)
         // printf("Fail to create file for page %d\n", pageIdx);
         std::cerr << "Error opening file for run page " << pageIdx << " .\n"
                   << std::endl;
+        delete page;
         return nullptr;
     }
 
@@ -200,19 +223,21 @@ void DRAM::clear()
     std::vector<bool> emptyBitmap;
     DramOutputBuffers emptyOutputBuffers;
     emptyOutputBuffers.nBuffer = numOutputBuffers;
-    emptyOutputBuffers.wrapper = new Run();
 
+    // int count = 0;
     for (int i = 0; i < inputBuffers.size(); i++)
     {
+        // count += 1;
         delete inputBuffers[i];
     }
+    // printf("Removed %d pages from inputBuffer.\n", count);
     inputBuffers.clear();
 
     inputBuffers.swap(emptyPages);
     inputBuffersBitmap.swap(emptyBitmap);
     buffersUsed = 0;
     outputBuffers.clear();
-    capacity = MAX_CAPACITY - numOutputBuffers * PAGE_SIZE;
+    capacity = MAX_CAPACITY - numOutputBuffers * DRAM_PAGE_SIZE;
 }
 
 bool DRAM::isFull() const
@@ -231,9 +256,6 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
     int fanin = rTable.size();
 
     TournamentTree *tree = new TournamentTree(fanin, rTable);
-    int i = 0;
-    // Run *curr = new Run();
-    // CREATE A RUN FOLDER INSIDE LOCAL_DRAM_SIZED_RUNS_DIR
 
     unsigned long long bytesInRun = 0;
     printf("buffersUsed: %d\n", buffersUsed);
@@ -262,14 +284,15 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
             {
                 // Write to curr run in dest Disk
                 Page *page = outputBuffers.wrapper->getFirstPage();
+                int firstPageOriginalBytes = page->getBytes();
                 dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
                 pageIdx++;
-                outputBuffers.wrapper->removeFisrtPage();
+                outputBuffers.wrapper->removeFirstPage(firstPageOriginalBytes, true);
             }
             outputBuffers.clear();
-            // bytesInRun = 0; // added to solve disk false overflow
         }
         outputBuffers.wrapper->addRecord(winner);
+        // delete winner;
     }
     if (!outputBuffers.isEmpty())
     {
@@ -283,15 +306,21 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
         while (!outputBuffers.wrapper->isEmpty())
         {
             Page *page = outputBuffers.wrapper->getFirstPage();
+            int firstPageOriginalBytes = page->getBytes();
             // Write to curr run in dest Disk
             dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
             pageIdx++;
-            outputBuffers.wrapper->removeFisrtPage();
+            outputBuffers.wrapper->removeFirstPage(firstPageOriginalBytes, true);
         }
         outputBuffers.clear();
     }
-    // Keep track of run file in disk's output buffer
-    dest->addRunToOutputBuffer(bytesInRun);
+    // Keep track of run file in disk's output buffer dest->addRunToOutputBuffer(bytesInRun);
+    delete tree;
+    for (int i = 0; i < rTable.size(); i++)
+    {
+        delete rTable[i];
+    }
+    rTable.clear();
 }
 
 unsigned long long

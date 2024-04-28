@@ -1,10 +1,10 @@
-CPPOPT=-O0 -g -D_DEBUG
+CPPOPT=-O0 -fsanitize=address -g -D_DEBUG
 # -O2 -Os -Ofast
 # -fprofile-generate -fprofile-use
 CPPFLAGS=$(CPPOPT) -Wall -ansi -pedantic -std=c++17
 # -Wparentheses -Wno-unused-parameter -Wformat-security
 # -fno-rtti -std=c++11 -std=c++98
-
+# -fsanitize=address
 # ensures that the linker includes the C++ standard library
 LDLIBS=-lstdc++
 
@@ -37,7 +37,7 @@ $(TARGET) : Makefile $(OBJS)
 	g++ $(CPPFLAGS) $(OBJS) -o $@
 
 run: $(TARGET)
-	./$(TARGET) -c 12582912 -s 1024 -o trace_12GB_1024.txt
+	./$(TARGET) -c 51200 -s 1024 -o trace_test.txt
 
 # trace : Test.exe Makefile
 # 	@date > trace

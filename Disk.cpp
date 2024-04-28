@@ -27,10 +27,10 @@ Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int 
     if (nOutputBuffer > 0)
     { // HDD doesn't need output buffers
         outputBuffers.nBuffer = nOutputBuffer;
-        outputBuffers.maxCap = (unsigned long long)nOutputBuffer * PAGE_SIZE;
+        outputBuffers.maxCap = (unsigned long long)nOutputBuffer * SSD_PAGE_SIZE;
         outputBuffers.bytesStored = 0;
         outputBuffers.numberRuns = 0;
-        capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffer * PAGE_SIZE; // capacity of the input buffers
+        capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffer * SSD_PAGE_SIZE; // capacity of the input buffers
     }
 }
 
@@ -44,7 +44,7 @@ bool Disk::addRun(Run *run)
         printf("Disk does Not enough space\n");
         return false;
     }
-    unsortedRuns.push_back(run->clone());
+    unsortedRuns.push_back(run);
 
     // Decrease Disk capacity
     capacity -= run->getBytes();
@@ -83,7 +83,7 @@ bool Disk::addRunToTempList(Run *run)
         printf("Disk does Not enough space to store tempoarary run\n");
         return false;
     }
-    temp.push_back(run->clone());
+    temp.push_back(run);
     // Decrease Disk capacity
     capacity -= run->getBytes();
     // tempRunBitmap.push_back(true);
@@ -132,19 +132,8 @@ bool Disk::eraseRun(int runIdx)
     return true;
 }
 
-bool Disk::delFirstPageFromRunK(int k)
-{
-    if (k >= 0 && k < unsortedRuns.size() && !unsortedRuns[k]->isEmpty())
-    {
-        int pSize = unsortedRuns[k]->getBytes();
-        unsortedRuns[k]->removeFisrtPage();
-        capacity += pSize;
-        return true;
-    }
-    return false;
-}
 
-void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, int pageSize)
+void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
 {
     // Create SSD-Sized runs first
     int fanIn = SSD_SIZE / DRAM_SIZE;
@@ -193,7 +182,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE,
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
-            if (pageSize - outputPageBytesOccupied < recordSize)
+            if (SSD_PAGE_SIZE - outputPageBytesOccupied < recordSize)
             {
                 pageFile.close();
                 // Create a new page file inside LOCAL_INPUT_DIR
@@ -209,9 +198,14 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE,
                 }
             }
             // write record to page file
-            char *bytes = winner->serialize();
-            pageFile.write(bytes, strlen(bytes));
-            delete[] bytes;
+            // char *bytes = winner->serialize();
+            // pageFile.write(bytes, strlen(bytes));
+            // write key
+            pageFile.write(winner->key.data(), winner->key.size());
+            pageFile.write(winner->content.data(), winner->content.size());
+
+            // write content
+            // delete[] bytes;
             delete winner;
             pageFile << "\n";
             outputPageBytesOccupied += recordSize;
@@ -220,10 +214,11 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE,
         outputAccessState(ACCESS_WRITE, outputPageBytesOccupied, outputTXT);
         runIdxOffset += fanIn;
         outputRunidx++;
+        delete tree;
     }
 }
 
-void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, int pageSize)
+void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
 {
     // Reset runIdxOffset since they are stored in LOCAL_SSD_SIZED_RUNS_DIR now
     int runIdxOffset = 0;
@@ -268,16 +263,20 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE, in
         {
             Record *winner = tree->popWinner();
 
-            char *bytes = winner->serialize();
-            
-            outputFile.write(bytes, strlen(bytes));
+            // char *bytes = winner->serialize();
+            outputFile.write(winner->key.data(), winner->key.size());
+            outputFile.write(winner->content.data(), winner->content.size());
+
+            // outputFile.write(bytes, strlen(bytes));
             outputFile << "\n";
             bytesToWrite += recordSize;
+            delete winner;
         }
         outputFile.close();
         outputAccessState(ACCESS_WRITE, bytesToWrite, outputTXT);
         runIdxOffset += fanIn;
         outputRunidx++;
+        delete tree;
     }
 }
 
@@ -296,7 +295,7 @@ void Disk::clear()
     if (nOutputBuffer > 0)
     {
         clearOuputBuffer();
-        capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE;
+        capacity = MAX_CAPACITY - nOutputBuffer * SSD_PAGE_SIZE;
     }
 }
 
@@ -439,14 +438,20 @@ int Disk::writeOutputTable(const char *outputTXT)
     while (!outputRun->isEmpty())
     {
         Page *curr = outputRun->getFirstPage();
+        int firstPageOriginalBytes = curr->getBytes();
         while (!curr->isEmpty())
         {
-            const char *bytes = curr->getFirstRecord()->serialize();
-            outputFile.write(bytes, strlen(bytes));
+            // const char *bytes = curr->getFirstRecord()->serialize();
+            // outputFile.write(bytes, strlen(bytes));
+            Record *toBeRemovedRec = curr->getFirstRecord();
+            outputFile.write(toBeRemovedRec->key.data(), toBeRemovedRec->key.size());
+            outputFile.write(toBeRemovedRec->content.data(), toBeRemovedRec->content.size());
+
             outputFile << '\n';
             curr->removeFisrtRecord();
+            delete toBeRemovedRec;
         }
-        outputRun->removeFisrtPage();
+        outputRun->removeFirstPage(firstPageOriginalBytes, true);
     }
 
     outputFile.close();
@@ -487,11 +492,16 @@ int Disk::writePageToRunFolder(const char *runFolderPath, Page *page, int pageId
 
     while (!page->isEmpty())
     {
-        const char *bytes = page->getFirstRecord()->serialize();
-        pageFile.write(bytes, strlen(bytes));
-        delete[] bytes;
+        // const char *bytes = page->getFirstRecord()->serialize();
+        // pageFile.write(bytes, strlen(bytes));
+        Record *toBeRemovedRec = page->getFirstRecord();
+        pageFile.write(toBeRemovedRec->key.data(), toBeRemovedRec->key.size());
+        pageFile.write(toBeRemovedRec->content.data(), toBeRemovedRec->content.size());
+
+        // delete[] bytes;ls
         pageFile << '\n';
         page->removeFisrtRecord();
+        delete toBeRemovedRec;
     }
     pageFile.close();
 
@@ -542,35 +552,42 @@ int Disk::writeRunToOutputTable(const char *runFolderPath, const char *OUTPUT_TA
     return 0;
 }
 
-Page *Disk::readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx)
+Page *Disk::readPageJFromRunK(const char *LOCAL_DIR, 
+                            int runIdx, 
+                            int pageStart,
+                            int pageEnd,
+                            int pageCurrIdx)
 {
-    char separator = get_directory_separator();
-    std::string runDir = "run" + std::to_string(runIdx);
-    std::string runPath = std::string(LOCAL_DIR) + separator + runDir;
-    std::string pageFileName = std::to_string(pageIdx);
-    std::string pageFilePath = runPath + separator + pageFileName;
-    std::ifstream pageFile(pageFilePath);
-
-    Page *page = new Page(pageIdx, PAGE_SIZE / recordSize, PAGE_SIZE);
-
-    if (pageFile.is_open())
+    Page *newHDDPage = new Page(pageCurrIdx, HDD_PAGE_SIZE / recordSize, HDD_PAGE_SIZE);
+    for (int pageIdx = pageStart; pageIdx < pageEnd; pageIdx++)
     {
-        std::string line;
-        while (std::getline(pageFile, line))
+        char separator = get_directory_separator();
+        std::string runDir = "run" + std::to_string(runIdx);
+        std::string runPath = std::string(LOCAL_DIR) + separator + runDir;
+        std::string pageFileName = std::to_string(pageIdx);
+        std::string pageFilePath = runPath + separator + pageFileName;
+        std::ifstream pageFile(pageFilePath);
+
+
+        if (pageFile.is_open())
         {
-            Record *r = new Record(recordSize, line);
-            r->setSlot(runIdx);
-            page->addRecord(r);
+            std::string line;
+            while (std::getline(pageFile, line))
+            {
+                Record *r = new Record(recordSize, line);
+                r->setSlot(runIdx);
+                newHDDPage->addRecord(r);
+            }
+            pageFile.close();
         }
-        pageFile.close();
-        return page;
-    }
-    else
-    {
+        else
+        {
 
-        std::cerr << "Error opening file for read page from path " << pageFilePath << std::endl;
-        return nullptr;
+            std::cerr << "Error opening file for read page from path " << pageFilePath << std::endl;
+            return nullptr;
+        }
     }
+    return newHDDPage;
 }
 
 int Disk::getNumPagesInRunOnDisk(const char *LOCAL_DIR, int runIdx)

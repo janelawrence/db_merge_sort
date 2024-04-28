@@ -105,7 +105,7 @@ void printStats(int numRecords, int recordSize, int maxRecordsInPage,
 		   numRecords, recordSize);
 	printf("Page size: %d Bytes\n"
 		   "- Each page can store %d records\n\n",
-		   PAGE_SIZE, maxRecordsInPage);
+		   DRAM_PAGE_SIZE, maxRecordsInPage);
 	printf("Cache size: %llu Bytes\n"
 		   "- Each cache-sized run can store at most %d pages\n"
 		   "- Each cache-sized run can store at most %d records\n"

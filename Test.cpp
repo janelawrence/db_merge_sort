@@ -22,28 +22,34 @@
 #include <ftw.h>
 
 // Set global variable
-int SSD_PAGE_SIZE = 4096；
-int HDD_PAGE_SIZE = 8192；
 
 // Actual params
 unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-int PAGE_SIZE = 8192;									  // 8 KB
-char *INPUT_TXT = "input_12gb_12582912_1024.txt";
+int DRAM_PAGE_SIZE = 8192;								  // 8 KB
+int SSD_PAGE_SIZE = 50 * 1024;
+int HDD_PAGE_SIZE = 500 * 1024;
+
+// char *INPUT_TXT = "input_120gb_125829120_1024.txt";
 // char *INPUT_TXT = "input_125mb_128000_1024.txt";
+char *INPUT_TXT = "input_50mb_51200_1024.txt";
+// char *INPUT_TXT = "mini_200_20_input.txt";
 
 // >>>>>> Mini test case 1
-// unsigned long long CACHE_SIZE = 4 * 8192;
-// unsigned long long DRAM_SIZE = 10 * 8192;
-// unsigned long long SSD_SIZE = 20 * 8192;
-// int PAGE_SIZE = 8192;
+// unsigned long long CACHE_SIZE = 1UL * 1024*1024;
+// unsigned long long DRAM_SIZE = 10UL * 1024*1024;
+// unsigned long long SSD_SIZE = 25UL * 1024*1024;
+// int DRAM_PAGE_SIZE = 1024*1024;
+// int SSD_PAGE_SIZE = 2 * 1024;
+// int HDD_PAGE_SIZE = 50 * 1024;
+// char *INPUT_TXT = "input_50mb_51200_1024.txt";
+
 // char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // Mini test 1 Set up End < < < < < < < < < <
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
-// char *OUTPUT_TABLE = "output_table_10GB";
-char *OUTPUT_TABLE = "output_table_12GB_1024";
+char *OUTPUT_TABLE = "output_table_test";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
 unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
@@ -53,6 +59,8 @@ unsigned long long HDD_BAN = 100 * 1024 * 1024 / 1000000; // 100 MB/s = 100 MB/u
 
 int recordSize = 0; // initialized
 int numRecords = 0; // initialized
+
+double GD_THRESHOLD = 0.01;
 
 const char *HDD = "HDD";
 const char *SSD = "SSD";
@@ -68,24 +76,24 @@ const char *LOCAL_SSD_SIZED_RUNS_DIR = "ssd_sized_runs";
 const char *outputTXT = nullptr;
 
 // TODO: change param uniqueRecordsInPages to page index range
-std::vector<Page *> graceFulDegradation(Run *uniqueRecordsInPages, DRAM *dram, Disk *ssd)
+std::vector<Page *> graceFulDegradation(const char *LOCAL_INPUT_DIR, 
+										int pageStart,
+										int pageEnd,
+										DRAM *dram, 
+										Disk *ssd)
 {
-	// Check if there's enough space in DRAM for the last pass
-	Run *runToSpill = new Run();
+	//  Store Pages spilled from DRAM to SSD later
+	Run *pagesToSpill = new Run(DRAM_PAGE_SIZE); //to be confirmed
 
 	// Not enough space in DRAM; we need to spill to SSD.
 	int i = 0;
 	unsigned long long bytesToSpill = 0;
-	while (dram->getCapacity() < uniqueRecordsInPages->getBytes())
+	unsigned long long pagesLeftInInput = pageEnd - pageStart;
+	while (dram->getCapacity() < pagesLeftInInput * DRAM_PAGE_SIZE)
 	{
-		// Page *pageToSpill = dram->getFirstPage();
-		Page *pageToSpill = dram->getPageCopy(i);
-		if(runToSpill->currentPageSize() + pageToSpill->getBytes() > SSD_PAGE_SIZE) {
-			ssd->addRun(runToSpill); // add the full run to SSD
-			runToSpill = new Run(); // start a new run
-		}
-		// bytesToSpill += pageToSpill->getBytes();
-		runToSpill->appendPage(pageToSpill);
+		Page *pageToSpill = dram->getPage(i);
+		bytesToSpill += pageToSpill->getBytes();
+		pagesToSpill->appendPage(pageToSpill);
 		dram->erasePage(i); // only flip bit map
 		i++;
 	}
@@ -94,27 +102,25 @@ std::vector<Page *> graceFulDegradation(Run *uniqueRecordsInPages, DRAM *dram, D
 	// Spill the records from last second run into SSD
 	ssd->outputSpillState(outputTXT);
 	ssd->outputAccessState(ACCESS_WRITE, bytesToSpill, outputTXT);
-	ssd->addRun(runToSpill); // Add the run to SSD
+	ssd->addRun(pagesToSpill); // Add the run to SSD
 
 	// Load/read the rest of input data into dram
 	// At this point, DRAM should have enough memory to hold the last few data
-	while (!uniqueRecordsInPages->isEmpty())
-	{
-		dram->addPage(uniqueRecordsInPages->getFirstPage()->clone());
-		uniqueRecordsInPages->removeFisrtPage();
-	}
+	// Read the rest of tiny bit of pages from input table to DRAM
+	dram->readRecords(LOCAL_INPUT_DIR, pageStart, pageEnd, recordSize);
+
 	// Get ready for creating cach-sized mini runs
-	// Read the spilled data into Cache
+	// Read the spilled data back into Cache
 	ssd->outputAccessState(ACCESS_READ, bytesToSpill, outputTXT);
 	std::vector<Page *> pagesReadInCache;
-	Run *spilledData = ssd->getRunCopy(0);
+	Run *spilledData = ssd->getRun(0);
 	ssd->eraseRun(0);
 	ssd->cleanInvalidRuns();
 
 	while (spilledData->getNumPages() > 0)
 	{
-		pagesReadInCache.push_back(spilledData->getFirstPage()->clone());
-		spilledData->removeFisrtPage();
+		pagesReadInCache.push_back(spilledData->getFirstPage());
+		spilledData->removeFirstPage(0, false);
 	}
 	// since the spill threshold is 0.1%, the number of pages spilled is guaranteed
 	// could fit in Cache
@@ -236,18 +242,18 @@ int mergeSort()
 	// Calculate stats
 	size_t totalBytes = numRecords * recordSize;
 
-	int maxRecordsInPage = PAGE_SIZE / recordSize;
-	int nPagesFitInCache = CACHE_SIZE / PAGE_SIZE;
+	int maxRecordsInPage = DRAM_PAGE_SIZE / recordSize;
+	int nPagesFitInCache = CACHE_SIZE / DRAM_PAGE_SIZE;
 
-	int nBuffersDRAM = DRAM_SIZE / PAGE_SIZE;
+	int nBuffersDRAM = DRAM_SIZE / DRAM_PAGE_SIZE;
 	//  Should be enough to hold the tree of fan-in size
-	int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
-	// int nOutputBuffers = 2;	 // used for testing when dram size is small
+	// int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
+	int nOutputBuffers = 2;	 // used for testing when dram size is small
 
 	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
 	float outputBufferRatioSSD = 0.8;
-	int nBuffersSSD = SSD_SIZE / PAGE_SIZE;
+	int nBuffersSSD = SSD_SIZE / SSD_PAGE_SIZE;
 
 	int nOutputBuffersSSD = nBuffersSSD * outputBufferRatioSSD;
 
@@ -263,8 +269,8 @@ int mergeSort()
 	Disk ssd(SSD_SIZE, SSD_LAT, SSD_BAN, SSD, nOutputBuffersSSD);
 	Disk hdd(HDD_SIZE, HDD_LAT, HDD_BAN, HDD, 0);
 
-	printf("Total input pages %d \n", totalPages);
-
+	printf("Total input pages %d, will create %d mem-sized runs \n", totalPages, readPasses);
+	// return 0;
 	int pagesLeftInInput = totalPages;
 	int pagesOffset = 0;
 	for (int readPass = 0; readPass < readPasses && pagesLeftInInput > 0; readPass++) // I/M
@@ -284,19 +290,21 @@ int mergeSort()
 		//  4. Then sorting them altogether
 		// When it's second from last pass, look ahead whether we need to do gracefull degradation
 		double ratio = (double)pagesLeftInInput / pagesToRead;
+		printf("read %d this pass, left: %d\n", pagesToRead, pagesLeftInInput);
 
-		if (readPass == readPasses - 2 && ratio <= 0.01 && pagesLeftInInput != 0)
+		if (readPass == readPasses - 2 && ratio <= GD_THRESHOLD && pagesLeftInInput != 0)
 		{
 			printf("Graceful Degradation\n");
 			// after degradation, pages are in cache, and in dram
-			// 		std::vector<Page *> pagesInCache = graceFulDegradation(uniqueRecordsInPages, &dram, &ssd);
+			std::vector<Page *> pagesInCache = graceFulDegradation(LOCAL_INPUT_DIR, pagesOffset, totalPages, &dram, &ssd);
+			pagesLeftInInput = 0;
 			// Create sorted cache-sized mini runs
-			// 		sortedMiniRuns = cache.sortForGracefulDegradation(dram.getInputBuffers(), pagesInCache, maxRecordsInPage, PAGE_SIZE);
+			sortedMiniRuns = cache.sortForGracefulDegradation(dram.getInputBuffers(), pagesInCache, maxRecordsInPage);
 		}
 		else
 		{
 			// Get unmerged cache-sized mini-runs
-			sortedMiniRuns = cache.sort(dram.getInputBuffers(), maxRecordsInPage, PAGE_SIZE);
+			sortedMiniRuns = cache.sort(dram.getInputBuffers(), maxRecordsInPage);
 		}
 		// trace sorting mini runs state
 		cache.outputMiniRunState(outputTXT);
@@ -325,7 +333,9 @@ int mergeSort()
 		}
 		sortedMiniRuns.clear();
 	}
-	// TODO: Consider clear LOCAL_INPUT_DIR physically
+	// clear LOCAL_INPUT_DIR physically
+	removeDirectoryRecursively(LOCAL_INPUT_DIR);
+
 	int totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
 
 	if (readPasses == 1)
@@ -342,9 +352,9 @@ int mergeSort()
 		}
 	}
 
-	// If there are mem-sized runs left in SSD
-	//  Spill them to HDD before merging
-	// write runs on SSD to HDD, then clear SSD
+	// // If there are mem-sized runs left in SSD
+	// //  Spill them to HDD before merging
+	// // write runs on SSD to HDD, then clear SSD
 	if (!ssd.outputBuffers.isEmpty())
 	{
 		hdd.outputSpillState(outputTXT);
@@ -360,11 +370,11 @@ int mergeSort()
 
 	// Start merging on HDD
 	hdd.outputMergeMsg(outputTXT);
-	hdd.mergeMemorySizedRuns(outputTXT, OUTPUT_TABLE, HDD_PAGE_SIZE);
+	hdd.mergeMemorySizedRuns(outputTXT, OUTPUT_TABLE);
 
 	int totalNumberSSDSizedRuns = countRunsInDirectory(std::string(LOCAL_SSD_SIZED_RUNS_DIR));
 
-	hdd.mergeSSDSizedRuns(outputTXT, OUTPUT_TABLE, SSD_PAGE_SIZE);
+	hdd.mergeSSDSizedRuns(outputTXT, OUTPUT_TABLE);
 
 	return 0;
 }
@@ -438,7 +448,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	// mergeSort();
+	mergeSort();
 	int countOutputRecords = verityOrder();
 	if (countOutputRecords > 0)
 	{
