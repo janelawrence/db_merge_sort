@@ -1,7 +1,8 @@
 #include "Run.h"
 #include "defs.h"
 
-Run::Run()
+Run::Run(int pSizeInRun): 
+    PAGE_SIZE_IN_RUN(pSizeInRun)
 {
     pageHead = new Page(-1, 0, 0);
     pageTail = pageHead;
@@ -57,7 +58,7 @@ void Run::appendPage(Page *page)
 
 Run *Run::clone()
 {
-    Run *clonedRun = new Run();
+    Run *clonedRun = new Run(DRAM_PAGE_SIZE);
     Page *current = pageHead;
     while (current)
     {
@@ -89,19 +90,20 @@ void Run::removeFirstPage(int firstPageOriginalBytes)
 }
 
 /*Add a record to the last page, add a page if needed */
+// TODO: check references
 void Run::addRecord(Record *record)
 {
     if (pageHead->getIdx() == -1)
     {
         Page *temp = pageHead;
-        pageHead = new Page(0, PAGE_SIZE / recordSize, PAGE_SIZE);
+        pageHead = new Page(0, DRAM_PAGE_SIZE / recordSize, DRAM_PAGE_SIZE);
         pageTail = pageHead;
         delete temp;
         numPage++;
     }
     if (pageTail->isFull() || pageTail->getSize() - pageTail->getBytes() < record->getSize())
     {
-        Page *newPage = new Page(pageTail->getIdx() + 1, PAGE_SIZE / recordSize, PAGE_SIZE);
+        Page *newPage = new Page(pageTail->getIdx() + 1, DRAM_PAGE_SIZE / recordSize, DRAM_PAGE_SIZE);
         newPage->addRecord(record);
         appendPage(newPage);
     }

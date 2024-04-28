@@ -27,10 +27,14 @@
 unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-int PAGE_SIZE = 8192;									  // 8 KB
+int DRAM_PAGE_SIZE = 8192;								  // 8 KB
+int SSD_PAGE_SIZE = 50 * 1024;
+int HDD_PAGE_SIZE = 500 * 1024;
+
 // char *INPUT_TXT = "input_120gb_125829120_1024.txt";
 // char *INPUT_TXT = "input_125mb_128000_1024.txt";
-char *INPUT_TXT = "mini_200_20_input.txt";
+char *INPUT_TXT = "input_50mb_51200_1024.txt";
+// char *INPUT_TXT = "mini_200_20_input.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 4 * 8192;
@@ -70,7 +74,7 @@ const char *outputTXT = nullptr;
 std::vector<Page *> graceFulDegradation(Run *uniqueRecordsInPages, DRAM *dram, Disk *ssd)
 {
 	// Check if there's enough space in DRAM for the last pass
-	Run *runToSpill = new Run();
+	Run *runToSpill = new Run(DRAM_PAGE_SIZE); //to be confirmed
 
 	// Not enough space in DRAM; we need to spill to SSD.
 	int i = 0;
@@ -231,10 +235,10 @@ int mergeSort()
 	// Calculate stats
 	size_t totalBytes = numRecords * recordSize;
 
-	int maxRecordsInPage = PAGE_SIZE / recordSize;
-	int nPagesFitInCache = CACHE_SIZE / PAGE_SIZE;
+	int maxRecordsInPage = DRAM_PAGE_SIZE / recordSize;
+	int nPagesFitInCache = CACHE_SIZE / DRAM_PAGE_SIZE;
 
-	int nBuffersDRAM = DRAM_SIZE / PAGE_SIZE;
+	int nBuffersDRAM = DRAM_SIZE / DRAM_PAGE_SIZE;
 	//  Should be enough to hold the tree of fan-in size
 	int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
 	// int nOutputBuffers = 2;	 // used for testing when dram size is small
@@ -242,7 +246,7 @@ int mergeSort()
 	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
 	float outputBufferRatioSSD = 0.8;
-	int nBuffersSSD = SSD_SIZE / PAGE_SIZE;
+	int nBuffersSSD = SSD_SIZE / SSD_PAGE_SIZE;
 
 	int nOutputBuffersSSD = nBuffersSSD * outputBufferRatioSSD;
 
@@ -291,7 +295,7 @@ int mergeSort()
 		else
 		{
 			// Get unmerged cache-sized mini-runs
-			sortedMiniRuns = cache.sort(dram.getInputBuffers(), maxRecordsInPage, PAGE_SIZE);
+			sortedMiniRuns = cache.sort(dram.getInputBuffers(), maxRecordsInPage);
 		}
 		// trace sorting mini runs state
 		cache.outputMiniRunState(outputTXT);

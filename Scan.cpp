@@ -63,7 +63,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 				continue;
 			}
 			// if current Page hasn't been filled
-			if (PAGE_SIZE - bytesOccupied < recordSize)
+			if (DRAM_PAGE_SIZE - bytesOccupied < recordSize)
 			{
 				// close current page file
 				pageFile.close();
@@ -107,7 +107,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
 {
 	std::ifstream file(INPUT_TXT);
-	Run *recordsInPages = new Run();
+	Run *recordsInPages = new Run(DRAM_PAGE_SIZE);
 	int countDuplicate = 0;
 	int countTotal = 0;
 	if (file.is_open())

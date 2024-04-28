@@ -35,7 +35,9 @@ extern unsigned long long SSD_BAN;
 extern long HDD_LAT;
 extern unsigned long long HDD_BAN;
 
-extern int PAGE_SIZE;
+extern int DRAM_PAGE_SIZE;
+extern int SSD_PAGE_SIZE;
+extern int HDD_PAGE_SIZE;
 
 typedef uint8_t byte;
 

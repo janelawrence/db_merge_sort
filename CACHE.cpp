@@ -38,7 +38,7 @@ int CACHE::outputMiniRunState(const char *outputTXT)
 	outputFile.close();
 	return 0;
 }
-std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage, int PAGE_SIZE)
+std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsInPage)
 {
 
 	std::vector<Run *> miniRuns;
@@ -49,9 +49,8 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 		Page *curr = pagesInDRAM[pageIdx];
 		if (count == nPagesFitInCache)
 		{
-			Run *miniRun = new Run();
+			Run *miniRun = new Run(DRAM_PAGE_SIZE);
 			// one cache-sized run has been filled
-			// miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
 			while (!heap.isEmpty())
 			{
 				miniRun->addRecord(heap.getMin());
@@ -74,8 +73,7 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 		pageIdx++;
 		if (pageIdx == pagesInDRAM.size() && !heap.isEmpty())
 		{
-			Run *miniRun = new Run();
-			// miniRun->appendPage(heap.toNewPages(0, maxRecordsInPage, PAGE_SIZE));
+			Run *miniRun = new Run(DRAM_PAGE_SIZE);
 			while (!heap.isEmpty())
 			{
 				miniRun->addRecord(heap.getMin());
@@ -83,8 +81,6 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 			}
 
 			miniRuns.push_back(miniRun);
-			// Run *miniRun = new Run();
-			// heap.clear();
 		}
 	}
 	heap.clear();

@@ -19,9 +19,9 @@ DRAM::DRAM(unsigned long long maxCap, int nOutputBuffers)
     printf("Initialize DRAM\n");
     outputBuffers.nBuffer = nOutputBuffers;
     buffersUsed = 0;
-    outputBuffers.wrapper = new Run();
+    outputBuffers.wrapper = new Run(DRAM_PAGE_SIZE);
     // Input buffer Capacity in Bytes
-    capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffers * PAGE_SIZE;
+    capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffers * DRAM_PAGE_SIZE;
 }
 
 DRAM::~DRAM()
@@ -43,7 +43,7 @@ DRAM::~DRAM()
     buffersUsed = 0;
     outputBuffers.clear();
     delete outputBuffers.wrapper;
-    capacity = MAX_CAPACITY - numOutputBuffers * PAGE_SIZE;
+    capacity = MAX_CAPACITY - numOutputBuffers * DRAM_PAGE_SIZE;
 }
 
 Page *DRAM::getPage(int idx)
@@ -192,7 +192,7 @@ unsigned long long DRAM::readRecords(const char *LOCAL_INPUT_DIR, int pageStart,
 Page *DRAM::readPage(const char *LOCAL_INPUT_DIR, int pageIdx, int recordSize)
 {
     char separator = get_directory_separator();
-    Page *page = new Page(pageIdx, PAGE_SIZE / recordSize, PAGE_SIZE);
+    Page *page = new Page(pageIdx, DRAM_PAGE_SIZE / recordSize, DRAM_PAGE_SIZE);
     std::string pagePath = std::string(LOCAL_INPUT_DIR) + separator + std::to_string(pageIdx);
     std::ifstream pageFile(pagePath);
     if (pageFile.is_open())
@@ -237,7 +237,7 @@ void DRAM::clear()
     inputBuffersBitmap.swap(emptyBitmap);
     buffersUsed = 0;
     outputBuffers.clear();
-    capacity = MAX_CAPACITY - numOutputBuffers * PAGE_SIZE;
+    capacity = MAX_CAPACITY - numOutputBuffers * DRAM_PAGE_SIZE;
 }
 
 bool DRAM::isFull() const
@@ -257,7 +257,6 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
 
     TournamentTree *tree = new TournamentTree(fanin, rTable);
     int i = 0;
-    // Run *curr = new Run();
     // CREATE A RUN FOLDER INSIDE LOCAL_DRAM_SIZED_RUNS_DIR
 
     unsigned long long bytesInRun = 0;

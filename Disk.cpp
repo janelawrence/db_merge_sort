@@ -27,10 +27,10 @@ Disk::Disk(unsigned long long maxCap, long lat, long bw, const char *dType, int 
     if (nOutputBuffer > 0)
     { // HDD doesn't need output buffers
         outputBuffers.nBuffer = nOutputBuffer;
-        outputBuffers.maxCap = (unsigned long long)nOutputBuffer * PAGE_SIZE;
+        outputBuffers.maxCap = (unsigned long long)nOutputBuffer * SSD_PAGE_SIZE;
         outputBuffers.bytesStored = 0;
         outputBuffers.numberRuns = 0;
-        capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffer * PAGE_SIZE; // capacity of the input buffers
+        capacity = MAX_CAPACITY - (unsigned long long)nOutputBuffer * SSD_PAGE_SIZE; // capacity of the input buffers
     }
 }
 
@@ -194,7 +194,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
-            if (PAGE_SIZE - outputPageBytesOccupied < recordSize)
+            if (SSD_PAGE_SIZE - outputPageBytesOccupied < recordSize)
             {
                 pageFile.close();
                 // Create a new page file inside LOCAL_INPUT_DIR
@@ -307,7 +307,7 @@ void Disk::clear()
     if (nOutputBuffer > 0)
     {
         clearOuputBuffer();
-        capacity = MAX_CAPACITY - nOutputBuffer * PAGE_SIZE;
+        capacity = MAX_CAPACITY - nOutputBuffer * SSD_PAGE_SIZE;
     }
 }
 
@@ -564,35 +564,42 @@ int Disk::writeRunToOutputTable(const char *runFolderPath, const char *OUTPUT_TA
     return 0;
 }
 
-Page *Disk::readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx)
+Page *Disk::readPageJFromRunK(const char *LOCAL_DIR, 
+                            int runIdx, 
+                            int pageStart,
+                            int pageEnd,
+                            int pageCurrIdx)
 {
-    char separator = get_directory_separator();
-    std::string runDir = "run" + std::to_string(runIdx);
-    std::string runPath = std::string(LOCAL_DIR) + separator + runDir;
-    std::string pageFileName = std::to_string(pageIdx);
-    std::string pageFilePath = runPath + separator + pageFileName;
-    std::ifstream pageFile(pageFilePath);
-
-    Page *page = new Page(pageIdx, PAGE_SIZE / recordSize, PAGE_SIZE);
-
-    if (pageFile.is_open())
+    Page *newHDDPage = new Page(pageCurrIdx, HDD_PAGE_SIZE / recordSize, HDD_PAGE_SIZE);
+    for (int pageIdx = pageStart; pageIdx < pageEnd; pageIdx++)
     {
-        std::string line;
-        while (std::getline(pageFile, line))
+        char separator = get_directory_separator();
+        std::string runDir = "run" + std::to_string(runIdx);
+        std::string runPath = std::string(LOCAL_DIR) + separator + runDir;
+        std::string pageFileName = std::to_string(pageIdx);
+        std::string pageFilePath = runPath + separator + pageFileName;
+        std::ifstream pageFile(pageFilePath);
+
+
+        if (pageFile.is_open())
         {
-            Record *r = new Record(recordSize, line);
-            r->setSlot(runIdx);
-            page->addRecord(r);
+            std::string line;
+            while (std::getline(pageFile, line))
+            {
+                Record *r = new Record(recordSize, line);
+                r->setSlot(runIdx);
+                newHDDPage->addRecord(r);
+            }
+            pageFile.close();
         }
-        pageFile.close();
-        return page;
-    }
-    else
-    {
+        else
+        {
 
-        std::cerr << "Error opening file for read page from path " << pageFilePath << std::endl;
-        return nullptr;
+            std::cerr << "Error opening file for read page from path " << pageFilePath << std::endl;
+            return nullptr;
+        }
     }
+    return newHDDPage;
 }
 
 int Disk::getNumPagesInRunOnDisk(const char *LOCAL_DIR, int runIdx)

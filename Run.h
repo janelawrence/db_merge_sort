@@ -10,9 +10,10 @@ private:
     Page *pageTail;
     int numPage;
     unsigned long long bytes; // size used in bytes
+    int PAGE_SIZE_IN_RUN;
 
 public:
-    Run();
+    Run(int pSizeInRun);
     ~Run();
     void appendPage(Page *);
     void removeFirstPage(int firstPageOriginalBytes);

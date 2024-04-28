@@ -149,7 +149,11 @@ public:
 
     int writeRunToOutputTable(const char *runFolderPath, const char *outputTXT);
 
-    Page *readPageJFromRunK(const char *LOCAL_DIR, int runIdx, int pageIdx);
+    Page *readPageJFromRunK(const char *LOCAL_DIR, 
+                            int runIdx, 
+                            int pageStart,
+                            int pageEnd,
+                            int pageCurrIdx);
 
     int getNumPagesInRunOnDisk(const char *LOCAL_DIR, int runIdx);
 

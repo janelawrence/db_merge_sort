@@ -110,7 +110,19 @@ void TournamentTree::initializeForRunsStoredDisk()
                 continue;
             }
             // Fetch first page with pageIdx 0
-            Page *fetchedPage = disk->readPageJFromRunK(runPathPhysical, runIdxOnDisk, 0);
+            int diskSizedPagesToRead = 1;
+            if (strcmp(runPathPhysical, LOCAL_DRAM_SIZED_RUNS_DIR) == 0)
+            {
+                diskSizedPagesToRead = HDD_PAGE_SIZE / SSD_PAGE_SIZE;
+            }
+            int pageEndIdx = std::min(0 + diskSizedPagesToRead, totalPagesInRun);
+
+            Page *fetchedPage = disk->readPageJFromRunK(runPathPhysical,
+                                                        runIdxOnDisk,
+                                                        0, // start reading from page 0
+                                                        pageEndIdx,
+                                                        0);
+
             if (fetchedPage->isEmpty())
             {
                 printf("Page fetched from disk is empty.\n");
@@ -124,7 +136,7 @@ void TournamentTree::initializeForRunsStoredDisk()
             fetchedPage->removeFisrtRecord();
             pageTable.push_back(fetchedPage);
 
-            nextPageIdxTable.push_back(1);
+            nextPageIdxTable.push_back(pageEndIdx);
 
             update(i, r); // <record inde in tree vector, record>
             int fetchedPageSize = fetchedPage->getBytes();
@@ -263,10 +275,21 @@ void TournamentTree::fetchPageFromRunOnDisk(int winnerRecIdx)
         int runIdxOnDisk = runIdxTable[winnerRecIdx];
         int pageIdx = nextPageIdxTable[winnerRecIdx];
         int fetchedPageSize = 0;
+        int totalPagesInRun = runSizeTable[winnerRecIdx];
         if (pageIdx < runSizeTable[winnerRecIdx])
         {
-            // Fetch page from disk
-            Page *newPage = disk->readPageJFromRunK(runPathPhysical, runIdxOnDisk, pageIdx);
+            int diskSizedPagesToRead = 1;
+            if (strcmp(runPathPhysical, LOCAL_DRAM_SIZED_RUNS_DIR) == 0)
+            {
+                diskSizedPagesToRead = HDD_PAGE_SIZE / SSD_PAGE_SIZE;
+            }
+            // Fetch a HDD Sized page from disk
+            int pageEndIdx = std::min(pageIdx + diskSizedPagesToRead, totalPagesInRun);
+            Page *newPage = disk->readPageJFromRunK(runPathPhysical, 
+                                                    runIdxOnDisk, 
+                                                    pageIdx,
+                                                    pageEndIdx,
+                                                    runIdxOnDisk);
             if (!newPage->isEmpty())
             {
                 delete pageTable[winnerRecIdx];
@@ -275,9 +298,9 @@ void TournamentTree::fetchPageFromRunOnDisk(int winnerRecIdx)
                 newPage->removeFisrtRecord();
                 pageTable[winnerRecIdx] = newPage;
                 insert(winnerRecIdx, r);
+                nextPageIdxTable[winnerRecIdx] = pageEndIdx;
             }
         }
-        nextPageIdxTable[winnerRecIdx]++;
         // Trace spilling
         if (fetchedPageSize > 0)
         {
