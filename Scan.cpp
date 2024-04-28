@@ -57,11 +57,11 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 									  { return !std::isalnum(c); }),
 					   line.end());
 			countTotal++;
-			if (map.find(line) != map.end())
-			{
-				countDuplicate++;
-				continue;
-			}
+			// if (map.find(line) != map.end())
+			// {
+			// 	countDuplicate++;
+			// 	continue;
+			// }
 			// if current Page hasn't been filled
 			if (DRAM_PAGE_SIZE - bytesOccupied < recordSize)
 			{
@@ -84,7 +84,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 			pageFile.write(line.c_str(), strlen(line.c_str()));
 			pageFile << "\n";
 			bytesOccupied += strlen(line.c_str());
-			map[line] = 0;
+			// map[line] = 0;
 		}
 		pageFile.close();
 	}
