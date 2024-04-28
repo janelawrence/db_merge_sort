@@ -28,13 +28,16 @@ unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int DRAM_PAGE_SIZE = 8192;								  // 8 KB
-int SSD_PAGE_SIZE = 50 * 1024;
-int HDD_PAGE_SIZE = 500 * 1024;
+int SSD_PAGE_SIZE = 20 * 1024;
+int HDD_PAGE_SIZE = 512 * 1024;
 
+
+// char * INPUT_TXT = "input_table";
 // char *INPUT_TXT = "input_120gb_125829120_1024.txt";
-char *INPUT_TXT = "input_125mb_128000_1024.txt";
-// char *INPUT_TXT = "input_50mb_51200_1024.txt";
+// char *INPUT_TXT = "input_125mb_128000_1024.txt";
+char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // char *INPUT_TXT = "mini_200_20_dup_input.txt";
+// char * INPUT_TXT = "input_125mb_128000_1024_dup.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 1UL * 1024*1024;
@@ -49,12 +52,12 @@ char *INPUT_TXT = "input_125mb_128000_1024.txt";
 // Mini test 1 Set up End < < < < < < < < < <
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
-char *OUTPUT_TABLE = "output_table_test";
+char *OUTPUT_TABLE = "output_table";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
-unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
+unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200/1000000 MB/us
 
-long HDD_LAT = 500;										  // 5 ms = 0.005 s
+long HDD_LAT = 5000;										  // 5 ms = 5000 us
 unsigned long long HDD_BAN = 100 * 1024 * 1024 / 1000000; // 100 MB/s = 100 MB/us
 
 int recordSize = 0; // initialized
