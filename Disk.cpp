@@ -192,7 +192,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
             }else{
                 prevKey = winner->key +winner->content;
             }
-            if (SSD_PAGE_SIZE - outputPageBytesOccupied < recordSize)
+            if (HDD_PAGE_SIZE - outputPageBytesOccupied < recordSize)
             {
                 pageFile.close();
                 // Create a new page file inside LOCAL_INPUT_DIR
@@ -228,7 +228,6 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
 {
     // Reset runIdxOffset since they are stored in LOCAL_SSD_SIZED_RUNS_DIR now
     int runIdxOffset = 0;
-    int outputRunidx = 0;
     int totalNumberSSDSizedRuns = countRunsInDirectory(std::string(LOCAL_SSD_SIZED_RUNS_DIR));
     int fanIn = totalNumberSSDSizedRuns;
 
@@ -290,7 +289,6 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
         outputFile.close();
         outputAccessState(ACCESS_WRITE, bytesToWrite, outputTXT);
         runIdxOffset += fanIn;
-        outputRunidx++;
         delete tree;
     }
 }
@@ -399,7 +397,7 @@ int Disk::outputMergeMsg(const char *outputTXT)
     }
 
     // Print output to both console and file
-    outputFile << "STATE -> MERGE_RUNS_" << diskType << ": Merge sorted runs on the SSD device\n";
+    outputFile << "STATE -> MERGE_RUNS_" << diskType << ": Merge sorted runs on the " << diskType << " device\n";
 
     // close file
     outputFile.close();
@@ -507,8 +505,6 @@ int Disk::writePageToRunFolder(const char *runFolderPath, Page *page, int pageId
 
     while (!page->isEmpty())
     {
-        // const char *bytes = page->getFirstRecord()->serialize();
-        // pageFile.write(bytes, strlen(bytes));
         Record *toBeRemovedRec = page->getFirstRecord();
         pageFile.write(toBeRemovedRec->key.data(), toBeRemovedRec->key.size());
         pageFile.write(toBeRemovedRec->content.data(), toBeRemovedRec->content.size());
@@ -627,7 +623,7 @@ void Disk::print() const
     printf("\n------------------------------------%s Data------------------------------------\n", diskType);
     if (std::strcmp(diskType, SSD) == 0)
     {
-        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %d\n", MAX_CAPACITY, capacity);
+        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %llu\n", MAX_CAPACITY, capacity);
     }
     else
     {
@@ -636,7 +632,7 @@ void Disk::print() const
     printf("In total has %ld runs\n", unsortedRuns.size());
     for (long unsigned int i = 0; i < unsortedRuns.size(); i++)
     {
-        printf(">>>>>>>>>>>>>>>>>>> %d th Run, valid: %d >>>>>>>>>>>>>>>>>>\n", i, static_cast<int>(runBitmap[i]));
+        printf(">>>>>>>>>>>>>>>>>>> %lu th Run, valid: %d >>>>>>>>>>>>>>>>>>\n", i, static_cast<int>(runBitmap[i]));
         unsortedRuns[i]->print();
     }
     printf("--------------------------------------------------------------------\n");
@@ -647,7 +643,7 @@ void Disk::printTemp() const
     printf("\n------------------------------------%s Merged/Tempoary Saved Data------------------------------------\n", diskType);
     if (std::strcmp(diskType, SSD) > 0)
     {
-        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %i\n", MAX_CAPACITY, capacity);
+        printf("MAX Capacity %llu bytes, remaining cap %llu bytes %llu\n", MAX_CAPACITY, capacity);
     }
     else
     {
@@ -656,7 +652,7 @@ void Disk::printTemp() const
     printf("In total has %ld merged runs\n", temp.size());
     for (long unsigned int i = 0; i < temp.size(); i++)
     {
-        printf(">>>>>>>>>>>>>>>>>>> %d th Merged Run >>>>>>>>>>>>>>>>>>\n", i);
+        printf(">>>>>>>>>>>>>>>>>>> %lu th Merged Run >>>>>>>>>>>>>>>>>>\n", i);
         temp[i]->print();
     }
     printf("--------------------------------------------------------------------\n");

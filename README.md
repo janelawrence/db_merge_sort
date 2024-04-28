@@ -2,9 +2,11 @@
 
 ### What's currently working
 
-1. `make run`, equivalent to `./ExternalSort.exe -c 20 -20 -o trace0.txt`
-   prints out all system statistics, and prints the records store in input.txt
-2. Or use the shell script file by `bash run.sh`
+1. 
+`make`
+`./ExternalSort.exe -c <numRecords> -<recordSize> -o <trace0.txt>`
+   
+2. Or modify and the use the shell script file by `bash run.sh`
 
 3. To change command line args, modify numbers in `line 43 in MakeFile`
 
@@ -18,7 +20,7 @@ Page.h/Page.cpp: Represents a page of records, handling the collection of record
 
 Record.h/Record.cpp: Defines the data structure for individual records within pages.
 
-HeapSort.h/HeapSort.cpp: Implements the sorting algorithm used by the cache to sort records in a run.
+HeapSort.h/HeapSort.cpp: Implements the sorting algorithm used by the cache to sort records.
 
 disk.h/disk.cpp: Simulates a hard disk drive for storage and retrieval of data.
 
@@ -35,18 +37,25 @@ C = CACHE_SIZE
 R = recordSize  
 N = numRecords  
 I = totalInputBytes = R \* N  
-P = PAGE_SIZE  
+P = DRAM_PAGE_SIZE  
+SSD_P = SSD_PAGE_SIZE
+HDD_P = HDD_PAGE_SIZE
 n = recordsPerPage  
-F = Fan-in = number of pages read to memory = (M/P - 2)
+D = Number of pages read to memory = (M - P*numOutputBuffersInDRAM) / P
 
-1. For every M = DRAM_SIZE data, read M/P pages into DRAM
+Alternative 1 External Merge Sort Algorithm:
+1. For every M display(Markdown('$1.0-q \\approx 0.99,0.5,0.0$')) DRAM_SIZE data, read D pages into DRAM
 2. Use Cache to create mini-runs
    - Number of pages can fit in cache = C/P
    - Number of records can fit in cache =
      (pages can fit in cache) \* (records in a page)= (C/P) \* (P/R)
-3. Write mini-runs to DRAM, merge in memory then write mem-sized runs to SSD, and then HDD
-4. State: Merge Runs on HDD:
-   - Read F = (M/P - 2) pages from SSD to DRAM
+3. Merge mini-runs in DRAM output buffers using tournament tree, when DRAM output buffers are full,
+   then spill records to memory-sized runs on SSD output buffers.
+   If SSD output buffers are full, spill all mem-sized runs located in SSD output buffers to HDD,
+   then continue storing memory-sized runs on SSD output buffers.
+5. State: Merge Runs on HDD:
+   - Create SSD-Sized runs by merging memory-sized runs
+   - Merge all SSD-Sized runs into one final sorted run
 
 ### Teammate contributions
 
@@ -56,24 +65,22 @@ F = Fan-in = number of pages read to memory = (M/P - 2)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 2. Minimum count of row            | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 3. Device-optimized page sizes     | WRITE ANALYSIS in next section                                 |
+| 3. Device-optimized page sizes     | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 4. Spilling memory-to-SSD          | (Jane) Done                                                    |
+| 4. Spilling memory-to-SSD          | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 5. Spilling from SSD to disk       | (Jane) Done                                                    |
+| 5. Spilling from SSD to disk       | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 6. Graceful degradation            | TO BE DONE                                                     |
-| a. into merging                    | TO BE DONE                                                     |
-| b. beyond one merge step           | TO BE DONE                                                     |
+| 6. Graceful degradation            | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 7. Optimized merge patterns        | Using pointers to records instead of index (explain)           |
+| 7. Optimized merge patterns        | (Jane) Using pointers to records instead of index (explain)           |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 8. Verifying: sort order           | (Jane) Test.cpp -> verityOrder()                               |
 | a. sets of rows & values           |                                                                |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 9. Tournament Trees                | (Jane)TournamenTree.h, TournamenTree.cpp                       |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 10. Duplicate Removel              | (Jane) Scan.cpp -> Run *ScanPlan::scan(const char *INPUT_TXT)  |
+| 10. Duplicate Removal              | (Jane) Remove duplicates during merge process                  |
 
 ### Explain
 
@@ -81,13 +88,13 @@ F = Fan-in = number of pages read to memory = (M/P - 2)
 
 1. Cache-size mini runs
 
-- Cache.cpp -> sort(), creates sorted mini runs and in each run, records are store in pages
+- Cache.cpp -> sort(), creates sorted mini runs and in each run, records are store in pages of DRAM_PAGE_SIZE
 - Each mini-run is sorted using the 'HeapSort' algorithm and managed by 'Run' class.
 - Records are processed page by page, with sorting occurring at the record level.
 
 API Reference
 CACHE::sort(std::vector<Page*>, int, int): Sorts pages into mini-runs.
-CACHE::outputMiniRunState(const char*): Outputs the state of sorted mini-runs to a specified file.
+CACHE::outputMiniRunState(const char*): Wrtie trace outputs reporting the state of sorted mini-runs.
 CACHE::getCapacity() const: Returns the current capacity of the cache.
 
 2. Minimum count of row
@@ -102,9 +109,13 @@ CACHE::getCapacity() const: Returns the current capacity of the cache.
   input data at once = 100 MB - 32 \* 8K = 100 MB - 0.25 MB = 99.75 MB = 99.75 MB / (8 KB/ Page) = 12768 pages.
 - Therefore, each time, DRAM can store 12768 pages \* 8 KB/page / recordSize =
 
-3. Device-optimized page sizes
+3. Device-optimized page sizes = latency * bandwidth
 
-- Page Size roughly = 6375 nanoseconds \* 1.0016 GB/m = roughly 6.7 KB = take 8 KB = 8192 B
+- DRAM Page Size roughly = 6375 nanoseconds \* 1.0016 GB/m = roughly 6.7 KB = take 8 KB = 8192 B
+
+- SSD Page Size roughly = 200 MB/s * 0.1 ms = 20 KB
+
+- HDD Page Size roughly = 100 MB/s * 5 ms = 512 KB
 
 4. Spilling memory-to-SSD
 
@@ -113,11 +124,29 @@ CACHE::getCapacity() const: Returns the current capacity of the cache.
 
 The process involves:
 
-- Checking if the output buffer is full.
-- Simulating writing to the SSD (represented by dest) when the buffer is full.
+- Checking if the DRAM output buffer is full.
+
+- Simulating writing to the SSD (represented by an object `dest`, which is a Disk class object) when the buffer is full.
+
 - Managing internal buffers and ensuring they are flushed to SSD properly.
 
-5. Spilling from SSD to disk
+- Physically: 
+  a. all memory-sized runs are stored in a folder inside directory `LOCAL_DRAM_SIZED_RUNS_DIR`    =`mem_sized_runs`.
+
+5. Spilling from SSD to HDD
+
+- When SSD output buffers are full, spill all runs from SSD to HDD
+
+- When all memory-sized runs are created, but they are still in SSD,
+  spill them to HDD before merge
+
+- Physically: 
+  a. all memory-sized runs are stored in a folder inside directory `LOCAL_DRAM_SIZED_RUNS_DIR`    =`mem_sized_runs`.
+  In each memory-sized run run located in, there are page files of SSD_PAGE_SIZE.
+  When the program is fetching 1 page on HDD for merging memory-sized runs, it will fetch HDD_PAGE/SSD_PAGE_SIZE number of
+  memory sizes from this local directory. 
+  b. all SSD-Sized runs are stored in a folder inside `LOCAL_SSD_SIZED_RUNS_DIR` = `ssd_sized_runs`;
+  Each it stores floor(SSD_SIZE/DRAM_SIZE) number of runs in this folder
 
 - Test.cpp:
 
@@ -141,13 +170,37 @@ The process involves:
      Then, use the tournament tree in output buffers to merge thse cache-sized sorted mini runs into memory-sized
      runs.
 
+  - Where in Code do we realize it:
+    a. In secord to last run, decide whether to do Graceful Degradation:
+    b. Clear space in DRAM input buffers to SSD just enough to store `number of pages left to read in the input table`. Calcuate the ratio `double ratio = (double)pagesLeftInInput / pagesToRead`:
+       Test.cpp >> mergeSort() >> line 296 - 297
+    c. Read `number of pages left to read in the input table` into DRAM:
+       Test.cpp >> graceFulDegradation() >> line 114
+                >> DRAM.cpp >> readRecords()
+    d. Read the spilled data back into Cache
+       Test.cpp >> graceFulDegradation() >> line 118 - 131
+    e. In-memory merge-sort for data stored in Cache and DRAM:
+      Test.cpp >>  mergeSort() >> line 306
+        i . `sortedMiniRuns = cache.sortForGracefulDegradation(dram.getInputBuffers(), pagesInCache, maxRecordsInPage);``
+        ii. CACHE.cpp >> sortForGracefulDegradation function is responsible for creating sorted mini-runs
+`
+      
+
 7. Optimized merge patterns
-   - Using pointers to records instead of index (explain)
+  - Using pointers to keep record reference.
+      When reading records, I define a Record class to store separate the key characters and the rest of the characters. Then they are referred into different data strucutre, such as Page, and Run, and DRAM, SSD,
+      and HDD.
+  - Also, the desgin of duplicate removal is implemented in the process of merging when we pop winner from   Tournament. This process can increase the number of records being merge in next merge level, therefore, can
+    optimize the time. Originally, this part is implemented during the initial scanning by hashing. However, 
+    that takes up a lot of memory to store the hash table, and therefore I changed it to happen during 
+    merging sorted runs.
+
 8. Verifying: sort order
 
 - located in "Test.cpp -> verityOrder()"
 - input: Read keys from OUTPUT_TABLE and check if each key is less than the subsequent key.
-- output: return 'true' if all records are in ascending order, 'false' otherwise. Additionally, prints "output table is empty".
+- output: return 'true' if all records are in ascending order, 'false' otherwise. Additionally, it
+  the output table is empty, it prints "output table is empty" to std::out.
 
 9. Tournament Trees
    Design for sorting of large input by simulating a tournament comparison among records.
@@ -156,16 +209,72 @@ The process involves:
 API Reference
 
 - TournamentTree(int, std::vector<Run _> &, Disk \_): Constructs a tournament tree with specified runs and disk.
-- void update(int, Record \*): Updates a tree node with a new record.
-- Record \*popWinner(): Removes the winning record from the tree and updates the tree structure.
-- void replaceWinner(Record \*): Replaces the current winner with a new record, useful for continuous sorting.
-- bool hasNext(): Checks if there are more records to process.
-- Record \*getWinner() const: Returns the current winner without removing it from the tree.
+  - void update(int, Record \*): Updates a tree node with a new record.
+  - Record \*popWinner(): Removes the winning record from the tree and updates the tree structure.
+  - bool hasNext(): Checks if there are more records to process.
+  - Record \*getWinner() const: Returns the current winner without removing it from the tree.
 
 10. Duplicate Removel
 
-- In `Scan.cpp -> Run *ScanPlan::scan(const char *INPUT_TXT)`
-  It scan through the input table txt, and use a hashmap to store
-  hashed record data. When hashed value has existed in the hashmap,
-  skip reading in this record, and continue.
-  Returns records stored in pages and wrapped in a wrapper class Run.
+  - During both merging in DRAM, and merging in HDD, I keep track of the last winner.
+    Then for every new winner, if it's the same as the last winner, it will not be written to the
+    new run.
+
+  - API reference:
+    a. Merge cache mini runs in DRAM, and output to a destination disk.
+    DRAM::mergeFromSelfToDest
+    ```
+      Record * prevWinner = nullptr;
+      while (tree->hasNext())
+      {
+          Record *winner = tree->popWinner();
+          if(prevWinner == nullptr) {
+              prevWinner = winner;
+          }else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+          {
+              numDuplicate++;
+              continue;
+          }else{
+              prevWinner = winner;
+          }
+    ```
+    b. Disk::mergeMemorySizedRuns(), 
+      ```
+      ...
+      std::string prevKey = "None";
+        // // write sorted output to output buffer
+        while (tree->hasNext())
+        {
+            Record *winner = tree->popWinner();
+            if(prevKey== "None") {
+                prevKey = winner->key +winner->content;
+            }else if(prevKey == winner->key +winner->content) 
+            {
+                numDuplicate++;
+                continue;
+            }else{
+                prevKey = winner->key +winner->content;
+            }
+        ...
+        }      
+      ```
+    c. Disk::mergeSSDSizedRuns()
+    ```
+      ...
+      std::string prevKey = "None";
+        // // write sorted output to output buffer
+        while (tree->hasNext())
+        {
+            Record *winner = tree->popWinner();
+            if(prevKey== "None") {
+                prevKey = winner->key +winner->content;
+            }else if(prevKey == winner->key +winner->content) 
+            {
+                numDuplicate++;
+                continue;
+            }else{
+                prevKey = winner->key +winner->content;
+            }
+        ...
+        }      
+      ```

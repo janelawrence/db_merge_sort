@@ -28,13 +28,16 @@ unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
 unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
 unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
 int DRAM_PAGE_SIZE = 8192;								  // 8 KB
-int SSD_PAGE_SIZE = 50 * 1024;
-int HDD_PAGE_SIZE = 500 * 1024;
+int SSD_PAGE_SIZE = 20 * 1024;
+int HDD_PAGE_SIZE = 512 * 1024;
 
+
+// char * INPUT_TXT = "input_table";
 // char *INPUT_TXT = "input_120gb_125829120_1024.txt";
-char *INPUT_TXT = "input_125mb_128000_1024.txt";
-// char *INPUT_TXT = "input_50mb_51200_1024.txt";
+// char *INPUT_TXT = "input_125mb_128000_1024.txt";
+char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // char *INPUT_TXT = "mini_200_20_dup_input.txt";
+// char * INPUT_TXT = "input_125mb_128000_1024_dup.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 1UL * 1024*1024;
@@ -49,12 +52,12 @@ char *INPUT_TXT = "input_125mb_128000_1024.txt";
 // Mini test 1 Set up End < < < < < < < < < <
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
-char *OUTPUT_TABLE = "output_table_test";
+char *OUTPUT_TABLE = "output_table";
 
 long SSD_LAT = 100;											 // 0.1 ms = 100 microseconds(us)
-unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200 MB/us
+unsigned long long SSD_BAN = 200ULL * 1024 * 1024 / 1000000; // 200 MB/s = 200/1000000 MB/us
 
-long HDD_LAT = 500;										  // 5 ms = 0.005 s
+long HDD_LAT = 5000;										  // 5 ms = 5000 us
 unsigned long long HDD_BAN = 100 * 1024 * 1024 / 1000000; // 100 MB/s = 100 MB/us
 
 int recordSize = 0; // initialized
@@ -248,8 +251,8 @@ int mergeSort()
 
 	int nBuffersDRAM = DRAM_SIZE / DRAM_PAGE_SIZE;
 	//  Should be enough to hold the tree of fan-in size
-	// int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
-	int nOutputBuffers = 2;	 // used for testing when dram size is small
+	int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
+	// int nOutputBuffers = 2;	 // used for testing when dram size is small
 
 	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
@@ -311,7 +314,7 @@ int mergeSort()
 		cache.outputMiniRunState(outputTXT);
 
 		// created memory-sized sorted runs using Tournament Tree
-		printf("At scanning pass %d, created %d cache-sized runs\n", readPass, sortedMiniRuns.size());
+		printf("At scanning pass %d, created %zu cache-sized runs\n", readPass, sortedMiniRuns.size());
 		if (ssd.getOutputBufferCapacity() >= bytesRead)
 		{
 			// use readPass as the new mem-sized run index
@@ -343,6 +346,7 @@ int mergeSort()
 	{
 		if (totalNumberMemorySizedRuns == 1)
 		{
+			hdd.outputSpillState(outputTXT);
 			std::string runFolderPath = std::string(LOCAL_DRAM_SIZED_RUNS_DIR) + separator + "run0";
 			hdd.writeRunToOutputTable(runFolderPath.c_str(), OUTPUT_TABLE);
 			return 0;
@@ -356,16 +360,15 @@ int mergeSort()
 	// // If there are mem-sized runs left in SSD
 	// //  Spill them to HDD before merging
 	// // write runs on SSD to HDD, then clear SSD
+	printf("%d number of memsize runs left in SSD", ssd.getNumUnsortedRuns());
 	if (!ssd.outputBuffers.isEmpty())
 	{
 		hdd.outputSpillState(outputTXT);
 		// Trace spilling all runs to HDD, and then clear space
-		hdd.outputSpillState(outputTXT);
 		hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
 		ssd.clearOuputBuffer();
 	}
 
-	// TODO: Consider clear LOCAL_INPUT_DIR physically
 
 	totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
 

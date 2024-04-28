@@ -38,6 +38,7 @@ struct OutputBuffers
 
         // Decrease Disk capacity
         bytesStored += bytesToWrite;
+        return true;
     }
 
     bool isEmpty()
