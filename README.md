@@ -130,7 +130,7 @@ CACHE::getCapacity() const: Returns the current capacity of the cache.
 
 - Based on the number output buffers = 32, we can calculate the total size of space in DRAM can be used to store
   input data at once = 100 MB - 32 \* 8K = 100 MB - 0.25 MB = 99.75 MB = 99.75 MB / (8 KB/ Page) = 12768 pages.
-- Therefore, each time, DRAM can store 12768 pages \* 8 KB/page / recordSize =
+- Therefore, each time, DRAM can store 12768 pages \* 8 KB/page / recordSize
 
 **3. Device-optimized page sizes**
 
