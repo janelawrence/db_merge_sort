@@ -300,7 +300,6 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
             outputBuffers.clear();
         }
         outputBuffers.wrapper->addRecord(winner);
-        // delete winner;
     }
     if (!outputBuffers.isEmpty())
     {

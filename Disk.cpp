@@ -178,19 +178,19 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
         std::ofstream pageFile(pageFilePath, std::ios::binary);
 
         int bytesToWrite = 0;
-        Record *prevWinner = nullptr;
+        std::string prevKey = "None";
         // // write sorted output to output buffer
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
-            if(prevWinner == nullptr) {
-                prevWinner = winner;
-            }else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+            if(prevKey== "None") {
+                prevKey = winner->key +winner->content;
+            }else if(prevKey == winner->key +winner->content) 
             {
                 numDuplicate++;
                 continue;
             }else{
-                prevWinner = winner;
+                prevKey = winner->key +winner->content;
             }
             if (SSD_PAGE_SIZE - outputPageBytesOccupied < recordSize)
             {
@@ -208,14 +208,10 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
                 }
             }
             // write record to page file
-            // char *bytes = winner->serialize();
-            // pageFile.write(bytes, strlen(bytes));
-            // write key
             pageFile.write(winner->key.data(), winner->key.size());
             pageFile.write(winner->content.data(), winner->content.size());
 
             // write content
-            // delete[] bytes;
             delete winner;
             pageFile << "\n";
             outputPageBytesOccupied += recordSize;
@@ -269,18 +265,18 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
 
         int bytesToWrite = 0;
         // write merge result to output table
-        Record * prevWinner = nullptr;
+        std::string prevKey = "None";
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
-            if(prevWinner == nullptr) {
-                prevWinner = winner;
-            }else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+             if(prevKey == "None") {
+                prevKey = winner->key +winner->content;
+            }else if(prevKey == winner->key + winner->content) 
             {
                 numDuplicate++;
                 continue;
             }else{
-                prevWinner = winner;
+                prevKey = winner->key +winner->content;
             }
             // char *bytes = winner->serialize();
             outputFile.write(winner->key.data(), winner->key.size());

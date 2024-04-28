@@ -32,9 +32,9 @@ int SSD_PAGE_SIZE = 50 * 1024;
 int HDD_PAGE_SIZE = 500 * 1024;
 
 // char *INPUT_TXT = "input_120gb_125829120_1024.txt";
-// char *INPUT_TXT = "input_125mb_128000_1024.txt";
+char *INPUT_TXT = "input_125mb_128000_1024.txt";
 // char *INPUT_TXT = "input_50mb_51200_1024.txt";
-char *INPUT_TXT = "mini_200_20_dup_input.txt";
+// char *INPUT_TXT = "mini_200_20_dup_input.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 1UL * 1024*1024;

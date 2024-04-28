@@ -57,11 +57,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 									  { return !std::isalnum(c); }),
 					   line.end());
 			countTotal++;
-			// if (map.find(line) != map.end())
-			// {
-			// 	countDuplicate++;
-			// 	continue;
-			// }
+
 			// if current Page hasn't been filled
 			if (DRAM_PAGE_SIZE - bytesOccupied < recordSize)
 			{
@@ -84,7 +80,6 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 			pageFile.write(line.c_str(), strlen(line.c_str()));
 			pageFile << "\n";
 			bytesOccupied += strlen(line.c_str());
-			// map[line] = 0;
 		}
 		pageFile.close();
 	}
@@ -99,8 +94,6 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 	{
 		return 0;
 	}
-	// Write numbers to trace file
-	outputDuplicatesFound(outputTXT, countTotal, countDuplicate);
 	return pageIdx + 1;
 }
 
@@ -109,7 +102,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 int ScanPlan::outputDuplicatesFound(const char *outputTXT, int countTotal, int countDuplicate)
 {
 	// Open the output file in overwrite mode
-	std::ofstream outputFile(outputTXT, std::ios::out);
+	std::ofstream outputFile(outputTXT, std::ios::app);
 
 	// Check if the file opened successfully
 	if (!outputFile.is_open())
