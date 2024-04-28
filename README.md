@@ -35,18 +35,25 @@ C = CACHE_SIZE
 R = recordSize  
 N = numRecords  
 I = totalInputBytes = R \* N  
-P = PAGE_SIZE  
+P = DRAM_PAGE_SIZE  
+SSD_P = SSD_PAGE_SIZE
+HDD_P = HDD_PAGE_SIZE
 n = recordsPerPage  
-F = Fan-in = number of pages read to memory = (M/P - 2)
+D = Number of pages read to memory = (M - P*numOutputBuffersInDRAM) / P
 
-1. For every M = DRAM_SIZE data, read M/P pages into DRAM
+Alternative 1 External Merge Sort Algorithm:
+1. For every M display(Markdown('$1.0-q \\approx 0.99,0.5,0.0$')) DRAM_SIZE data, read D pages into DRAM
 2. Use Cache to create mini-runs
    - Number of pages can fit in cache = C/P
    - Number of records can fit in cache =
      (pages can fit in cache) \* (records in a page)= (C/P) \* (P/R)
-3. Write mini-runs to DRAM, merge in memory then write mem-sized runs to SSD, and then HDD
-4. State: Merge Runs on HDD:
-   - Read F = (M/P - 2) pages from SSD to DRAM
+3. Merge mini-runs in DRAM output buffers using tournament tree, when DRAM output buffers are full,
+   then spill records to memory-sized runs on SSD output buffers.
+   If SSD output buffers are full, spill all mem-sized runs located in SSD output buffers to HDD,
+   then continue storing memory-sized runs on SSD output buffers.
+5. State: Merge Runs on HDD:
+   - Create SSD-Sized runs by merging memory-sized runs
+   - Merge all SSD-Sized runs into one final sorted run
 
 ### Teammate contributions
 
@@ -56,15 +63,13 @@ F = Fan-in = number of pages read to memory = (M/P - 2)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 2. Minimum count of row            | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 3. Device-optimized page sizes     | WRITE ANALYSIS in next section                                 |
+| 3. Device-optimized page sizes     | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 4. Spilling memory-to-SSD          | (Jane) Done                                                    |
+| 4. Spilling memory-to-SSD          | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 5. Spilling from SSD to disk       | (Jane) Done                                                    |
+| 5. Spilling from SSD to disk       | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 6. Graceful degradation            | TO BE DONE                                                     |
-| a. into merging                    | TO BE DONE                                                     |
-| b. beyond one merge step           | TO BE DONE                                                     |
+| 6. Graceful degradation            | (Jane)                                                         |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 7. Optimized merge patterns        | Using pointers to records instead of index (explain)           |
 | ---------------------------------- | -------------------------------------------------------------- |
@@ -73,7 +78,7 @@ F = Fan-in = number of pages read to memory = (M/P - 2)
 | ---------------------------------- | -------------------------------------------------------------- |
 | 9. Tournament Trees                | (Jane)TournamenTree.h, TournamenTree.cpp                       |
 | ---------------------------------- | -------------------------------------------------------------- |
-| 10. Duplicate Removel              | (Jane) Scan.cpp -> Run *ScanPlan::scan(const char *INPUT_TXT)  |
+| 10. Duplicate Removal              | (Jane) Remove duplicates during merge process                  |
 
 ### Explain
 
