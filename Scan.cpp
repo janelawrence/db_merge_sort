@@ -104,67 +104,7 @@ int ScanPlan::pagingInput(const char *INPUT_TXT, const char *LOCAL_INPUT_DIR)
 	return pageIdx + 1;
 }
 
-Run *ScanPlan::scan(const char *INPUT_TXT, const char *outputTXT)
-{
-	std::ifstream file(INPUT_TXT);
-	Run *recordsInPages = new Run(DRAM_PAGE_SIZE);
-	int countDuplicate = 0;
-	int countTotal = 0;
-	if (file.is_open())
-	{
-		TRACE(true);
-		std::string line;
-		while (std::getline(file, line))
-		{
-			countTotal++;
-			if (map.find(line) != map.end())
-			{
-				countDuplicate++;
-				continue;
-			}
-			// Record *r = new Record(recordSize, line.c_str());
-			recordsInPages->addRecord(new Record(recordSize, line));
-			map[line] = 0;
-		}
-		file.close();
-	}
-	else
-	{
-		printf("FILE cannot be opend\n");
-	}
-	printf("\n\ntotal read in: %d\n", countTotal);
 
-	// Write numbers to trace file
-	outputDuplicatesFound(outputTXT, countTotal, countDuplicate);
-
-	return recordsInPages;
-}
-
-// Run *ScanPlan::scanRun(const char *INPUT_TXT, const char *outputTXT)
-// {
-// 	std::ifstream file(INPUT_TXT);
-// 	Run *recordsInRun = new Run();
-// 	int countTotal = 0;
-// 	if (file.is_open())
-// 	{
-// 		TRACE(true);
-// 		std::string line;
-// 		while (std::getline(file, line))
-// 		{
-// 			countTotal++;
-
-// 			// Record *r = new Record(recordSize, line.c_str());
-// 			recordsInRun->addRecord(new Record(recordSize, line.c_str()));
-// 		}
-// 		file.close();
-// 	}
-// 	else
-// 	{
-// 		printf("FILE cannot be opend\n");
-// 	}
-
-// 	return recordsInRun;
-// }
 
 int ScanPlan::outputDuplicatesFound(const char *outputTXT, int countTotal, int countDuplicate)
 {

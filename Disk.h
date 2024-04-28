@@ -102,8 +102,6 @@ public:
 
     bool eraseRun(int runIdx);
 
-    bool delFirstPageFromRunK(int k);
-
     void mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
     void mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE);
 

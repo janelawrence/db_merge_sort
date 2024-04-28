@@ -256,8 +256,6 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
     int fanin = rTable.size();
 
     TournamentTree *tree = new TournamentTree(fanin, rTable);
-    int i = 0;
-    // CREATE A RUN FOLDER INSIDE LOCAL_DRAM_SIZED_RUNS_DIR
 
     unsigned long long bytesInRun = 0;
     printf("buffersUsed: %d\n", buffersUsed);

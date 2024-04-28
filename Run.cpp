@@ -86,11 +86,11 @@ void Run::removeFirstPage(int firstPageOriginalBytes)
         bytes -= pageHead->getBytes();
     }
     pageHead = pageHead->getNext();
-    delete temp;
+    // delete temp;
 }
 
 /*Add a record to the last page, add a page if needed */
-// TODO: check references
+// Only used when Page size in run is DRAM size
 void Run::addRecord(Record *record)
 {
     if (pageHead->getIdx() == -1)

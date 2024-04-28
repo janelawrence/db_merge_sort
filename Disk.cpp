@@ -132,18 +132,6 @@ bool Disk::eraseRun(int runIdx)
     return true;
 }
 
-// TODO: if not used, delete
-bool Disk::delFirstPageFromRunK(int k)
-{
-    if (k >= 0 && k < unsortedRuns.size() && !unsortedRuns[k]->isEmpty())
-    {
-        int runSize = unsortedRuns[k]->getBytes();
-        unsortedRuns[k]->removeFirstPage(0);
-        capacity += runSize;
-        return true;
-    }
-    return false;
-}
 
 void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
 {
@@ -510,7 +498,7 @@ int Disk::writePageToRunFolder(const char *runFolderPath, Page *page, int pageId
         pageFile.write(toBeRemovedRec->key.data(), toBeRemovedRec->key.size());
         pageFile.write(toBeRemovedRec->content.data(), toBeRemovedRec->content.size());
 
-        // delete[] bytes;
+        // delete[] bytes;ls
         pageFile << '\n';
         page->removeFisrtRecord();
         delete toBeRemovedRec;
