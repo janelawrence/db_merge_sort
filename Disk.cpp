@@ -192,7 +192,7 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
             }else{
                 prevKey = winner->key +winner->content;
             }
-            if (SSD_PAGE_SIZE - outputPageBytesOccupied < recordSize)
+            if (HDD_PAGE_SIZE - outputPageBytesOccupied < recordSize)
             {
                 pageFile.close();
                 // Create a new page file inside LOCAL_INPUT_DIR
