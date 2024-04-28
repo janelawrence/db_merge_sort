@@ -287,7 +287,9 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
             dest->outputSpillState(outputTXT);
             // Simulate write to SSD
             dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
-            bytesInRun += outputBuffers.wrapper->getBytes();
+            int bytesInDRAMOutputBuffers = outputBuffers.wrapper->getBytes();
+            bytesInRun += bytesInDRAMOutputBuffers;
+            
             while (!outputBuffers.isEmpty())
             {
                 // Write to curr run in dest Disk
@@ -321,6 +323,7 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
         }
         outputBuffers.clear();
     }
+    dest->addRunToOutputBuffer(bytesInRun);
     // Keep track of run file in disk's output buffer dest->addRunToOutputBuffer(bytesInRun);
     delete tree;
     for (int i = 0; i < rTable.size(); i++)

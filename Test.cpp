@@ -248,8 +248,8 @@ int mergeSort()
 
 	int nBuffersDRAM = DRAM_SIZE / DRAM_PAGE_SIZE;
 	//  Should be enough to hold the tree of fan-in size
-	// int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
-	int nOutputBuffers = 2;	 // used for testing when dram size is small
+	int nOutputBuffers = 32; // 32 * PAGE_SIZE= 256 KB
+	// int nOutputBuffers = 2;	 // used for testing when dram size is small
 
 	int nInputBuffersDRAM = nBuffersDRAM - nOutputBuffers; // reserve pages as output buffers
 
@@ -311,7 +311,7 @@ int mergeSort()
 		cache.outputMiniRunState(outputTXT);
 
 		// created memory-sized sorted runs using Tournament Tree
-		printf("At scanning pass %d, created %d cache-sized runs\n", readPass, sortedMiniRuns.size());
+		printf("At scanning pass %d, created %zu cache-sized runs\n", readPass, sortedMiniRuns.size());
 		if (ssd.getOutputBufferCapacity() >= bytesRead)
 		{
 			// use readPass as the new mem-sized run index
@@ -343,6 +343,7 @@ int mergeSort()
 	{
 		if (totalNumberMemorySizedRuns == 1)
 		{
+			hdd.outputSpillState(outputTXT);
 			std::string runFolderPath = std::string(LOCAL_DRAM_SIZED_RUNS_DIR) + separator + "run0";
 			hdd.writeRunToOutputTable(runFolderPath.c_str(), OUTPUT_TABLE);
 			return 0;
@@ -356,16 +357,15 @@ int mergeSort()
 	// // If there are mem-sized runs left in SSD
 	// //  Spill them to HDD before merging
 	// // write runs on SSD to HDD, then clear SSD
+	printf("%d number of memsize runs left in SSD", ssd.getNumUnsortedRuns());
 	if (!ssd.outputBuffers.isEmpty())
 	{
 		hdd.outputSpillState(outputTXT);
 		// Trace spilling all runs to HDD, and then clear space
-		hdd.outputSpillState(outputTXT);
 		hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
 		ssd.clearOuputBuffer();
 	}
 
-	// TODO: Consider clear LOCAL_INPUT_DIR physically
 
 	totalNumberMemorySizedRuns = countRunsInDirectory(std::string(LOCAL_DRAM_SIZED_RUNS_DIR));
 
