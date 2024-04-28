@@ -41,7 +41,7 @@ Here are the key variables used in the sorting process:
 
 2. **Creating Mini-Runs Using Cache:**
     - Determine the number of pages that can fit in the cache: `C / P`.
-    - Calculate the number of records that can fit in the cache: ` (pages can fit in cache) \* (records in a page) = (C / P) * (P / R)`.
+    - Calculate the number of records that can fit in the cache: ` (pages can fit in cache) * (records in a page) = (C / P) * (P / R)`.
 
 3. **Writing Mini-Runs:**
     - Write mini-runs to DRAM and merge them in memory.
@@ -167,7 +167,7 @@ CACHE::getCapacity() const: Returns the current capacity of the cache.
     - Then DRAM will read the last few data: `number of pages left to read in the input table`.
     - Then the data spilled to SSD earlier will be read and loaded into Cache.
       Since we use the ratio 0.01, there are 12768 input buffers. When all 12768 input buffers are used in
-      the second to last run, if the ratio is 0.01, which means there are 0.01 \* 12768 = 127 pages of records
+      the second to last run, if the ratio is 0.01, which means there are 0.01 * 12768 = 127 pages of records
       left in the input table. Since cache size is 1 MB = 1MB / (8KB/ Page) = 128 pages, this means cache will
       also have enough space to store this spilled data when it's empty.
     - After reading the spilled data resulted from performing graceful degradation from SSD into Cache. We now
