@@ -127,7 +127,9 @@ Record *Run::popFirstRecord()
         if (pageHead->isEmpty())
         {
             numPage--;
-            pageHead = pageHead->getNext();
+            Page *tmp = pageHead->getNext();
+            delete pageHead;
+            pageHead = tmp;
         }
         return record;
     }
