@@ -24,26 +24,26 @@
 // Set global variable
 
 // Actual params
-// unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
-// unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
-// unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
-// int DRAM_PAGE_SIZE = 8192;								  // 8 KB
-// int SSD_PAGE_SIZE = 50 * 1024;
-// int HDD_PAGE_SIZE = 500 * 1024;
+unsigned long long CACHE_SIZE = 1ULL * 1024 * 1024;		  // 1 MB
+unsigned long long DRAM_SIZE = 100ULL * 1024 * 1024;	  // 100MB
+unsigned long long SSD_SIZE = 10ULL * 1024 * 1024 * 1024; // 10 GB
+int DRAM_PAGE_SIZE = 8192;								  // 8 KB
+int SSD_PAGE_SIZE = 50 * 1024;
+int HDD_PAGE_SIZE = 500 * 1024;
 
 // char *INPUT_TXT = "input_120gb_125829120_1024.txt";
 // char *INPUT_TXT = "input_125mb_128000_1024.txt";
-// char *INPUT_TXT = "input_50mb_51200_1024.txt";
+char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // char *INPUT_TXT = "mini_200_20_input.txt";
 
 // >>>>>> Mini test case 1
-unsigned long long CACHE_SIZE = 1UL * 1024*1024;
-unsigned long long DRAM_SIZE = 10UL * 1024*1024;
-unsigned long long SSD_SIZE = 25UL * 1024*1024;
-int DRAM_PAGE_SIZE = 1024*1024;
-int SSD_PAGE_SIZE = 2 * 1024;
-int HDD_PAGE_SIZE = 50 * 1024;
-char *INPUT_TXT = "input_50mb_51200_1024.txt";
+// unsigned long long CACHE_SIZE = 1UL * 1024*1024;
+// unsigned long long DRAM_SIZE = 10UL * 1024*1024;
+// unsigned long long SSD_SIZE = 25UL * 1024*1024;
+// int DRAM_PAGE_SIZE = 1024*1024;
+// int SSD_PAGE_SIZE = 2 * 1024;
+// int HDD_PAGE_SIZE = 50 * 1024;
+// char *INPUT_TXT = "input_50mb_51200_1024.txt";
 
 // char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // Mini test 1 Set up End < < < < < < < < < <
@@ -59,6 +59,8 @@ unsigned long long HDD_BAN = 100 * 1024 * 1024 / 1000000; // 100 MB/s = 100 MB/u
 
 int recordSize = 0; // initialized
 int numRecords = 0; // initialized
+
+double GD_THRESHOLD = 0.01;
 
 const char *HDD = "HDD";
 const char *SSD = "SSD";
@@ -118,7 +120,7 @@ std::vector<Page *> graceFulDegradation(const char *LOCAL_INPUT_DIR,
 	while (spilledData->getNumPages() > 0)
 	{
 		pagesReadInCache.push_back(spilledData->getFirstPage());
-		spilledData->removeFirstPage(0);
+		spilledData->removeFirstPage(0, false);
 	}
 	// since the spill threshold is 0.1%, the number of pages spilled is guaranteed
 	// could fit in Cache
@@ -290,7 +292,7 @@ int mergeSort()
 		double ratio = (double)pagesLeftInInput / pagesToRead;
 		printf("read %d this pass, left: %d\n", pagesToRead, pagesLeftInInput);
 
-		if (readPass == readPasses - 2 && ratio <= 0.25 && pagesLeftInInput != 0)
+		if (readPass == readPasses - 2 && ratio <= GD_THRESHOLD && pagesLeftInInput != 0)
 		{
 			printf("Graceful Degradation\n");
 			// after degradation, pages are in cache, and in dram

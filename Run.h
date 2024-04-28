@@ -16,7 +16,7 @@ public:
     Run(int pSizeInRun);
     ~Run();
     void appendPage(Page *);
-    void removeFirstPage(int firstPageOriginalBytes);
+    void removeFirstPage(int firstPageOriginalBytes, bool cleanMemory = true);
     void addRecord(Record *);
     Record *popFirstRecord();
     void clear();

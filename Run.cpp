@@ -68,7 +68,7 @@ Run *Run::clone()
     return clonedRun;
 }
 
-void Run::removeFirstPage(int firstPageOriginalBytes)
+void Run::removeFirstPage(int firstPageOriginalBytes, bool cleanMemory)
 {
     if (numPage == 0 || pageHead == nullptr)
     {
@@ -86,7 +86,9 @@ void Run::removeFirstPage(int firstPageOriginalBytes)
         bytes -= pageHead->getBytes();
     }
     pageHead = pageHead->getNext();
-    // delete temp;
+    if(cleanMemory) {
+        delete temp;
+    }
 }
 
 /*Add a record to the last page, add a page if needed */

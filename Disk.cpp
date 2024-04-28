@@ -451,7 +451,7 @@ int Disk::writeOutputTable(const char *outputTXT)
             curr->removeFisrtRecord();
             delete toBeRemovedRec;
         }
-        outputRun->removeFirstPage(firstPageOriginalBytes);
+        outputRun->removeFirstPage(firstPageOriginalBytes, true);
     }
 
     outputFile.close();
