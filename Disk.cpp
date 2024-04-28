@@ -178,10 +178,20 @@ void Disk::mergeMemorySizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
         std::ofstream pageFile(pageFilePath, std::ios::binary);
 
         int bytesToWrite = 0;
+        Record *prevWinner = nullptr;
         // // write sorted output to output buffer
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
+            if(prevWinner == nullptr) {
+                prevWinner = winner;
+            }else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+            {
+                numDuplicate++;
+                continue;
+            }else{
+                prevWinner = winner;
+            }
             if (SSD_PAGE_SIZE - outputPageBytesOccupied < recordSize)
             {
                 pageFile.close();
@@ -259,10 +269,19 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
 
         int bytesToWrite = 0;
         // write merge result to output table
+        Record * prevWinner = nullptr;
         while (tree->hasNext())
         {
             Record *winner = tree->popWinner();
-
+            if(prevWinner == nullptr) {
+                prevWinner = winner;
+            }else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+            {
+                numDuplicate++;
+                continue;
+            }else{
+                prevWinner = winner;
+            }
             // char *bytes = winner->serialize();
             outputFile.write(winner->key.data(), winner->key.size());
             outputFile.write(winner->content.data(), winner->content.size());

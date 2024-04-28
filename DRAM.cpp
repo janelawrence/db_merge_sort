@@ -267,11 +267,19 @@ void DRAM::mergeFromSelfToDest(Disk *dest, const char *outputTXT, std::vector<Ru
     dest->createRunFolder(LOCAL_DRAM_SIZED_RUNS_DIR, outputRunidx);
 
     int pageIdx = 0;
-
+    Record * prevWinner = nullptr;
     while (tree->hasNext())
     {
         Record *winner = tree->popWinner();
-
+        if(prevWinner == nullptr) {
+            prevWinner = winner;
+        }else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+        {
+            numDuplicate++;
+            continue;
+        }else{
+            prevWinner = winner;
+        }
         // if output buffer is full
         if (outputBuffers.isFull())
         {

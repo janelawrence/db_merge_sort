@@ -33,8 +33,8 @@ int HDD_PAGE_SIZE = 500 * 1024;
 
 // char *INPUT_TXT = "input_120gb_125829120_1024.txt";
 // char *INPUT_TXT = "input_125mb_128000_1024.txt";
-char *INPUT_TXT = "input_50mb_51200_1024.txt";
-// char *INPUT_TXT = "mini_200_20_input.txt";
+// char *INPUT_TXT = "input_50mb_51200_1024.txt";
+char *INPUT_TXT = "mini_200_20_dup_input.txt";
 
 // >>>>>> Mini test case 1
 // unsigned long long CACHE_SIZE = 1UL * 1024*1024;
@@ -59,6 +59,7 @@ unsigned long long HDD_BAN = 100 * 1024 * 1024 / 1000000; // 100 MB/s = 100 MB/u
 
 int recordSize = 0; // initialized
 int numRecords = 0; // initialized
+int numDuplicate = 0;
 
 double GD_THRESHOLD = 0.01;
 
@@ -411,6 +412,10 @@ int verityOrder()
 	{
 		printf("Output table is empty\n");
 	}
+
+	ScanPlan *sp = new ScanPlan(recordSize);
+	sp->outputDuplicatesFound(outputTXT, numRecords, numDuplicate);
+
 	return countTotal;
 }
 

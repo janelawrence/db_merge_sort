@@ -44,6 +44,7 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 	std::vector<Run *> miniRuns;
 	int count = 0;
 	int pageIdx = 0;
+	Record *prevWinner = nullptr;
 	while (pageIdx < pagesInDRAM.size())
 	{
 		Page *curr = pagesInDRAM[pageIdx];
@@ -53,8 +54,20 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 			// one cache-sized run has been filled
 			while (!heap.isEmpty())
 			{
-				miniRun->addRecord(heap.getMin());
+				Record *winner = heap.getMin();
 				heap.deleteMin();
+				if(prevWinner == nullptr) 
+				{
+					prevWinner = winner;
+				}
+				else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+				{
+					numDuplicate++;
+					continue;
+				}else{
+					prevWinner = winner;
+				}
+				miniRun->addRecord(winner);
 			}
 			miniRuns.push_back(miniRun);
 
@@ -76,8 +89,21 @@ std::vector<Run *> CACHE::sort(std::vector<Page *> pagesInDRAM, int maxRecordsIn
 			Run *miniRun = new Run(DRAM_PAGE_SIZE);
 			while (!heap.isEmpty())
 			{
-				miniRun->addRecord(heap.getMin());
+				Record *winner = heap.getMin();
 				heap.deleteMin();
+
+				if(prevWinner == nullptr) 
+				{
+					prevWinner = winner;
+				}
+				else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+				{
+					numDuplicate++;
+					continue;
+				}else{
+					prevWinner = winner;
+				}
+				miniRun->addRecord(winner);
 			}
 
 			miniRuns.push_back(miniRun);
@@ -106,6 +132,7 @@ std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesIn
     std::vector<Run *> miniRuns;
     int count = 0;
     int pageIdx = 0;
+	Record * prevWinner = nullptr;
     while (pageIdx < pagesInDRAM.size())
     {
             Page *curr = pagesInDRAM[pageIdx];
@@ -115,8 +142,20 @@ std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesIn
 				Run *miniRun = new Run(DRAM_PAGE_SIZE);
 				while (!heap.isEmpty())
 				{
-					miniRun->addRecord(heap.getMin());
+					Record *winner = heap.getMin();
 					heap.deleteMin();
+					if(prevWinner == nullptr) 
+					{
+						prevWinner = winner;
+					}
+					else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+					{
+						numDuplicate++;
+						continue;
+					}else{
+						prevWinner = winner;
+					}
+					miniRun->addRecord(winner);
 				}
 				miniRuns.push_back(miniRun);
 
@@ -138,8 +177,22 @@ std::vector<Run *> CACHE::sortForGracefulDegradation(std::vector<Page *> pagesIn
 				Run *miniRun = new Run(DRAM_PAGE_SIZE);
 				while (!heap.isEmpty())
 				{
-					miniRun->addRecord(heap.getMin());
+					Record *winner = heap.getMin();
 					heap.deleteMin();
+					if(prevWinner == nullptr) 
+					{
+						prevWinner = winner;
+					}
+					else if(prevWinner->key + prevWinner->content == winner->key +winner->content) 
+					{
+						numDuplicate++;
+						continue;
+					}
+					else
+					{
+						prevWinner = winner;
+					}
+					miniRun->addRecord(winner);
 				}
 
 				miniRuns.push_back(miniRun);
