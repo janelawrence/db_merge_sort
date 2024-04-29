@@ -81,6 +81,7 @@ Alternative 1 External Merge Sort Algorithm:
 | 9. Tournament Trees                | (Jane)TournamenTree.h, TournamenTree.cpp                       |
 | ---------------------------------- | -------------------------------------------------------------- |
 | 10. Duplicate Removal              | (Jane) Remove duplicates during merge process                  |
+| 11. Report              | (Jane and Ziqi) writing README.md to explain project design and implementation                  |
 
 ### Explain
 
