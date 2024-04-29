@@ -1,8 +1,8 @@
 # Database - External Merge Sort Implementation
 
 ## Teammates
-Jane Zhang(9084547828)
-Ziqi Liao (9084667097)
+Jane Zhang(9084547828)  
+Ziqi Liao (9084667097)  
 Github [https://github.com/janelawrence/db_merge_sort/tree/jane/optimize]
 
 ## Overview
