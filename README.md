@@ -1,7 +1,8 @@
 # Database - External Merge Sort Implementation
 
 ## Teammates
-Jane Zhang, Ziqi Liao
+Jane Zhang(9084547828)
+Ziqi Liao (9084667097)
 Github [https://github.com/janelawrence/db_merge_sort/tree/jane/optimize]
 
 ## Overview
@@ -108,7 +109,7 @@ If you wish to change the name of the input table, you can change it in line 35 
 | ---------------------------------- |----------------------------------------------------------------|
 | 1. Cache-size mini runs            | Jane                                                         |
 | 2. Minimum count of row            | Jane                                                         |
-| 3. Device-optimized page sizes     | Jane                                                           |
+| 3. Device-optimized page sizes     | Jane,Ziqi                                                      |
 | 4. Spilling memory-to-SSD          | Jane                                                         |
 | 5. Spilling from SSD to disk       | Jane                                                         |
 | 6. Graceful degradation            | Jane(implementation), Ziqi                                  |
