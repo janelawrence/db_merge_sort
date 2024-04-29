@@ -71,12 +71,16 @@ TournamentTree.h/TournamentTree.cpp: Implements the tournament tree logic includ
 
 ### Execute the program
 
-To execute the program, use the `make run` command. This command is equivalent to running `./ExternalSort.exe -c 51200 -s 1024 -o trace_test.txt` directly from the terminal. It outputs all system statistics and displays the records stored in input.txt.
+To execute the program, use the `make` command to create the `ExternalSort.exe` executable.
+Then, input `./ExternalSort.exe -c <numRecords> -s <recordSize> -o <trace.txt>` from the terminal. 
+It outputs all system statistics and displays the records stored in input.txt.
 
-Alternatively, you can execute the program using a shell script by running `bash run.sh` from your terminal.
+Alternatively, you can put the above two commands into `run.sh` we prepare, and run this shell script from your terminal.
 
-If you need to modify the command line arguments, you can adjust the parameters on `line 40 of the Makefile`, where the run target is defined.
+If you wish to use `make run`, make sure you modify the command line arguments by adjusting `line 40 of the Makefile`, where the run target is defined.
 
+According to the project specification, the input table will have name `input_table`, output table will be named `output_table`.
+If you wish to change the name of the input table, you can change it in line 35 in Test.cpp, and line 55 in Test.cpp for the output file name.
 
 ## Techniques Considerations && Contributions
 
@@ -121,6 +125,8 @@ CACHE::getCapacity() const: Returns the current capacity of the cache.
 
 - Based on the number output buffers = 32, we can calculate the total size of space in DRAM can be used to store
   input data at once = 100 MB - 32 \* 8K = 100 MB - 0.25 MB = 99.75 MB = 99.75 MB / (8 KB/ Page) = 12768 pages.
+  Then each time, DRAM can create 100 cache-size mini runs, where 99 of them are 1 MB large, and the last one is 0.75 MB large.
+
 - Therefore, each time, DRAM's input buffer can store 12,768 pages \* (8 KB/page) / recordSize records. 
   According to the range of record size, which is 20 ~ 2,000 bytes,  
   each time, DRAM's input buffer can store 52,297 to 5,229,772 number of records  
@@ -147,6 +153,10 @@ The process involves:
 - Managing internal buffers and ensuring they are flushed to SSD properly.
 
 **5. Spilling from SSD to disk**
+- Since we adopted alternative 1, SSD will be used soley for tempoary storage. Therefore we'll use the majority of its space
+as outputbuffer, storing memory-sized merged runs spilled from mempry. We use 80% of space of SSD as the output buffers.
+The rest of the 20% are saved for when graceful degradation needs it.
+
 - Locate in Test.cpp
 -  Buffer management: With data loaded into DRAM from an input source, sorted data accumulates in the SSD's output buffer.
 - Data spilled: When the output buffer capacity exceeds(insufficient to store the next memory-size run), the data move to HDD
