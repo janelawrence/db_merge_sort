@@ -87,10 +87,9 @@ If you need to modify the command line arguments, you can adjust the parameters 
 | 3. Device-optimized page sizes     | Jane                                                           |
 | 4. Spilling memory-to-SSD          | Jane                                                         |
 | 5. Spilling from SSD to disk       | Jane                                                         |
-| 6. Graceful degradation            | Jane(implementation), Ziqi (TA meetings)                       |
+| 6. Graceful degradation            | Jane(implementation), Ziqi (meetings)                       |
 | 7. Optimized merge patterns        | Jane                                                           |
 | 8. Verifying: sort order           | Jane: Test.cpp -> verityOrder()                                |
-| a. sets of rows & values           |                                                                |
 | 9. Tournament Trees                | Jane: TournamenTree.h, TournamenTree.cpp                       |
 | 10. Duplicate Removal              | Jane: Remove duplicates during merge process                   |
 | 11. Report                         | Jane and Ziqi: writing README.md to explain project design and implementation|
