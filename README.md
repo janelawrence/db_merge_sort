@@ -61,30 +61,30 @@ Here are the key variables used in the sorting process:
 
 ## Main Code Structure
 
-Test.cpp >> mergeSort(): Implements the external merge sort process.
+**Test.cpp >> mergeSort()**: Implements the external merge sort process.
 
-CACHE.h/CACHE.cpp: Implements the cache system for sorting data. It manages the simulation of memory caching, sorting, and processing of data.
+**CACHE.h/CACHE.cpp**: Implements the cache system for sorting data. It manages the simulation of memory caching, sorting, and processing of data.
 
-Run.h/Run.cpp: Manages sequences of records (runs) that are processed and sorted by the cache or tournament tree.
+**Run.h/Run.cpp**: Manages sequences of records (runs) that are processed and sorted by the cache or tournament tree.
 
-Page.h/Page.cpp: Represents a page of records, handling the collection of records as per the page size.
+**Page.h/Page.cpp**: Represents a page of records, handling the collection of records as per the page size.
 
-Record.h/Record.cpp: Defines the data structure for individual records within pages.
+**Record.h/Record.cpp**: Defines the data structure for individual records within pages.
 
-HeapSort.h/HeapSort.cpp: Implements the sorting algorithm used by the cache to sort records.
+**HeapSort.h/HeapSort.cpp**: Implements the sorting algorithm used by the cache to sort records.
 
-Disk.h/Disk.cpp: Simulates a hard disk drive for storage and retrieval of data.
+**Disk.h/Disk.cpp**: Simulates a hard disk drive for storage and retrieval of data.
   Disk::mergeMemorySizedRuns
   Disk::mergeSSDSizedRuns
   Disk::writeOutputTable
 
-TournamentTree.h/TournamentTree.cpp: Implements the tournament tree logic including node comparisons, record management, and tree operations.
+**TournamentTree.h/TournamentTree.cpp**: Implements the tournament tree logic including node comparisons, record management, and tree operations.
 
-Scan.cpp:
+**Scan.cpp**:
   ScanPlan::pagingInput >> scan the input_table, and truncate them into DRAM_SIZE pages
   during scanning, remove all non-alphanumeric characters for each records
 
-DRAM.h/DRAM.cpp: contains methods for reading records into DRAM input buffers, and in-memory merging
+**DRAM.h/DRAM.cpp**: contains methods for reading records into DRAM input buffers, and in-memory merging
   DRAM::readRecords
   DRAM::mergeFromSelfToDest 
 
