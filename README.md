@@ -2,6 +2,7 @@
 
 ## Teammates
 Jane Zhang, Ziqi Liao
+Github [https://github.com/janelawrence/db_merge_sort/tree/jane/optimize]
 
 ## Overview
 This project implements an external merge sort algorithm, which is particularly effective for sorting very large datasets that exceed the size of the main memory. The algorithm is capable of handling data sets ranging from 50 MB up to 120 GB, with individual record sizes of 20 to 2000 bytes.
