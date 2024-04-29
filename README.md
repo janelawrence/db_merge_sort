@@ -260,7 +260,7 @@ The rest of the 20% are saved for when graceful degradation needs it.
       memory sizes from this local directory.
 
     c. all SSD-Sized runs are stored in a folder inside `LOCAL_SSD_SIZED_RUNS_DIR` = `ssd_sized_runs`;
-        Each it stores floor(SSD_SIZE/DRAM_SIZE) number of runs in this folder
+        Each run folder stores floor(SSD_SIZE/SSD_PAGE_SIZE) number of pages.
 
 **6. Graceful degradation**
 According to the paper, it uses a threshold 0.01.
