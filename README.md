@@ -49,7 +49,7 @@ Here are the key variables used in the sorting process:
 
 4. **Merging Runs on HDD:**
     - Read `F` pages from SSD to DRAM, where `F` is the calculated fan-in value.
-    - F = (M/P - 2)
+    - F = (SSD_SIZE/HDD_PAGE_SIZE)
 
 
 ## Main Code Structure
@@ -83,24 +83,15 @@ If you need to modify the command line arguments, you can adjust the parameters 
 | Techniques                         | contributions                                                  |
 | ---------------------------------- |----------------------------------------------------------------|
 | 1. Cache-size mini runs            | Jane                                                         |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 2. Minimum count of row            | Jane                                                         |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 3. Device-optimized page sizes     | Jane                                                           |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 4. Spilling memory-to-SSD          | Jane                                                         |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 5. Spilling from SSD to disk       | Jane                                                         |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 6. Graceful degradation            | Jane(implementation), Ziqi (TA meetings)                       |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 7. Optimized merge patterns        | Jane                                                           |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 8. Verifying: sort order           | Jane: Test.cpp -> verityOrder()                                |
 | a. sets of rows & values           |                                                                |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 9. Tournament Trees                | Jane: TournamenTree.h, TournamenTree.cpp                       |
-| ---------------------------------- | -------------------------------------------------------------- |
 | 10. Duplicate Removal              | Jane: Remove duplicates during merge process                   |
 | 11. Report                         | Jane and Ziqi: writing README.md to explain project design and implementation|
 | 12. Meetings                       | Jane and Ziqi                                                                |
@@ -239,20 +230,25 @@ following steps:
 - input: Read keys from OUTPUT_TABLE and check if each key is less than the subsequent key.
 - output: return 'true' if all records are in ascending order, 'false' otherwise. Additionally, prints "output table is empty".
 
-**9. Tournament Trees**
+**9. Tournament Trees**  
+
 Design for sorting of large input by simulating a tournament comparison among records.
 Use a tournament tree to determine the "winner" among multiple runs of sorted data.
 
-- Implementation: 
+- ***Implementation***: 
     - use an array as the representation of the tree
     - At the leaf level, every two nodes are competing against each other
-- Whoever has the smaller value is the winner and moves up along the tree
-- When a winner is popped, this class keeps track of which sorted run this winner came from, and 
+    - Whoever has the smaller value is the winner and moves up along the tree
+    - When a winner is popped, this class keeps track of which sorted run this winner came from, and 
   grab the next winner and inserted in the leaf node where the winner previously started the competition.
   Then the new record will trigger the competition bottom-up until a new winner is produced.
-- Whenever a run is empty, the leaf node where was used to place candidates from this run is inserted a Ghost Record index, `-1`
-- In any competition between a Non-Ghost record and a ghost record, the non-ghost record wins and moves up the competition hierachy.
-- When a Ghost Key is placed at the winner position of the tree, this means that the tree is empty
+    - Whenever a run is empty, the leaf node where was used to place candidates from this run is inserted a Ghost Record index, `-1`
+    - In any competition between a Non-Ghost record and a ghost record, the non-ghost record wins and moves up the competition hierachy.
+    - When a Ghost Key is placed at the winner position of the tree, this means that the tree is empty
+
+- ***Handles two cases***:
+    - when runs are in memory, fetching pages of sorted mini cache-sized runs from memory
+    - when runs are in HDD, fetching pages of sorted runs from disk
 
 _**API Reference**_
 - TournamentTree(int, std::vector<Run _> &, Disk \_): Constructs a tournament tree with specified runs and disk.
