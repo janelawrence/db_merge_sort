@@ -33,9 +33,10 @@ int HDD_PAGE_SIZE = 512 * 1024;
 
 
 // char * INPUT_TXT = "input_table";
+char *INPUT_TXT = "input_12gb_12582912_1024.txt";
 // char *INPUT_TXT = "input_120gb_125829120_1024.txt";
 // char *INPUT_TXT = "input_125mb_128000_1024.txt";
-char *INPUT_TXT = "input_50mb_51200_1024.txt";
+// char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // char *INPUT_TXT = "mini_200_20_dup_input.txt";
 // char * INPUT_TXT = "input_125mb_128000_1024_dup.txt";
 

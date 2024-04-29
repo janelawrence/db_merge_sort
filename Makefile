@@ -37,7 +37,7 @@ $(TARGET) : Makefile $(OBJS)
 	g++ $(CPPFLAGS) $(OBJS) -o $@
 
 run: $(TARGET)
-	./$(TARGET) -c 128000 -s 1024 -o trace_125mb_128000_1024.txt
+	./$(TARGET) -c 12582912 -s 1024 -o trace_12GB_1024.txt
 
 # trace : Test.exe Makefile
 # 	@date > trace

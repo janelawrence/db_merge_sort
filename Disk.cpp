@@ -262,7 +262,7 @@ void Disk::mergeSSDSizedRuns(const char *outputTXT, const char *OUTPUT_TABLE)
             return;
         }
 
-        int bytesToWrite = 0;
+        unsigned long long bytesToWrite = 0;
         // write merge result to output table
         std::string prevKey = "None";
         while (tree->hasNext())
@@ -376,9 +376,16 @@ int Disk::outputAccessState(const char *accessType,
     // Calcualte duration
     std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
+    unsigned long long bytesInMB = totalBytes/1024/1024;
+    if(bytesInMB < 1) 
+    {
+        outputFile << "ACCESS -> A " << accessType << " to " << diskType << " was made with size " << totalBytes << " bytes and latency " << duration.count() << " us\n";
+    }
+    else
+    {
     // Print output to both console and file
-    outputFile << "ACCESS -> A " << accessType << " to " << diskType << " was made with size " << totalBytes << " bytes and latency " << duration.count() << " us\n";
-
+        outputFile << "ACCESS -> A " << accessType << " to " << diskType << " was made with size " << bytesInMB << " Mega bytes and latency " << duration.count() << " us\n";
+    }
     // close file
     outputFile.close();
     return 0;
@@ -782,103 +789,3 @@ void Disk::setCapacity(unsigned long long newCap)
 {
     capacity = newCap;
 }
-
-// To test this main individually:
-// use: g++ Run.cpp Record.cpp HeapSort.cpp DRAM.cpp SSD.cpp -o ssd
-// int main() {
-
-//     HeapSort tree1;
-//     HeapSort tree2;
-//     HeapSort tree3;
-
-//     int recordSize = 20;
-//     int numRecords = 15;
-
-//     int totalBytes = recordSize * numRecords;
-
-//     Record * r1 = new Record(recordSize, "alsdfeei");
-//     Record * r2 = new Record(recordSize, "ewfeasdf");
-//     Record * r3 = new Record(recordSize, "bdfsewfh");
-//     Record * r4 = new Record(recordSize, "abcdasdf");
-//     Record * r5 = new Record(recordSize, "eeerghwr");
-
-//     Record * r6 = new Record(recordSize, "alsdmeei");
-//     Record * r7 = new Record(recordSize, "ewfqesdf");
-//     Record * r8 = new Record(recordSize, "alsdiefd");
-//     Record * r9 = new Record(recordSize, "msjdfhwd");
-//     Record * r10 = new Record(recordSize, "edprghwr");
-
-//     Record * r11 = new Record(recordSize, "zlsdmeei");
-//     Record * r12 = new Record(recordSize, "oeqesdfw");
-//     Record * r13 = new Record(recordSize, "skfjhuwc");
-//     Record * r14 = new Record(recordSize, "kviwudvg");
-//     Record * r15 = new Record(recordSize, "aaabkkee");
-
-//     r1->setSlot(0);
-//     r2->setSlot(0);
-//     r3->setSlot(0);
-//     r4->setSlot(0);
-//     r5->setSlot(0);
-
-//     r6->setSlot(1);
-//     r7->setSlot(1);
-//     r8->setSlot(1);
-//     r9->setSlot(1);
-//     r10->setSlot(1);
-
-//     r11->setSlot(2);
-//     r12->setSlot(2);
-//     r13->setSlot(2);
-//     r14->setSlot(2);
-//     r15->setSlot(2);
-
-//     // Insert some records
-//     tree1.insert(r1);
-//     tree1.insert(r2);
-//     tree1.insert(r3);
-//     tree1.insert(r4);
-//     tree1.insert(r5);
-
-//     tree2.insert(r6);
-//     tree2.insert(r7);
-//     tree2.insert(r8);
-//     tree2.insert(r9);
-//     tree2.insert(r10);
-
-//     tree3.insert(r11);
-//     tree3.insert(r12);
-//     tree3.insert(r13);
-//     tree3.insert(r14);
-//     tree3.insert(r15);
-
-//     std::vector<HeapSort*> runs;
-//     runs.push_back(&tree1);
-//     runs.push_back(&tree2);
-//     runs.push_back(&tree3);
-
-//     // Create an DRAM object with capacity 10GB, latency 0.1ms, and bandwidth 200MB/s
-//     DRAM* dram = new DRAM();
-
-//     std::vector<Run*> dramOutput = dram->merge(runs, recordSize);
-//     for(long unsigned int i = 0; i < dramOutput.size(); i++) {
-// 		Run* run = dramOutput[i];
-// 		printf("-------------DRAM Output %d th Run -----------\n", i);
-// 		run->print();
-// 		printf("\n");
-// 	}
-
-//     SSD* ssd = new SSD(0.0001, 200 * 1024 * 1024);
-
-//     ssd->writeData(totalBytes);
-
-//     std::vector<Run*> ssdOutput = ssd->merge(dramOutput, recordSize);
-
-//     for(long unsigned int i = 0; i < ssdOutput.size(); i++) {
-// 		Run* run = ssdOutput[i];
-// 		printf("------------- SSD Output %d th Run -----------\n", i);
-// 		run->print();
-// 		printf("\n");
-// 	}
-
-//     return 0;
-// }
