@@ -53,7 +53,7 @@ Here are the key variables used in the sorting process:
 
 4. **Merging Runs on HDD:**
     - First create all SSD-Sized runs by merging memory-sized runs in sequence
-        - Read `F` pages from F memory-sized sorted runs from HDD, where `F` is the calculated fan-in value.
+        - Merge `F` memory-sized sorted runs. Read `F` pages from F memory-sized sorted runs from HDD, where `F` is the calculated fan-in value.
         - F here  = SSD_SIZE/DRAM_SIZE
     - Then merge all SSD-Sized runs into the final sorted table
       - Here fan-in is equal to total number of SSD-Sized runs created
