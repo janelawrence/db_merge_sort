@@ -35,7 +35,7 @@ Here are the key variables used in the sorting process:
 - `n`: recordsPerPage - The number of records that fit within a single page, determined as `n = P / R`.
 - `F`: Fan-in - The number of pages that can be read into memory simultaneously, calculated as `F = (M / P) - 2`.
 
-### Sorting Process (Using Alternative 1)
+### Sorting Process (Using Alternative 1), Test.cpp >> mergeSort()
 1. **Reading Data:**
     - For every `M` bytes of data, read `M / P` pages into DRAM.
 
@@ -50,9 +50,13 @@ Here are the key variables used in the sorting process:
 4. **Merging Runs on HDD:**
     - Read `F` pages from SSD to DRAM, where `F` is the calculated fan-in value.
     - F = (SSD_SIZE/HDD_PAGE_SIZE)
+    - First create all SSD-Sized runs by merging memory-sized runs in sequence
+    - Then merge all SSDD-Sized runs into the final sorted table
 
 
 ## Main Code Structure
+
+Test.cpp >> mergeSort(): Implements the external merge sort process.
 
 CACHE.h/CACHE.cpp: Implements the cache system for sorting data. It manages the simulation of memory caching, sorting, and processing of data.
 
@@ -64,9 +68,20 @@ Record.h/Record.cpp: Defines the data structure for individual records within pa
 
 HeapSort.h/HeapSort.cpp: Implements the sorting algorithm used by the cache to sort records.
 
-disk.h/disk.cpp: Simulates a hard disk drive for storage and retrieval of data.
+Disk.h/Disk.cpp: Simulates a hard disk drive for storage and retrieval of data.
+  Disk::mergeMemorySizedRuns
+  Disk::mergeSSDSizedRuns
+  Disk::writeOutputTable
 
 TournamentTree.h/TournamentTree.cpp: Implements the tournament tree logic including node comparisons, record management, and tree operations.
+
+Scan.cpp:
+  ScanPlan::pagingInput >> scan the input_table, and truncate them into DRAM_SIZE pages
+  during scanning, remove all non-alphanumeric characters for each records
+
+DRAM.h/DRAM.cpp: contains methods for reading records into DRAM input buffers, and in-memory merging
+  DRAM::readRecords
+  DRAM::mergeFromSelfToDest 
 
 
 ### Execute the program
@@ -91,13 +106,13 @@ If you wish to change the name of the input table, you can change it in line 35 
 | 3. Device-optimized page sizes     | Jane                                                           |
 | 4. Spilling memory-to-SSD          | Jane                                                         |
 | 5. Spilling from SSD to disk       | Jane                                                         |
-| 6. Graceful degradation            | Jane(implementation), Ziqi (meetings)                       |
+| 6. Graceful degradation            | Jane(implementation), Ziqi                                  |
 | 7. Optimized merge patterns        | Jane                                                           |
 | 8. Verifying: sort order           | Jane: Test.cpp -> verityOrder()                                |
 | 9. Tournament Trees                | Jane: TournamenTree.h, TournamenTree.cpp                       |
 | 10. Duplicate Removal              | Jane: Remove duplicates during merge process                   |
 | 11. Report                         | Jane and Ziqi: writing README.md to explain project design and implementation|
-| 12. Meetings                       | Jane and Ziqi                                                                |
+| 12. Meetings                       | Jane and Ziqi                                                  |
  
 
 
@@ -152,6 +167,35 @@ The process involves:
 - Simulating writing to the SSD (represented by an object `dest`, which is a Disk class object) when the buffer is full.
 - Managing internal buffers and ensuring they are flushed to SSD properly.
 
+As discussed in 3., each time DRAM output buffer is full, there are 32 output buffers * 8 KB/page = 256 KB data spilled to SSD.
+
+
+- API Reference:
+  DRAM.cpp >> mergeFromSelfToDest() >> line 283 to line 303, and line 306 to 322
+  ```
+  // if output buffer is full
+        if (outputBuffers.isFull())
+        {
+            // Report Spilling happen to trace.txt
+            dest->outputSpillState(outputTXT);
+            // Simulate write to SSD
+            dest->outputAccessState(ACCESS_WRITE, outputBuffers.wrapper->getBytes(), outputTXT);
+            int bytesInDRAMOutputBuffers = outputBuffers.wrapper->getBytes();
+            bytesInRun += bytesInDRAMOutputBuffers;
+            
+            while (!outputBuffers.isEmpty())
+            {
+                // Write to curr run in dest Disk
+                Page *page = outputBuffers.wrapper->getFirstPage();
+                int firstPageOriginalBytes = page->getBytes();
+                dest->writePageToRunFolder(newRunPath.c_str(), page, pageIdx);
+                pageIdx++;
+                outputBuffers.wrapper->removeFirstPage(firstPageOriginalBytes, true);
+            }
+            outputBuffers.clear();
+        }
+  ```
+
 **5. Spilling from SSD to disk**
 - Since we adopted alternative 1, SSD will be used soley for tempoary storage. Therefore we'll use the majority of its space
 as outputbuffer, storing memory-sized merged runs spilled from mempry. We use 80% of space of SSD as the output buffers.
@@ -166,8 +210,42 @@ The rest of the 20% are saved for when graceful degradation needs it.
 
 - When SSD output buffers are full, spill all runs from SSD to HDD
 
-- When all memory-sized runs are created, but they are still in SSD,
-  spill them to HDD before merge
+- When all memory-sized runs are created, but they are still in SSD, spill them to HDD before merge
+
+- API Reference:
+  a. Test.cpp >> MergeSort() >> line 319 to line 331,  
+  ```
+  if (ssd.getOutputBufferCapacity() >= bytesRead)
+		{
+			// use readPass as the new mem-sized run index
+			dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns, readPass);
+		}
+		else
+		{
+			// In alternative 1, all runs on SSD are of memory-sized
+			// write runs on SSD to HDD, then clear SSD
+			// write all runs to HDD, and then clear space
+			hdd.outputSpillState(outputTXT);
+			hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
+			ssd.clearOuputBuffer();
+			dram.mergeFromSelfToDest(&ssd, outputTXT, sortedMiniRuns, readPass);
+		}
+  ```
+
+  b. Test.cpp >> MergeSort() >> line 361 to line 371, 
+  ```
+    	// // If there are mem-sized runs left in SSD
+      // //  Spill them to HDD before merging
+      // // write runs on SSD to HDD, then clear SSD
+      printf("%d number of memsize runs left in SSD", ssd.getNumUnsortedRuns());
+      if (!ssd.outputBuffers.isEmpty())
+      {
+        hdd.outputSpillState(outputTXT);
+        // Trace spilling all runs to HDD, and then clear space
+        hdd.outputAccessState(ACCESS_WRITE, ssd.outputBuffers.getBytes(), outputTXT);
+        ssd.clearOuputBuffer();
+      }
+  ```
 
 - Physically:
     a. all memory-sized runs are stored in a folder inside directory `LOCAL_DRAM_SIZED_RUNS_DIR`, which is `mem_sized_runs`.
@@ -181,7 +259,7 @@ The rest of the 20% are saved for when graceful degradation needs it.
 
 **6. Graceful degradation**
 According to the paper, it uses a threshold 0.01.
-In line x of Test.cpp, when it's the second to last pass of reading the input table, the program
+In line 297 to 299 of Test.cpp, when it's the second to last pass of reading the input table, the program
 calculates the ratio of `number of pages left to read in the input table` to `current number of pages loaded in DRAM`. If the ratio is smaller or equal to 0.01, the program will then perform graceful degradation in the
 following steps:
 
@@ -220,9 +298,25 @@ following steps:
       i . `sortedMiniRuns = cache.sortForGracefulDegradation(dram.getInputBuffers(), pagesInCache, maxRecordsInPage);`
       ii. CACHE.cpp >> `sortForGracefulDegradation`` function is responsible for creating sorted mini-runs
   
+**7. Merging Memory-Size runs into SSD-Sized Runs**
+
+1. If there are more than 1 memory-sized runs in HDD, then start merging them into SSD-sized runs  
+  - Code Reference:   
+      Test.cpp >> mergeSort() >> line 373 to line 377: calling `hdd.mergeMemorySizedRuns(outputTXT, OUTPUT_TABLE);`  
+      Then in Disk::mergeMemorySizedRuns, it has the logic for using tournament tree to merge, and write to HDD pages
 
 
-**7. Optimized merge patterns**
+
+**8. Merging SSD-Size runs into final sorted Table**
+1. If there are more than 1 SSD-sized runs in HDD, then start merging them into SSD-sized runs  
+  - Code Reference:   
+      Test.cpp >> mergeSort() >> line 381: calling `hdd.mergeSSDSizedRuns(outputTXT, OUTPUT_TABLE);;`  
+      Then in Disk::mergeSSDSizedRuns, it has the logic for using tournament tree to merge, and write to HDD pages.
+2. Note that since the SSD writing would be a lot of lines output to Trace file, so we only report page
+reading on HDD during this process. And the latency for writing out is simulated when the entire sorted
+run is written to the ouput_table file. (Consulted with TA, and TA agreed this way is appropriate)
+
+**9. Optimized merge patterns**
 
 - Using pointers to keep record reference.
   When reading records, I define a Record class to store separate the key characters and the rest of the characters. Then they are referred into different data strucutre, such as Page, and Run, and DRAM, SSD,
@@ -233,13 +327,13 @@ following steps:
   that takes up a lot of memory to store the hash table, and therefore I changed it to happen during
   merging sorted runs.
 
-**8. Verifying: sort order**
+**10. Verifying: sort order**
 
 - located in "Test.cpp -> verityOrder()"
 - input: Read keys from OUTPUT_TABLE and check if each key is less than the subsequent key.
 - output: return 'true' if all records are in ascending order, 'false' otherwise. Additionally, prints "output table is empty".
 
-**9. Tournament Trees**  
+**11. Tournament Trees**  
 
 Design for sorting of large input by simulating a tournament comparison among records.
 Use a tournament tree to determine the "winner" among multiple runs of sorted data.
@@ -263,11 +357,10 @@ _**API Reference**_
 - TournamentTree(int, std::vector<Run _> &, Disk \_): Constructs a tournament tree with specified runs and disk.
 - void update(int, Record \*): Updates a tree node with a new record.
 - Record \*popWinner(): Removes the winning record from the tree and updates the tree structure.
-- void replaceWinner(Record \*): Replaces the current winner with a new record, useful for continuous sorting.
 - bool hasNext(): Checks if there are more records to process.
 - Record \*getWinner() const: Returns the current winner without removing it from the tree.
 
-**10. Duplicate Removel**
+**12. Duplicate Removel**
 
 
 - During both merging in DRAM, and merging in HDD, I keep track of the last winner.

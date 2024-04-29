@@ -1,4 +1,4 @@
-CPPOPT=-O0 -fsanitize=address -g -D_DEBUG
+CPPOPT=-O0 -g -D_DEBUG
 # -O2 -Os -Ofast
 # -fprofile-generate -fprofile-use
 CPPFLAGS=$(CPPOPT) -Wall -ansi -pedantic -std=c++17

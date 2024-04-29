@@ -32,25 +32,14 @@ int SSD_PAGE_SIZE = 20 * 1024;
 int HDD_PAGE_SIZE = 512 * 1024;
 
 
-// char * INPUT_TXT = "input_table";
-char *INPUT_TXT = "input_12gb_12582912_1024.txt";
+char * INPUT_TXT = "input_table";
+// char *INPUT_TXT = "input_12gb_12582912_1024.txt";
 // char *INPUT_TXT = "input_120gb_125829120_1024.txt";
 // char *INPUT_TXT = "input_125mb_128000_1024.txt";
 // char *INPUT_TXT = "input_50mb_51200_1024.txt";
 // char *INPUT_TXT = "mini_200_20_dup_input.txt";
 // char * INPUT_TXT = "input_125mb_128000_1024_dup.txt";
 
-// >>>>>> Mini test case 1
-// unsigned long long CACHE_SIZE = 1UL * 1024*1024;
-// unsigned long long DRAM_SIZE = 10UL * 1024*1024;
-// unsigned long long SSD_SIZE = 25UL * 1024*1024;
-// int DRAM_PAGE_SIZE = 1024*1024;
-// int SSD_PAGE_SIZE = 2 * 1024;
-// int HDD_PAGE_SIZE = 50 * 1024;
-// char *INPUT_TXT = "input_50mb_51200_1024.txt";
-
-// char *INPUT_TXT = "input_50mb_51200_1024.txt";
-// Mini test 1 Set up End < < < < < < < < < <
 
 unsigned long long HDD_SIZE = std::numeric_limits<unsigned long long>::max();
 char *OUTPUT_TABLE = "output_table";
@@ -218,8 +207,7 @@ int mergeSort()
 		// Return if not able to create LOCAL_INPUT_DIR
 		return 1;
 	}
-	// Filter out duplicate records and store in pages
-	// Run *uniqueRecordsInPages = sp.scan(INPUT_TXT, outputTXT);
+	// Truncate input table into pages
 	int totalPages = sp->pagingInput(INPUT_TXT, LOCAL_INPUT_DIR);
 
 	delete sp;
