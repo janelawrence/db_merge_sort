@@ -41,7 +41,7 @@ void Generator::generateRecords(const char *fileName)
 
     // Seed the random number generator
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
-    std::cout << "\n";
+    std::cout << "\n\n";
     // Generate numRecords number of records
     for (int i = 0; i < numRecords; ++i)
     {
@@ -115,60 +115,60 @@ void Generator::generateWitDupRecords(const char *fileName)
     outputFile.close();
 }
 
-int main(int argc, char *argv[])
-{
-    int c;
-    int recordSize = 0;
-    int numRecords = 0;
-    const char *fileName = nullptr;
-    int duplicate = 0;
+// int main(int argc, char *argv[])
+// {
+//     int c;
+//     int recordSize = 0;
+//     int numRecords = 0;
+//     const char *fileName = nullptr;
+//     int duplicate = 0;
 
-    // Parse command-line options
-    while ((c = getopt(argc, argv, "c:s:f:p:")) != -1)
-    {
-        switch (c)
-        {
-        case 'c':
-            numRecords = std::atoi(optarg);
-            break;
-        case 's':
-            recordSize = std::atoi(optarg);
-            break;
-        case 'f':
-            fileName = optarg;
-            break;
-        case 'p':
-            duplicate = std::atoi(optarg);
-            break;
-        default:
-            printf("Usage: %s -c <numRecords> -s <recordSize> -f <fileName>\n", argv[0]);
-            return 1;
-        }
-    }
+//     // Parse command-line options
+//     while ((c = getopt(argc, argv, "c:s:f:p:")) != -1)
+//     {
+//         switch (c)
+//         {
+//         case 'c':
+//             numRecords = std::atoi(optarg);
+//             break;
+//         case 's':
+//             recordSize = std::atoi(optarg);
+//             break;
+//         case 'f':
+//             fileName = optarg;
+//             break;
+//         case 'p':
+//             duplicate = std::atoi(optarg);
+//             break;
+//         default:
+//             printf("Usage: %s -c <numRecords> -s <recordSize> -f <fileName>\n", argv[0]);
+//             return 1;
+//         }
+//     }
 
-    // Check if all required options are provided
-    if (recordSize == 0 || numRecords == 0 || fileName == nullptr)
-    {
-        printf("Usage: %s -c <numRecords> -s <recordSize> -f <fileName>\n", argv[0]);
-        return 1;
-    }
-    printf("dup: %d\n", duplicate);
+//     // Check if all required options are provided
+//     if (recordSize == 0 || numRecords == 0 || fileName == nullptr)
+//     {
+//         printf("Usage: %s -c <numRecords> -s <recordSize> -f <fileName>\n", argv[0]);
+//         return 1;
+//     }
+//     printf("dup: %d\n", duplicate);
 
-    // Create an instance of Generator
-    Generator generator(recordSize, numRecords);
+//     // Create an instance of Generator
+//     Generator generator(recordSize, numRecords);
 
-    if (duplicate == 0)
-    {
-        // Generate records
-        generator.generateRecords(fileName);
-    }
-    else
-    {
-        printf("creating records containing dup\n");
-        generator.generateWitDupRecords(fileName);
-    }
+//     if (duplicate == 0)
+//     {
+//         // Generate records
+//         generator.generateRecords(fileName);
+//     }
+//     else
+//     {
+//         printf("creating records containing dup\n");
+//         generator.generateWitDupRecords(fileName);
+//     }
 
-    printf("\nRecords generated successfully!\n\n");
+//     printf("\nRecords generated successfully!\n\n");
 
-    return 0;
-}
+//     return 0;
+// }

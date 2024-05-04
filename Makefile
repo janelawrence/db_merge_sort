@@ -13,15 +13,15 @@ DOCS=Tasks.txt
 SCRS=
 
 # headers and code sources
-HDRS=	defs.h Scan.h Iterator.h\
+HDRS=	defs.h Scan.h Iterator.h Generator.h\
 		Record.h Disk.h HeapSort.h Run.h \
 		CACHE.h DRAM.h Page.h TournamentTree.h\
-SRCS=	defs.cpp Assert.cpp Test.cpp Scan.cpp Iterator.cpp\
+SRCS=	defs.cpp Assert.cpp Test.cpp Scan.cpp Iterator.cpp Generator.cpp\
 		Record.cpp Disk.cpp HeapSort.cpp Run.cpp \
 		CACHE.cpp DRAM.cpp Page.cpp TournamentTree.cpp\
 
 # compilation targets
-OBJS=	defs.o Assert.o Test.o Scan.o Iterator.o\
+OBJS=	defs.o Assert.o Test.o Scan.o Iterator.o Generator.o\
 		Record.o Disk.o HeapSort.o Run.o \
 		CACHE.o DRAM.o Page.o TournamentTree.o\
 
@@ -37,7 +37,7 @@ $(TARGET) : Makefile $(OBJS)
 	g++ $(CPPFLAGS) $(OBJS) -o $@
 
 run: $(TARGET)
-	./$(TARGET) -c 12582912 -s 1024 -o trace_12GB_1024.txt
+	./$(TARGET) -c 1500 -s 2000 -o trace0.txt
 
 # trace : Test.exe Makefile
 # 	@date > trace
@@ -49,7 +49,7 @@ run: $(TARGET)
 
 
 $(OBJS) : Makefile defs.h
-Test.o : Record.h Disk.h HeapSort.h Run.h CACHE.h DRAM.h Page.h TournamentTree.h Scan.h Iterator.h
+Test.o : Record.h Disk.h HeapSort.h Run.h CACHE.h DRAM.h Page.h TournamentTree.h Scan.h Iterator.h Generator.h
 Iterator.o: Iterator.h Record.h
 Page.o: Page.h Record.h
 Run.o: Run.h Record.h Page.h

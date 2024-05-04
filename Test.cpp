@@ -5,6 +5,7 @@
 #include "DRAM.h"
 #include "Disk.h"
 #include "Scan.h"
+#include "Generator.h"
 
 #include <limits>
 #include <cstdlib> // For atoi function
@@ -444,6 +445,9 @@ int main(int argc, char *argv[])
 		printf("Usage: %s -c <numRecords> -s <recordSize> -o <outputFileName>\n", argv[0]);
 		return 1;
 	}
+	// Create input table based on command line
+	Generator generator(recordSize, numRecords);
+	generator.generateRecords(INPUT_TXT);
 
 	mergeSort();
 	int countOutputRecords = verityOrder();

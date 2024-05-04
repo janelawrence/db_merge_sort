@@ -1,4 +1,0 @@
-STATE -> SORT_MINI_RUNS: Sort cache-size mini runs
-STATE -> SPILL_RUNS_SSD: Spill sorted runs to the SSD device
-ACCESS -> A write to SSD was made with size 204800 bytes and latency 100 us
-MERGE_RUNS_SSD: Merge sorted runs on the SSD device
