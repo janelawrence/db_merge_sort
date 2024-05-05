@@ -287,7 +287,7 @@ following steps:
       runs.
 
 - Where in Code do we realize it:
-  a. In secord to last run, decide whether to do Graceful Degradation: 
+  a. In second to last run, decide whether to do Graceful Degradation: 
 
   b. Clear space in DRAM input buffers to SSD just enough to store `number of pages left to read in the input table`. Calcuate the ratio `double ratio = (double)pagesLeftInInput / pagesToRead`:
   Test.cpp >> mergeSort() >> line 296 - 297
@@ -328,7 +328,7 @@ run is written to the ouput_table file. (Consulted with TA, and TA agreed this w
   When reading records, I define a Record class to store separate the key characters and the rest of the characters. Then they are referred into different data strucutre, such as Page, and Run, and DRAM, SSD,
   and HDD.
 
-- Also, the desgin of duplicate removal is implemented in the process of merging when we pop winner from the Tournament Tree. This process can increase the number of records being merge in next merge level, therefore, can
+- Also, the desgin of duplicate removal is implemented in the process of merging when we pop winner from the Tournament Tree. This process can decrease the number of records being merge in next merge level, therefore, can
   optimize the time. Originally, this part is implemented during the initial scanning by hashing. However,
   that takes up a lot of memory to store the hash table, and therefore I changed it to happen during
   merging sorted runs.
@@ -390,6 +390,7 @@ _**API Reference**_
         }else{
             prevWinner = winner;
         }
+    }
   ```
   b. Disk::mergeMemorySizedRuns(),
     ```
@@ -401,7 +402,7 @@ _**API Reference**_
           Record *winner = tree->popWinner();
           if(prevKey== "None") {
               prevKey = winner->key +winner->content;
-          }else if(prevKey == winner->key +winner->content) 
+          }else if(prevKey == winner->key + winner->content) 
           {
               numDuplicate++;
               continue;
